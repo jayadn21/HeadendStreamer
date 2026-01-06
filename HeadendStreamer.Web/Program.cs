@@ -7,18 +7,11 @@ using Serilog;
 var builder = WebApplication.CreateBuilder(args);
 
 // Configure Serilog
-Log.Logger = new LoggerConfiguration()
-    .ReadFrom.Configuration(builder.Configuration)
-    .Enrich.FromLogContext()
-    .WriteTo.Console()
-    .WriteTo.File(
-        "logs/headend-.log",
-        rollingInterval: RollingInterval.Day,
-        retainedFileCountLimit: 7,
-        shared: true)
-    .CreateLogger();
-
-builder.Host.UseSerilog();
+// Configure Serilog
+builder.Host.UseSerilog((context, services, configuration) => configuration
+    .ReadFrom.Configuration(context.Configuration)
+    .ReadFrom.Services(services)
+    .Enrich.FromLogContext());
 
 // Configure Data Protection for Windows
 var keysPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "HeadendStreamer", "keys");

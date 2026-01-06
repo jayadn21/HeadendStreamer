@@ -173,12 +173,32 @@ public class StreamManagerService
     
     public async Task<StreamLog[]> GetStreamLogsAsync(string configId, int lines = 100)
     {
-        if (!_processes.TryGetValue(configId, out var streamProcess))
-            return Array.Empty<StreamLog>();
-        
+        string logFile;
+
+        if (_processes.TryGetValue(configId, out var streamProcess))
+        {
+            logFile = streamProcess.LogFile;
+        }
+        else
+        {
+            // Try to find the latest log file on disk
+            var logDir = Path.Combine(Directory.GetCurrentDirectory(), "logs", "ffmpeg");
+            if (!Directory.Exists(logDir))
+                return Array.Empty<StreamLog>();
+
+            var files = Directory.GetFiles(logDir, $"{configId}_*.log");
+            if (files.Length == 0)
+                return Array.Empty<StreamLog>();
+
+            logFile = files.OrderByDescending(f => f).First();
+        }
+
         try
         {
-            var logContent = await File.ReadAllLinesAsync(streamProcess.LogFile);
+            if (!File.Exists(logFile))
+                return Array.Empty<StreamLog>();
+
+            var logContent = await File.ReadAllLinesAsync(logFile);
             return logContent.TakeLast(lines)
                 .Select(line => ParseLogLine(configId, line))
                 .Where(log => log != null)

@@ -1,0 +1,191 @@
+@model HeadendStreamer.Web.Models.ViewModels.StreamViewModel
+@{
+    ViewData["Title"] = "Stream Details";
+}
+
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2>
+                    <i class="fas fa-play-circle me-2 text-success"></i>@Model.Config.Name
+                </h2>
+                <div>
+                    <a asp-controller="Config" asp-action="Edit" asp-route-id="@Model.Config.Id" class="btn btn-warning me-2">
+                        <i class="fas fa-edit me-1"></i> Edit Config
+                    </a>
+                    <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i> Dashboard
+                    </a>
+                </div>
+            </div>
+            @if (!string.IsNullOrEmpty(Model.Config.Description))
+            {
+                <p class="text-muted mt-2">@Model.Config.Description</p>
+            }
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Info Card -->
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">Configuration</h5>
+                </div>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span class="text-muted">Source Type</span>
+                        <span class="badge bg-primary rounded-pill">@Model.Config.InputFormat</span>
+                    </li>
+                    <li class="list-group-item">
+                        <span class="text-muted d-block mb-1">Input Device</span>
+                        <code>@Model.Config.InputDevice</code>
+                    </li>
+                    <li class="list-group-item">
+                        <span class="text-muted d-block mb-1">Destination</span>
+                        <code>udp://@Model.Config.MulticastIp:@Model.Config.Port</code>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span class="text-muted">Status</span>
+                        @if (Model.Status?.IsRunning == true)
+                        {
+                            <span class="badge bg-success">Running</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Stopped</span>
+                        }
+                    </li>
+                </ul>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        @if (Model.Status?.IsRunning == true)
+                        {
+                            <button class="btn btn-danger stop-stream" data-id="@Model.Config.Id">
+                                <i class="fas fa-stop me-2"></i> Stop Stream
+                            </button>
+                            <button class="btn btn-warning restart-stream" data-id="@Model.Config.Id">
+                                <i class="fas fa-sync me-2"></i> Restart
+                            </button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-success start-stream" data-id="@Model.Config.Id">
+                                <i class="fas fa-play me-2"></i> Start Stream
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics & Logs -->
+        <div class="col-md-8 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Live Status</h5>
+                    <button class="btn btn-sm btn-outline-primary" id="refreshLogs">
+                        <i class="fas fa-sync"></i> Refresh Logs
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3 text-center">
+                         <div class="col-md-3">
+                            <div class="border rounded p-2">
+                                <small class="text-muted d-block">CPU Usage</small>
+                                <h4 class="mb-0" id="stat-cpu">@((Model.Status?.CpuUsage ?? 0).ToString("F1"))%</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="border rounded p-2">
+                                <small class="text-muted d-block">Memory</small>
+                                <h4 class="mb-0" id="stat-mem">@((Model.Status?.MemoryUsageMb ?? 0).ToString("F0")) MB</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="border rounded p-2">
+                                <small class="text-muted d-block">Bitrate</small>
+                                <h4 class="mb-0" id="stat-bitrate">@((Model.Status?.Bitrate ?? 0))k</h4>
+                            </div>
+                        </div>
+                         <div class="col-md-3">
+                            <div class="border rounded p-2">
+                                <small class="text-muted d-block">Uptime</small>
+                                <h4 class="mb-0" id="stat-uptime">@((Model.Status?.Uptime ?? TimeSpan.Zero).ToString(@"hh\:mm\:ss"))</h4>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <h6 class="text-muted mb-2">Recent Logs</h6>
+                    <div class="bg-dark text-light p-3 rounded" style="height: 300px; overflow-y: auto; font-family: monospace; font-size: 0.9em;" id="log-container">
+                        <div class="text-center text-muted mt-5">Loading logs...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const streamId = '@Model.Config.Id';
+        const logContainer = document.getElementById('log-container');
+
+        // Control Actions
+        document.querySelectorAll('.start-stream').forEach(btn => {
+            btn.addEventListener('click', () => controlStream('start'));
+        });
+        document.querySelectorAll('.stop-stream').forEach(btn => {
+            btn.addEventListener('click', () => controlStream('stop'));
+        });
+        document.querySelectorAll('.restart-stream').forEach(btn => {
+            btn.addEventListener('click', () => controlStream('restart'));
+        });
+
+        async function controlStream(action) {
+            try {
+                const response = await fetch(`/api/stream/${streamId}/${action}`, { method: 'POST' });
+                if (response.ok) {
+                    location.reload();
+                } else {
+                    alert('Command failed');
+                }
+            } catch (e) {
+                alert('Connection error');
+            }
+        }
+
+        // Logs & Stats Polling
+        async function fetchLogs() {
+            try {
+                const response = await fetch(`/api/stream/${streamId}/logs?lines=50`);
+                if (response.ok) {
+                    const logs = await response.json();
+                    if (logs && logs.length > 0) {
+                        logContainer.innerHTML = logs.map(l => `<div><span class="text-secondary">[${new Date(l.timestamp).toLocaleTimeString()}]</span> ${l.message}</div>`).join('');
+                        logContainer.scrollTop = logContainer.scrollHeight;
+                    } else {
+                         logContainer.innerHTML = '<div class="text-muted">No logs available</div>';
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to fetch logs', e);
+            }
+        }
+
+        // Initial fetch
+        fetchLogs();
+        
+        // Refresh button
+        document.getElementById('refreshLogs').addEventListener('click', fetchLogs);
+
+        // Auto-refresh every 5s if running
+        @if (Model.Status?.IsRunning == true)
+        {
+            <text>
+            setInterval(fetchLogs, 5000);
+            </text>
+        }
+    </script>
+}

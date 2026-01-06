@@ -53,5 +53,7 @@ public class StreamStatus
     public double Fps { get; set; }
     public string StatusMessage { get; set; } = string.Empty;
     public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
+    
+    public double MemoryUsageMb => MemoryUsage / 1024.0 / 1024.0;
 }
 

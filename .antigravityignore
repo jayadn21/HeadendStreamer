@@ -1,0 +1,3 @@
+# Example .antigravityignore
+secrets.json
+private_docs/

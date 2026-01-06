@@ -16,3 +16,8 @@
 .vs/ProjectEvaluation/headendstreamer.metadata.v10.bin
 .vs/ProjectEvaluation/headendstreamer.projects.v10.bin
 .vs/ProjectEvaluation/headendstreamer.strings.v10.bin
+HeadendStreamer.Web/bin
+HeadendStreamer.Web/obj
+.vs
+HeadendStreamer.Web/logs
+HeadendStreamer.Web/logs/headend-20260106.log

@@ -2,13 +2,10 @@ using HeadendStreamer.Web.Models.Entities;
 using HeadendStreamer.Web.Models.ViewModels;
 using HeadendStreamer.Web.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR;
 
 namespace HeadendStreamer.Web.Controllers;
 
-[Route("api/[controller]")]
-[ApiController]
-public class StreamController : ControllerBase
+public class StreamController : Controller
 {
     private readonly StreamManagerService _streamManager;
     private readonly ConfigService _configService;
@@ -23,8 +20,32 @@ public class StreamController : ControllerBase
         _configService = configService;
         _logger = logger;
     }
-    
+
+    // MVC Actions
+
     [HttpGet]
+    public async Task<IActionResult> Details(string id)
+    {
+        var config = await _configService.GetConfigAsync(id);
+        if (config == null)
+        {
+            return NotFound();
+        }
+
+        var status = _streamManager.GetStreamStatus(id);
+        
+        var viewModel = new StreamViewModel
+        {
+            Config = config,
+            Status = status
+        };
+
+        return View(viewModel);
+    }
+    
+    // API Actions
+    
+    [HttpGet("api/stream")]
     public IActionResult GetAllStreams()
     {
         var configs = _configService.GetAllConfigs();
@@ -39,7 +60,7 @@ public class StreamController : ControllerBase
         return Ok(streams);
     }
     
-    [HttpGet("{id}")]
+    [HttpGet("api/stream/{id}")]
     public async Task<IActionResult> GetStream(string id)
     {
         var config = await _configService.GetConfigAsync(id);
@@ -55,7 +76,7 @@ public class StreamController : ControllerBase
         });
     }
     
-    [HttpPost("{id}/start")]
+    [HttpPost("api/stream/{id}/start")]
     public async Task<IActionResult> StartStream(string id)
     {
         try
@@ -70,7 +91,7 @@ public class StreamController : ControllerBase
         }
     }
     
-    [HttpPost("{id}/stop")]
+    [HttpPost("api/stream/{id}/stop")]
     public async Task<IActionResult> StopStream(string id)
     {
         try
@@ -88,7 +109,7 @@ public class StreamController : ControllerBase
         }
     }
     
-    [HttpPost("{id}/restart")]
+    [HttpPost("api/stream/{id}/restart")]
     public async Task<IActionResult> RestartStream(string id)
     {
         try
@@ -103,7 +124,7 @@ public class StreamController : ControllerBase
         }
     }
     
-    [HttpGet("{id}/logs")]
+    [HttpGet("api/stream/{id}/logs")]
     public async Task<IActionResult> GetLogs(string id, [FromQuery] int lines = 100)
     {
         try
@@ -118,7 +139,7 @@ public class StreamController : ControllerBase
         }
     }
     
-    [HttpGet("{id}/stats")]
+    [HttpGet("api/stream/{id}/stats")]
     public IActionResult GetStreamStats(string id)
     {
         var status = _streamManager.GetStreamStatus(id);

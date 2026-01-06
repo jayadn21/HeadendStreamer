@@ -4,9 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace HeadendStreamer.Web.Controllers;
 
-[Route("api/[controller]")]
-[ApiController]
-public class ConfigController : ControllerBase
+public class ConfigController : Controller
 {
     private readonly ConfigService _configService;
     private readonly FfmpegService _ffmpegService;
@@ -21,15 +19,43 @@ public class ConfigController : ControllerBase
         _ffmpegService = ffmpegService;
         _logger = logger;
     }
-    
+
+    // MVC Actions
+
     [HttpGet]
+    public IActionResult Index()
+    {
+        var configs = _configService.GetAllConfigs();
+        return View(configs);
+    }
+
+    [HttpGet]
+    public IActionResult Create()
+    {
+        return View(new StreamConfig());
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Edit(string id)
+    {
+        var config = await _configService.GetConfigAsync(id);
+        if (config == null)
+        {
+            return NotFound();
+        }
+        return View(config);
+    }
+    
+    // API Actions
+
+    [HttpGet("api/config")]
     public IActionResult GetAllConfigs()
     {
         var configs = _configService.GetAllConfigs();
         return Ok(configs);
     }
     
-    [HttpGet("{id}")]
+    [HttpGet("api/config/{id}")]
     public async Task<IActionResult> GetConfig(string id)
     {
         var config = await _configService.GetConfigAsync(id);
@@ -39,7 +65,7 @@ public class ConfigController : ControllerBase
         return Ok(config);
     }
     
-    [HttpPost]
+    [HttpPost("api/config")]
     public async Task<IActionResult> CreateConfig([FromBody] StreamConfig config)
     {
         try
@@ -54,7 +80,7 @@ public class ConfigController : ControllerBase
         }
     }
     
-    [HttpPut("{id}")]
+    [HttpPut("api/config/{id}")]
     public async Task<IActionResult> UpdateConfig(string id, [FromBody] StreamConfig updates)
     {
         try
@@ -72,7 +98,7 @@ public class ConfigController : ControllerBase
         }
     }
     
-    [HttpDelete("{id}")]
+    [HttpDelete("api/config/{id}")]
     public async Task<IActionResult> DeleteConfig(string id)
     {
         var result = await _configService.DeleteConfigAsync(id);
@@ -82,14 +108,14 @@ public class ConfigController : ControllerBase
         return Ok(new { message = "Config deleted successfully" });
     }
     
-    [HttpGet("templates/{name}")]
+    [HttpGet("api/config/templates/{name}")]
     public IActionResult GetTemplate(string name)
     {
         // Create template from ConfigService method
         return Ok(new { message = "Template endpoint" });
     }
     
-    [HttpGet("devices")]
+    [HttpGet("api/config/devices")]
     public async Task<IActionResult> GetVideoDevices()
     {
         try
@@ -104,7 +130,7 @@ public class ConfigController : ControllerBase
         }
     }
     
-    [HttpPost("test/device")]
+    [HttpPost("api/config/test/device")]
     public async Task<IActionResult> TestDevice([FromBody] DeviceTestRequest request)
     {
         try
@@ -119,7 +145,7 @@ public class ConfigController : ControllerBase
         }
     }
     
-    [HttpPost("test/stream")]
+    [HttpPost("api/config/test/stream")]
     public async Task<IActionResult> TestStream([FromBody] StreamConfig config)
     {
         try
@@ -134,7 +160,7 @@ public class ConfigController : ControllerBase
         }
     }
     
-    [HttpPost("backup")]
+    [HttpPost("api/config/backup")]
     public async Task<IActionResult> CreateBackup()
     {
         try
@@ -150,7 +176,7 @@ public class ConfigController : ControllerBase
         }
     }
     
-    [HttpPost("restore")]
+    [HttpPost("api/config/restore")]
     public async Task<IActionResult> RestoreBackup(IFormFile file)
     {
         if (file == null || file.Length == 0)
