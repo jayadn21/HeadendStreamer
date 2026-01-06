@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  headend-streamer:
+    build: .
+    container_name: headend-streamer
+    restart: unless-stopped
+    ports:
+      - "5000:80"
+      - "5001:443"
+    volumes:
+      - ./configs:/app/configs
+      - ./logs:/app/logs
+      - /dev/video0:/dev/video0:rw
+      - /dev/dri:/dev/dri:rw  # For hardware acceleration
+    devices:
+      - "/dev/video0:/dev/video0"
+    cap_add:
+      - SYS_ADMIN  # Needed for some video capture cards
+    privileged: true  # May be required for some capture cards
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:80;https://+:443
+      - ASPNETCORE_Kestrel__Certificates__Default__Password=YourPasswordHere
+      - ASPNETCORE_Kestrel__Certificates__Default__Path=/app/certs/headend.pfx
+    networks:
+      - headend-network
+
+  # Optional: Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: headend-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+    depends_on:
+      - headend-streamer
+    networks:
+      - headend-network
+
+networks:
+  headend-network:
+    driver: bridge

@@ -1,0 +1,266 @@
+@model HeadendStreamer.Web.Models.ViewModels.DashboardViewModel
+@{
+    ViewData["Title"] = "Headend Streamer Dashboard";
+}
+
+<div class="container-fluid">
+    <!-- System Status Card -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-server me-2"></i>System Status
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="me-3">
+                                    <i class="fas fa-microchip fa-2x text-primary"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">CPU</h6>
+                                    <div class="progress mt-2" style="height: 8px;">
+                                        <div class="progress-bar bg-primary" role="progressbar" 
+                                             style="width: @(Model.SystemInfo.CpuUsage)%"
+                                             aria-valuenow="@Model.SystemInfo.CpuUsage" 
+                                             aria-valuemin="0" aria-valuemax="100">
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">@Model.SystemInfo.CpuUsage.ToString("0.0")%</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="me-3">
+                                    <i class="fas fa-memory fa-2x text-success"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">Memory</h6>
+                                    <div class="progress mt-2" style="height: 8px;">
+                                        <div class="progress-bar bg-success" role="progressbar" 
+                                             style="width: @(Model.SystemInfo.MemoryUsage)%"
+                                             aria-valuenow="@Model.SystemInfo.MemoryUsage" 
+                                             aria-valuemin="0" aria-valuemax="100">
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">@((Model.SystemInfo.TotalMemory - Model.SystemInfo.AvailableMemory) / 1024 / 1024 / 1024)GB / @(Model.SystemInfo.TotalMemory / 1024 / 1024 / 1024)GB</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="me-3">
+                                    <i class="fas fa-hdd fa-2x text-warning"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">Disk</h6>
+                                    <div class="progress mt-2" style="height: 8px;">
+                                        <div class="progress-bar bg-warning" role="progressbar" 
+                                             style="width: @(Model.SystemInfo.DiskUsage)%"
+                                             aria-valuenow="@Model.SystemInfo.DiskUsage" 
+                                             aria-valuemin="0" aria-valuemax="100">
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">@Model.SystemInfo.DiskUsage.ToString("0.0")% Used</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="me-3">
+                                    <i class="fas fa-broadcast-tower fa-2x text-info"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">Streams</h6>
+                                    <h3 class="mb-0">@Model.ActiveStreams/@Model.TotalStreams</h3>
+                                    <small class="text-muted">Active / Total</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <small class="text-muted">
+                                <i class="fas fa-desktop me-1"></i> @Model.SystemInfo.Hostname
+                            </small>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <small class="text-muted">
+                                <i class="fas fa-clock me-1"></i> Uptime: @Model.SystemInfo.Uptime.ToString(@"dd\.hh\:mm\:ss")
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Streams Grid -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-stream me-2"></i>Streams
+                    </h5>
+                    <div>
+                        <a href="/config/create" class="btn btn-primary btn-sm">
+                            <i class="fas fa-plus me-1"></i> New Stream
+                        </a>
+                        <button id="refreshStreams" class="btn btn-outline-secondary btn-sm ms-1">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if (Model.Streams.Any())
+                    {
+                        <div class="row" id="streamsGrid">
+                            @foreach (var stream in Model.Streams)
+                            {
+                                <div class="col-md-4 mb-4" id="stream-@stream.Config.Id">
+                                    <div class="card h-100 stream-card @(stream.Status?.IsRunning == true ? "border-success" : "border-secondary")">
+                                        <div class="card-header d-flex justify-content-between align-items-center">
+                                            <h6 class="mb-0">
+                                                @if (stream.Status?.IsRunning == true)
+                                                {
+                                                    <span class="badge bg-success me-1"><i class="fas fa-circle"></i></span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary me-1"><i class="fas fa-circle"></i></span>
+                                                }
+                                                @stream.Config.Name
+                                            </h6>
+                                            <div class="dropdown">
+                                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" 
+                                                        type="button" data-bs-toggle="dropdown">
+                                                    <i class="fas fa-ellipsis-v"></i>
+                                                </button>
+                                                <ul class="dropdown-menu">
+                                                    <li>
+                                                        <a class="dropdown-item" href="/stream/details/@stream.Config.Id">
+                                                            <i class="fas fa-eye me-2"></i>View Details
+                                                        </a>
+                                                    </li>
+                                                    <li>
+                                                        <a class="dropdown-item" href="/config/edit/@stream.Config.Id">
+                                                            <i class="fas fa-edit me-2"></i>Edit Config
+                                                        </a>
+                                                    </li>
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    @if (stream.CanStart)
+                                                    {
+                                                        <li>
+                                                            <button class="dropdown-item start-stream" data-id="@stream.Config.Id">
+                                                                <i class="fas fa-play me-2 text-success"></i>Start Stream
+                                                            </button>
+                                                        </li>
+                                                    }
+                                                    @if (stream.CanStop)
+                                                    {
+                                                        <li>
+                                                            <button class="dropdown-item stop-stream" data-id="@stream.Config.Id">
+                                                                <i class="fas fa-stop me-2 text-danger"></i>Stop Stream
+                                                            </button>
+                                                        </li>
+                                                    }
+                                                    <li>
+                                                        <button class="dropdown-item restart-stream" data-id="@stream.Config.Id">
+                                                            <i class="fas fa-redo me-2 text-warning"></i>Restart Stream
+                                                        </button>
+                                                    </li>
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    <li>
+                                                        <button class="dropdown-item text-danger delete-stream" data-id="@stream.Config.Id">
+                                                            <i class="fas fa-trash me-2"></i>Delete
+                                                        </button>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+                                            <p class="card-text small text-muted">@stream.Config.Description</p>
+                                            
+                                            <div class="row g-2 mb-3">
+                                                <div class="col-6">
+                                                    <small class="text-muted d-block">Resolution</small>
+                                                    <strong>@stream.Config.VideoSize</strong>
+                                                </div>
+                                                <div class="col-6">
+                                                    <small class="text-muted d-block">Bitrate</small>
+                                                    <strong>@stream.Config.Bitrate</strong>
+                                                </div>
+                                                <div class="col-6">
+                                                    <small class="text-muted d-block">FPS</small>
+                                                    <strong>@stream.Config.FrameRate</strong>
+                                                </div>
+                                                <div class="col-6">
+                                                    <small class="text-muted d-block">Codec</small>
+                                                    <strong>@stream.Config.VideoCodec</strong>
+                                                </div>
+                                            </div>
+                                            
+                                            @if (stream.Status?.IsRunning == true)
+                                            {
+                                                <div class="alert alert-success py-2 mb-0">
+                                                    <div class="d-flex justify-content-between">
+                                                        <small>
+                                                            <i class="fas fa-clock me-1"></i> 
+                                                            @stream.Status.Uptime.ToString(@"hh\:mm\:ss")
+                                                        </small>
+                                                        <small>
+                                                            PID: @stream.Status.ProcessId
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <div class="alert alert-secondary py-2 mb-0">
+                                                    <small>
+                                                        <i class="fas fa-stop-circle me-1"></i> Stopped
+                                                    </small>
+                                                </div>
+                                            }
+                                        </div>
+                                        <div class="card-footer bg-transparent border-top-0 pt-0">
+                                            <small class="text-muted">
+                                                <i class="fas fa-broadcast-tower me-1"></i>
+                                                @stream.Config.MulticastIp:@stream.Config.Port
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-5">
+                            <i class="fas fa-stream fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No Streams Configured</h5>
+                            <p class="text-muted">Get started by creating your first streaming configuration.</p>
+                            <a href="/config/create" class="btn btn-primary">
+                                <i class="fas fa-plus me-1"></i> Create First Stream
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/signalr/dist/browser/signalr.js"></script>
+    <script src="~/js/dashboard.js"></script>
+}
