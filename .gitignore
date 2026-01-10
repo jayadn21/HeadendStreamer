@@ -21,3 +21,6 @@ HeadendStreamer.Web/obj
 .vs
 HeadendStreamer.Web/logs
 HeadendStreamer.Web/logs/headend-20260106.log
+HeadendStreamer.Web/build_cli.log
+HeadendStreamer.Web/msbuild.log
+HeadendStreamer.Web/logs/headend-20260106.log

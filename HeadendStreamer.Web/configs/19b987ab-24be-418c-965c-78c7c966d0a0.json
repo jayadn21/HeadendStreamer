@@ -3,17 +3,17 @@
   "Name": "Test Stream",
   "Description": "",
   "Enabled": true,
-  "InputDevice": "/dev/video0",
+  "InputDevice": "video=desktop",
   "InputFormat": "mpegts",
   "VideoSize": "1920x1080",
   "FrameRate": 30,
   "VideoCodec": "libx264",
   "Preset": "veryfast",
   "Tune": "zerolatency",
-  "Bitrate": "5000k",
+  "Bitrate": "2000k",
   "GopSize": 60,
   "EnableAudio": true,
-  "AudioDevice": "hw:0,0",
+  "AudioDevice": "Microphone Array (Realtek(R) Audio)",
   "AudioCodec": "aac",
   "AudioBitrate": "128k",
   "MulticastIp": "239.0.0.1",
@@ -22,5 +22,5 @@
   "OutputFormat": "mpegts",
   "AdvancedOptions": {},
   "CreatedAt": "2026-01-06T13:17:43.7338897Z",
-  "UpdatedAt": "2026-01-06T13:20:05.5869595Z"
+  "UpdatedAt": "2026-01-10T04:14:45.5125154Z"
 }

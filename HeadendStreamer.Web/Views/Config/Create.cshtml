@@ -37,6 +37,7 @@
                                 <label asp-for="InputFormat" class="form-label">Input Format</label>
                                 <select asp-for="InputFormat" class="form-select">
                                     <option value="v4l2">V4L2 (Webcam/Capture Card)</option>
+                                    <option value="dshow">DirectShow (Windows)</option>
                                     <option value="decklink">DeckLink</option>
                                     <option value="mpegts">MPEG-TS (UDP/RTP)</option>
                                 </select>
@@ -44,24 +45,153 @@
                             <div class="col-md-6 mb-3">
                                 <label asp-for="InputDevice" class="form-label">Input Device</label>
                                 <div class="input-group">
-                                    <input asp-for="InputDevice" class="form-control" required />
+                                    <input asp-for="InputDevice" class="form-control" placeholder="video=desktop" required />
                                     <button class="btn btn-outline-secondary" type="button" id="browseDevices">
                                         <i class="fas fa-search"></i>
                                     </button>
                                 </div>
-                                <div class="form-text">e.g., /dev/video0</div>
+                                <div class="form-text">e.g. video=Integrated Camera or /dev/video0</div>
+                            </div>
+                        </div>
+
+                        <h5 class="mt-4 mb-3 border-bottom pb-2">Video Settings</h5>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="VideoSize" class="form-label">Video Size</label>
+                                <select asp-for="VideoSize" class="form-select">
+                                    <option value="3840x2160">3840x2160 (4K)</option>
+                                    <option value="2560x1440">2560x1440 (2K)</option>
+                                    <option value="1920x1080" selected>1920x1080 (1080p)</option>
+                                    <option value="1600x900">1600x900</option>
+                                    <option value="1280x720">1280x720 (720p)</option>
+                                    <option value="1024x768">1024x768</option>
+                                    <option value="854x480">854x480 (480p)</option>
+                                    <option value="720x576">720x576 (PAL)</option>
+                                    <option value="720x480">720x480 (NTSC)</option>
+                                    <option value="640x480">640x480 (VGA)</option>
+                                    <option value="320x240">320x240 (QVGA)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="FrameRate" class="form-label">Frame Rate</label>
+                                <input asp-for="FrameRate" class="form-control" type="number" />
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="VideoCodec" class="form-label">Video Codec</label>
+                                <select asp-for="VideoCodec" class="form-select">
+                                    <option value="libx264">H.264 (libx264)</option>
+                                    <option value="libx265">H.265 (libx265)</option>
+                                    <option value="copy">Copy (Pass-through)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="Preset" class="form-label">Preset</label>
+                                <select asp-for="Preset" class="form-select">
+                                    <option value="ultrafast">ultrafast</option>
+                                    <option value="superfast">superfast</option>
+                                    <option value="veryfast" selected>veryfast</option>
+                                    <option value="faster">faster</option>
+                                    <option value="fast">fast</option>
+                                    <option value="medium">medium</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="Tune" class="form-label">Tune</label>
+                                <select asp-for="Tune" class="form-select">
+                                    <option value="none">none</option>
+                                    <option value="zerolatency" selected>zerolatency</option>
+                                    <option value="film">film</option>
+                                    <option value="animation">animation</option>
+                                </select>
                             </div>
                         </div>
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
+                                <label asp-for="Bitrate" class="form-label">Bitrate</label>
+                                <select asp-for="Bitrate" class="form-select">
+                                    <option value="1000k">1000k (1 Mbps)</option>
+                                    <option value="2000k">2000k (2 Mbps)</option>
+                                    <option value="3000k">3000k (3 Mbps)</option>
+                                    <option value="4000k">4000k (4 Mbps)</option>
+                                    <option value="5000k" selected>5000k (5 Mbps)</option>
+                                    <option value="6000k">6000k (6 Mbps)</option>
+                                    <option value="7000k">7000k (7 Mbps)</option>
+                                    <option value="8000k">8000k (8 Mbps)</option>
+                                    <option value="9000k">9000k (9 Mbps)</option>
+                                    <option value="10000k">10000k (10 Mbps)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="GopSize" class="form-label">GOP Size</label>
+                                <input asp-for="GopSize" class="form-control" type="number" />
+                            </div>
+                        </div>
+
+                        <h5 class="mt-4 mb-3 border-bottom pb-2">Audio Settings</h5>
+                        <div class="mb-3 form-check">
+                            <input asp-for="EnableAudio" class="form-check-input" />
+                            <label asp-for="EnableAudio" class="form-check-label">Enable Audio</label>
+                        </div>
+
+                        <div id="audioSettings">
+                            <div class="mb-3">
+                                <label asp-for="AudioDevice" class="form-label">Audio Device</label>
+                                <input asp-for="AudioDevice" class="form-control" />
+                                <small class="text-muted">e.g. audio=Microphone or hw:0,0</small>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label asp-for="AudioCodec" class="form-label">Audio Codec</label>
+                                    <select asp-for="AudioCodec" class="form-select">
+                                        <option value="aac">AAC</option>
+                                        <option value="libmp3lame">MP3</option>
+                                        <option value="opus">Opus</option>
+                                        <option value="copy">Copy</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label asp-for="AudioBitrate" class="form-label">Audio Bitrate</label>
+                                    <select asp-for="AudioBitrate" class="form-select">
+                                        <option value="64k">64k</option>
+                                        <option value="128k">128k</option>
+                                        <option value="192k">192k</option>
+                                        <option value="256k">256k</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h5 class="mt-4 mb-3 border-bottom pb-2">Output Settings</h5>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
                                 <label asp-for="MulticastIp" class="form-label">Multicast IP</label>
                                 <input asp-for="MulticastIp" class="form-control" placeholder="239.x.x.x" required />
                             </div>
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
                                 <label asp-for="Port" class="form-label">Port</label>
                                 <input asp-for="Port" class="form-control" type="number" min="1024" max="65535" required />
                             </div>
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="Ttl" class="form-label">TTL</label>
+                                <input asp-for="Ttl" class="form-control" type="number" required />
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="OutputFormat" class="form-label">Output Format</label>
+                            <select asp-for="OutputFormat" class="form-select">
+                                <option value="mpegts" selected>MPEG-TS (.ts)</option>
+                                <option value="hls">HLS (.m3u8)</option>
+                                <option value="dash">DASH (.mpd)</option>
+                                <option value="flv">FLV (.flv)</option>
+                                <option value="mp4">MP4 (.mp4)</option>
+                                <option value="rtp">RTP</option>
+                                <option value="rtsp">RTSP</option>
+                            </select>
                         </div>
 
                         <hr />
@@ -69,6 +199,17 @@
                         <div class="mb-3 form-check">
                             <input asp-for="Enabled" class="form-check-input" />
                             <label asp-for="Enabled" class="form-check-label">Enable Stream Immediately</label>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label d-flex justify-content-between">
+                                <span>FFmpeg Command Preview</span>
+                                <button type="button" class="btn btn-sm btn-outline-info" id="copyCommandBtn">
+                                    <i class="fas fa-copy me-1"></i> Copy
+                                </button>
+                            </label>
+                            <textarea id="ffmpegCommandPreview" class="form-control bg-dark text-light font-monospace" rows="4" readonly></textarea>
+                            <div class="form-text">This command is generated dynamically based on your settings above.</div>
                         </div>
 
                         <div class="d-grid gap-2">
@@ -85,6 +226,127 @@
 
 @section Scripts {
     <script>
+        // Toggle audio settings
+        document.getElementById('EnableAudio').addEventListener('change', function() {
+            document.getElementById('audioSettings').style.display = this.checked ? 'block' : 'none';
+            updateCommandPreview();
+        });
+
+        // Function to update the FFmpeg command preview
+        function updateCommandPreview() {
+            const name = document.getElementById('Name').value;
+            const inputFormat = document.getElementById('InputFormat').value;
+            const inputDevice = document.getElementById('InputDevice').value;
+            const videoSize = document.getElementById('VideoSize').value;
+            const frameRate = document.getElementById('FrameRate').value || 30;
+            const videoCodec = document.getElementById('VideoCodec').value;
+            const preset = document.getElementById('Preset').value;
+            const tune = document.getElementById('Tune').value;
+            const bitrate = document.getElementById('Bitrate').value;
+            const gopSize = document.getElementById('GopSize').value || 60;
+            
+            const enableAudio = document.getElementById('EnableAudio').checked;
+            const audioDevice = document.getElementById('AudioDevice').value;
+            const audioCodec = document.getElementById('AudioCodec').value;
+            const audioBitrate = document.getElementById('AudioBitrate').value;
+            
+            const multicastIp = document.getElementById('MulticastIp').value;
+            const port = document.getElementById('Port').value || 1234;
+            const ttl = document.getElementById('Ttl').value || 64;
+            const outputFormat = document.getElementById('OutputFormat').value;
+
+            let args = ['ffmpeg'];
+            
+            // Input settings (Windows logic)
+            const isDesktop = inputDevice.includes('desktop') || inputDevice.includes('screen');
+            if (isDesktop) {
+                args.push('-f', 'gdigrab');
+            } else {
+                args.push('-f', 'dshow');
+            }
+
+            args.push('-thread_queue_size', '1024');
+
+            if (inputFormat && inputFormat !== 'auto' && !inputFormat.includes('mpegts') && !isDesktop) {
+                args.push('-pixel_format', inputFormat);
+            }
+
+            args.push('-video_size', videoSize);
+            args.push('-framerate', frameRate);
+            
+            let finalInputDevice = inputDevice;
+            if (isDesktop && finalInputDevice.startsWith('video=')) {
+                finalInputDevice = finalInputDevice.replace('video=', '');
+            }
+            args.push('-i', `"${finalInputDevice}"`);
+
+            // Audio settings
+            if (enableAudio && audioDevice) {
+                args.push('-f', 'dshow');
+                args.push('-thread_queue_size', '512');
+                args.push('-i', `"${audioDevice}"`);
+            }
+
+            // Video encoding
+            args.push('-c:v', videoCodec);
+            args.push('-preset', preset);
+            args.push('-tune', tune);
+            args.push('-b:v', bitrate);
+            args.push('-maxrate', bitrate);
+            
+            // Parse bitrate for bufsize
+            let brNum = parseInt(bitrate) || 5000;
+            if (bitrate.includes('k')) brNum = parseInt(bitrate);
+            else if (bitrate.includes('m')) brNum = parseInt(bitrate) * 1000;
+            args.push('-bufsize', `${Math.floor(brNum / 2)}k`);
+            
+            args.push('-g', gopSize);
+            args.push('-keyint_min', gopSize);
+            args.push('-sc_threshold', '0');
+
+            // Audio encoding
+            if (enableAudio && audioDevice) {
+                args.push('-c:a', audioCodec);
+                args.push('-b:a', audioBitrate);
+                args.push('-ac', '2');
+            }
+
+            // Output
+            args.push('-f', outputFormat);
+            args.push('-flags', '+global_header');
+            
+            const outputUrl = `udp://${multicastIp}:${port}?pkt_size=1316&buffer_size=65536&ttl=${ttl}`;
+            args.push(`"${outputUrl}"`);
+
+            document.getElementById('ffmpegCommandPreview').value = args.join(' ');
+        }
+
+        // Copy command button
+        document.getElementById('copyCommandBtn').addEventListener('click', function() {
+            const preview = document.getElementById('ffmpegCommandPreview');
+            preview.select();
+            document.execCommand('copy');
+            
+            const originalText = this.innerHTML;
+            this.innerHTML = '<i class="fas fa-check me-1"></i> Copied!';
+            this.classList.replace('btn-outline-info', 'btn-success');
+            
+            setTimeout(() => {
+                this.innerHTML = originalText;
+                this.classList.replace('btn-success', 'btn-outline-info');
+            }, 2000);
+        });
+
+        // Add event listeners to all inputs to update preview
+        const form = document.getElementById('createConfigForm');
+        form.querySelectorAll('input, select, textarea').forEach(input => {
+            input.addEventListener('input', updateCommandPreview);
+            input.addEventListener('change', updateCommandPreview);
+        });
+
+        // Initial preview update
+        window.addEventListener('DOMContentLoaded', updateCommandPreview);
+
         document.getElementById('createConfigForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -93,8 +355,12 @@
             formData.forEach((value, key) => data[key] = value);
             
             // Convert types
-            data.Port = parseInt(data.Port);
+            data.Port = parseInt(data.Port) || 0;
+            data.FrameRate = parseInt(data.FrameRate) || 30;
+            data.GopSize = parseInt(data.GopSize) || 60;
+            data.Ttl = parseInt(data.Ttl) || 64;
             data.Enabled = document.getElementById('Enabled').checked;
+            data.EnableAudio = document.getElementById('EnableAudio').checked;
 
             try {
                 const response = await fetch('/api/config', {
