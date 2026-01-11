@@ -288,26 +288,40 @@ public class StreamManagerService
         args.AddRange(new[] { "-framerate", config.FrameRate.ToString() });
         
         var inputDevice = config.InputDevice;
+        if (isWindows && !args.Contains("gdigrab") && !inputDevice.StartsWith("video="))
+        {
+            inputDevice = "video=" + inputDevice;
+        }
         if (args.Contains("gdigrab") && inputDevice.StartsWith("video="))
         {
             inputDevice = inputDevice.Replace("video=", "");
         }
-        args.AddRange(new[] { "-i", inputDevice });
+        args.AddRange(new[] { "-i", $"\"{inputDevice}\"" });
         
         // Audio input if enabled
         if (config.EnableAudio && !string.IsNullOrEmpty(config.AudioDevice))
         {
+            var audioDevice = config.AudioDevice;
+            if (isWindows && !audioDevice.StartsWith("audio="))
+            {
+                audioDevice = "audio=" + audioDevice;
+            }
+            else if (!isWindows && !audioDevice.StartsWith("audio="))
+            {
+                audioDevice = "audio=" + audioDevice;
+            }
+
             if (isWindows)
             {
                 args.AddRange(new[] { "-f", "dshow" });
                 args.AddRange(new[] { "-thread_queue_size", "512" });
-                args.AddRange(new[] { "-i", config.AudioDevice });
+                args.AddRange(new[] { "-i", $"\"{audioDevice}\"" });
             }
             else
             {
                 args.AddRange(new[] { "-f", "alsa" });
                 args.AddRange(new[] { "-thread_queue_size", "512" });
-                args.AddRange(new[] { "-i", config.AudioDevice });
+                args.AddRange(new[] { "-i", $"\"{audioDevice}\"" });
             }
         }
         
@@ -343,7 +357,7 @@ public class StreamManagerService
         // Output URL
         var outputUrl = $"udp://{config.MulticastIp}:{config.Port}" +
                        $"?pkt_size=1316&buffer_size=65536&ttl={config.Ttl}";
-        args.Add(outputUrl);
+        args.Add($"\"{outputUrl}\"");
         
         return string.Join(" ", args);
     }

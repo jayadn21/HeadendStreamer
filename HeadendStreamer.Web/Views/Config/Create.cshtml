@@ -275,6 +275,9 @@
             args.push('-framerate', frameRate);
             
             let finalInputDevice = inputDevice;
+            if (!finalInputDevice.startsWith('video=') && !isDesktop) {
+                finalInputDevice = 'video=' + finalInputDevice;
+            }
             if (isDesktop && finalInputDevice.startsWith('video=')) {
                 finalInputDevice = finalInputDevice.replace('video=', '');
             }
@@ -284,7 +287,11 @@
             if (enableAudio && audioDevice) {
                 args.push('-f', 'dshow');
                 args.push('-thread_queue_size', '512');
-                args.push('-i', `"${audioDevice}"`);
+                let finalAudioDevice = audioDevice;
+                if (!finalAudioDevice.startsWith('audio=')) {
+                    finalAudioDevice = 'audio=' + finalAudioDevice;
+                }
+                args.push('-i', `"${finalAudioDevice}"`);
             }
 
             // Video encoding
