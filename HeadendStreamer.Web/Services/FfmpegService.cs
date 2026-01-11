@@ -111,6 +111,25 @@ public class FfmpegService
         }
     }
     
+    public async Task<bool> VerifyPathAsync(string path)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(path))
+                return false;
+
+            // Remove quotes if present
+            path = path.Trim('"');
+
+            return File.Exists(path);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error verifying path: {path}");
+            return false;
+        }
+    }
+    
     public async Task<bool> TestStreamOutputAsync(StreamConfig config, int timeoutSeconds = 10)
     {
         try

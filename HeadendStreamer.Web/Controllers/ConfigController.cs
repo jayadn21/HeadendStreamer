@@ -145,6 +145,92 @@ public class ConfigController : Controller
         }
     }
     
+    [HttpGet("api/config/browse")]
+    public IActionResult Browse(string? path = null)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(path))
+            {
+                // Default to root drives on Windows or home directory
+                if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
+                {
+                    var drives = DriveInfo.GetDrives()
+                        .Where(d => d.IsReady)
+                        .Select(d => new FileItem
+                        {
+                            Name = d.Name,
+                            Path = d.Name,
+                            IsDirectory = true,
+                            Size = 0,
+                            Modified = DateTime.MinValue
+                        })
+                        .ToList();
+                    return Ok(new { currentPath = "", items = drives });
+                }
+                path = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            }
+
+            if (!Directory.Exists(path))
+                return BadRequest(new { error = "Directory does not exist" });
+
+            var di = new DirectoryInfo(path);
+            var items = new List<FileItem>();
+
+            // Add folders
+            foreach (var dir in di.GetDirectories())
+            {
+                if ((dir.Attributes & FileAttributes.Hidden) != 0) continue;
+                items.Add(new FileItem
+                {
+                    Name = dir.Name,
+                    Path = dir.FullName,
+                    IsDirectory = true,
+                    Modified = dir.LastWriteTime
+                });
+            }
+
+            // Add files (videos focused)
+            var videoExtensions = new[] { ".mp4", ".mkv", ".avi", ".mov", ".ts", ".m2ts", ".flv", ".webm" };
+            foreach (var file in di.GetFiles())
+            {
+                if ((file.Attributes & FileAttributes.Hidden) != 0) continue;
+                if (!videoExtensions.Contains(file.Extension.ToLower())) continue;
+
+                items.Add(new FileItem
+                {
+                    Name = file.Name,
+                    Path = file.FullName,
+                    IsDirectory = false,
+                    Size = file.Length,
+                    Modified = file.LastWriteTime
+                });
+            }
+
+            return Ok(new { currentPath = path, parentPath = di.Parent?.FullName, items = items.OrderByDescending(i => i.IsDirectory).ThenBy(i => i.Name) });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Failed to browse path: {path}");
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+
+    [HttpPost("api/config/verify-path")]
+    public async Task<IActionResult> VerifyPath([FromBody] PathVerificationRequest request)
+    {
+        try
+        {
+            var exists = await _ffmpegService.VerifyPathAsync(request.Path);
+            return Ok(new { exists });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to verify path");
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+
     [HttpPost("api/config/test/stream")]
     public async Task<IActionResult> TestStream([FromBody] StreamConfig config)
     {
@@ -208,5 +294,19 @@ public class ConfigController : Controller
     public class DeviceTestRequest
     {
         public string DevicePath { get; set; } = string.Empty;
+    }
+
+    public class PathVerificationRequest
+    {
+        public string Path { get; set; } = string.Empty;
+    }
+
+    public class FileItem
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Path { get; set; } = string.Empty;
+        public bool IsDirectory { get; set; }
+        public long Size { get; set; }
+        public DateTime Modified { get; set; }
     }
 }

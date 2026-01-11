@@ -23,13 +23,13 @@
                                 <div>
                                     <h6 class="mb-0">CPU</h6>
                                     <div class="progress mt-2" style="height: 8px;">
-                                        <div class="progress-bar bg-primary" role="progressbar" 
+                                        <div id="cpu-progress" class="progress-bar bg-primary" role="progressbar" 
                                              style="width: @(Model.SystemInfo.CpuUsage)%"
                                              aria-valuenow="@Model.SystemInfo.CpuUsage" 
                                              aria-valuemin="0" aria-valuemax="100">
                                         </div>
                                     </div>
-                                    <small class="text-muted">@Model.SystemInfo.CpuUsage.ToString("0.0")%</small>
+                                    <small id="cpu-text" class="text-muted">@Model.SystemInfo.CpuUsage.ToString("0.0")%</small>
                                 </div>
                             </div>
                         </div>
@@ -42,13 +42,13 @@
                                 <div>
                                     <h6 class="mb-0">Memory</h6>
                                     <div class="progress mt-2" style="height: 8px;">
-                                        <div class="progress-bar bg-success" role="progressbar" 
+                                        <div id="memory-progress" class="progress-bar bg-success" role="progressbar" 
                                              style="width: @(Model.SystemInfo.MemoryUsage)%"
                                              aria-valuenow="@Model.SystemInfo.MemoryUsage" 
                                              aria-valuemin="0" aria-valuemax="100">
                                         </div>
                                     </div>
-                                    <small class="text-muted">@((Model.SystemInfo.TotalMemory - Model.SystemInfo.AvailableMemory) / 1024 / 1024 / 1024)GB / @(Model.SystemInfo.TotalMemory / 1024 / 1024 / 1024)GB</small>
+                                    <small id="memory-text" class="text-muted">@((Model.SystemInfo.TotalMemory - Model.SystemInfo.AvailableMemory) / 1024 / 1024 / 1024)GB / @(Model.SystemInfo.TotalMemory / 1024 / 1024 / 1024)GB</small>
                                 </div>
                             </div>
                         </div>
@@ -61,13 +61,13 @@
                                 <div>
                                     <h6 class="mb-0">Disk</h6>
                                     <div class="progress mt-2" style="height: 8px;">
-                                        <div class="progress-bar bg-warning" role="progressbar" 
+                                        <div id="disk-progress" class="progress-bar bg-warning" role="progressbar" 
                                              style="width: @(Model.SystemInfo.DiskUsage)%"
                                              aria-valuenow="@Model.SystemInfo.DiskUsage" 
                                              aria-valuemin="0" aria-valuemax="100">
                                         </div>
                                     </div>
-                                    <small class="text-muted">@Model.SystemInfo.DiskUsage.ToString("0.0")% Used</small>
+                                    <small id="disk-text" class="text-muted">@Model.SystemInfo.DiskUsage.ToString("0.0")% Used</small>
                                 </div>
                             </div>
                         </div>
@@ -79,7 +79,7 @@
                                 </div>
                                 <div>
                                     <h6 class="mb-0">Streams</h6>
-                                    <h3 class="mb-0">@Model.ActiveStreams/@Model.TotalStreams</h3>
+                                    <h3 id="streams-count" class="mb-0">@Model.ActiveStreams/@Model.TotalStreams</h3>
                                     <small class="text-muted">Active / Total</small>
                                 </div>
                             </div>
@@ -93,7 +93,7 @@
                             </small>
                         </div>
                         <div class="col-md-6 text-end">
-                            <small class="text-muted">
+                            <small id="system-uptime" class="text-muted">
                                 <i class="fas fa-clock me-1"></i> Uptime: @Model.SystemInfo.Uptime.ToString(@"dd\.hh\:mm\:ss")
                             </small>
                         </div>
@@ -213,7 +213,7 @@
                                             {
                                                 <div class="alert alert-success py-2 mb-0">
                                                     <div class="d-flex justify-content-between">
-                                                        <small>
+                                                        <small id="stream-uptime-@stream.Config.Id">
                                                             <i class="fas fa-clock me-1"></i> 
                                                             @stream.Status.Uptime.ToString(@"hh\:mm\:ss")
                                                         </small>

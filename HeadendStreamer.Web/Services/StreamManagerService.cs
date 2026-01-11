@@ -244,10 +244,19 @@ public class StreamManagerService
     {
         var args = new List<string>();
         var isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
-        _logger.LogInformation($"Building FFmpeg command. OS: {(isWindows ? "Windows" : "Linux/Other")}");
+        var inputFormat = config.InputFormat?.ToLower() ?? "auto";
+        var isLocalFile = inputFormat == "file" || inputFormat == "local file";
+        
+        _logger.LogInformation($"Building FFmpeg command. OS: {(isWindows ? "Windows" : "Linux/Other")}, Input Format: {inputFormat}");
         
         // Input configuration
-        if (isWindows)
+        if (isLocalFile)
+        {
+            // Real-time reading for local files
+            args.Add("-re");
+            args.AddRange(new[] { "-thread_queue_size", "1024" });
+        }
+        else if (isWindows)
         {
             if (config.InputDevice.Contains("desktop") || config.InputDevice.Contains("screen"))
             {
@@ -257,21 +266,20 @@ public class StreamManagerService
             {
                 args.AddRange(new[] { "-f", "dshow" });
             }
+            args.AddRange(new[] { "-thread_queue_size", "1024" });
         }
         else
         {
             args.AddRange(new[] { "-f", "v4l2" });
+            args.AddRange(new[] { "-thread_queue_size", "1024" });
         }
-
-        args.AddRange(new[] { "-thread_queue_size", "1024" });
         
-        // input_format / pixel_format
-        if (!string.IsNullOrEmpty(config.InputFormat))
+        // input_format / pixel_format (only for live devices, not files)
+        if (!isLocalFile && !string.IsNullOrEmpty(config.InputFormat))
         {
             if (isWindows)
             {
                 // Only use -pixel_format for dshow and if it's a known pixel format
-                // Avoid using it for gdigrab or if it's 'mpegts'
                 bool isGdigrab = args.Contains("gdigrab");
                 if (!isGdigrab && !config.InputFormat.Contains("mpegts") && !config.InputFormat.Contains("auto"))
                 {
@@ -284,18 +292,26 @@ public class StreamManagerService
             }
         }
 
-        args.AddRange(new[] { "-video_size", config.VideoSize });
-        args.AddRange(new[] { "-framerate", config.FrameRate.ToString() });
+        if (!isLocalFile)
+        {
+            args.AddRange(new[] { "-video_size", config.VideoSize });
+            args.AddRange(new[] { "-framerate", config.FrameRate.ToString() });
+        }
         
         var inputDevice = config.InputDevice;
-        if (isWindows && !args.Contains("gdigrab") && !inputDevice.StartsWith("video="))
+        if (!isLocalFile)
         {
-            inputDevice = "video=" + inputDevice;
+            if (isWindows && !args.Contains("gdigrab") && !inputDevice.StartsWith("video="))
+            {
+                inputDevice = "video=" + inputDevice;
+            }
+            if (args.Contains("gdigrab") && inputDevice.StartsWith("video="))
+            {
+                inputDevice = inputDevice.Replace("video=", "");
+            }
         }
-        if (args.Contains("gdigrab") && inputDevice.StartsWith("video="))
-        {
-            inputDevice = inputDevice.Replace("video=", "");
-        }
+        
+        // Always quote paths/devices
         args.AddRange(new[] { "-i", $"\"{inputDevice}\"" });
         
         // Audio input if enabled
@@ -327,8 +343,11 @@ public class StreamManagerService
         
         // Video encoding
         args.AddRange(new[] { "-c:v", config.VideoCodec });
-        args.AddRange(new[] { "-preset", config.Preset });
-        args.AddRange(new[] { "-tune", config.Tune });
+        if (!string.IsNullOrEmpty(config.Preset))
+            args.AddRange(new[] { "-preset", config.Preset });
+        if (!string.IsNullOrEmpty(config.Tune))
+            args.AddRange(new[] { "-tune", config.Tune });
+            
         args.AddRange(new[] { "-b:v", config.Bitrate });
         args.AddRange(new[] { "-maxrate", config.Bitrate });
         args.AddRange(new[] { "-bufsize", $"{ParseBitrate(config.Bitrate) / 2}k" });
@@ -337,7 +356,7 @@ public class StreamManagerService
         args.AddRange(new[] { "-sc_threshold", "0" });
         
         // Audio encoding if enabled
-        if (config.EnableAudio && !string.IsNullOrEmpty(config.AudioDevice))
+        if (config.EnableAudio)
         {
             args.AddRange(new[] { "-c:a", config.AudioCodec });
             args.AddRange(new[] { "-b:a", config.AudioBitrate });
@@ -349,9 +368,12 @@ public class StreamManagerService
         args.AddRange(new[] { "-flags", "+global_header" });
         
         // Advanced options
-        foreach (var option in config.AdvancedOptions)
+        if (config.AdvancedOptions != null)
         {
-            args.AddRange(new[] { option.Key, option.Value });
+            foreach (var option in config.AdvancedOptions)
+            {
+                args.AddRange(new[] { option.Key, option.Value });
+            }
         }
         
         // Output URL
@@ -441,25 +463,82 @@ public class StreamManagerService
         // Get process stats
         double cpuUsage = 0;
         long memoryUsage = 0;
+        long bitrate = 0;
         
         try
         {
-            using var proc = System.Diagnostics.Process.GetProcessById(process.Id);
-            cpuUsage = proc.TotalProcessorTime.TotalMilliseconds;
-            memoryUsage = proc.WorkingSet64;
+            if (!process.HasExited)
+            {
+                using var proc = System.Diagnostics.Process.GetProcessById(process.Id);
+                var currentCpuTime = proc.TotalProcessorTime;
+                var currentTime = DateTime.UtcNow;
+
+                if (streamProcess.LastCpuUpdate.HasValue)
+                {
+                    var cpuDelta = (currentCpuTime - streamProcess.LastCpuTime).TotalMilliseconds;
+                    var timeDelta = (currentTime - streamProcess.LastCpuUpdate.Value).TotalMilliseconds;
+
+                    if (timeDelta > 0)
+                    {
+                        // Calculate percentage: (delta CPU time / delta wall time / processor count) * 100
+                        cpuUsage = (cpuDelta / timeDelta / Environment.ProcessorCount) * 100.0;
+                    }
+                }
+
+                streamProcess.LastCpuTime = currentCpuTime;
+                streamProcess.LastCpuUpdate = currentTime;
+                memoryUsage = proc.WorkingSet64;
+            }
         }
         catch { }
+        
+        // Extract bitrate from FFmpeg stats
+        if (streamProcess.LastStats != null && streamProcess.LastStats.TryGetValue("bitrate", out var bitrateValue))
+        {
+            try
+            {
+                // FFmpeg bitrate format: "2450.0kbits/s" or "2.4Mbits/s"
+                var bitrateStr = bitrateValue.ToString();
+                if (!string.IsNullOrEmpty(bitrateStr))
+                {
+                    // Remove "kbits/s" or "Mbits/s" suffix and parse
+                    bitrateStr = bitrateStr.ToLower()
+                        .Replace("kbits/s", "")
+                        .Replace("mbits/s", "")
+                        .Replace("bits/s", "")
+                        .Trim();
+                    
+                    if (double.TryParse(bitrateStr, out var bitrateDouble))
+                    {
+                        // If original string contained "Mbits/s", convert to kbps
+                        if (bitrateValue.ToString().ToLower().Contains("mbits/s"))
+                        {
+                            bitrate = (long)(bitrateDouble * 1000);
+                        }
+                        else
+                        {
+                            bitrate = (long)bitrateDouble;
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // If parsing fails, bitrate remains 0
+            }
+        }
         
         return new StreamStatus
         {
             ConfigId = configId,
             Name = config.Name,
             IsRunning = !process.HasExited,
-            ProcessId = process.Id,
+            ProcessId = process.HasExited ? 0 : process.Id,
             StartTime = streamProcess.StartTime,
             Uptime = DateTime.UtcNow - streamProcess.StartTime,
             CpuUsage = cpuUsage,
             MemoryUsage = memoryUsage,
+            Bitrate = bitrate,
             LastUpdated = DateTime.UtcNow
         };
     }
@@ -598,6 +677,8 @@ internal class StreamProcess : IDisposable
     public string LogFile { get; set; } = string.Empty;
     public Dictionary<string, object>? LastStats { get; set; }
     public DateTime? LastStatsUpdate { get; set; }
+    public TimeSpan LastCpuTime { get; set; }
+    public DateTime? LastCpuUpdate { get; set; }
     public bool IsStopping { get; set; }
     public SemaphoreSlim LogLock { get; } = new(1, 1);
 

@@ -40,12 +40,31 @@
                                     <option value="dshow">DirectShow (Windows)</option>
                                     <option value="decklink">DeckLink</option>
                                     <option value="mpegts">MPEG-TS (UDP/RTP)</option>
+                                    <option value="file">Local File</option>
                                 </select>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label asp-for="InputDevice" class="form-label">Input Device</label>
-                                <input asp-for="InputDevice" class="form-control" required />
-                                <small class="text-muted">e.g. video=Integrated Camera or /dev/video0</small>
+                                <label asp-for="InputDevice" class="form-label" id="inputDeviceLabel">Input Device</label>
+                                <div class="input-group">
+                                    <input asp-for="InputDevice" class="form-control" required />
+                                    <button class="btn btn-outline-secondary" type="button" id="browseButton" title="Browse for file">
+                                        <i class="fas fa-search" id="browseIcon"></i>
+                                    </button>
+                                    <button class="btn btn-outline-info" type="button" id="verifyPathButton" style="display: none;" title="Verify if path exists on server">
+                                        <i class="fas fa-check-circle" id="verifyIcon"></i> Verify
+                                    </button>
+                                </div>
+                                <input type="file" id="fileInput" style="display: none;" />
+                                <small class="text-muted" id="inputDeviceHelp">e.g. video=Integrated Camera or /dev/video0</small>
+                                <div id="pathWarning" class="text-danger small mt-1" style="display: none;">
+                                    <i class="fas fa-exclamation-triangle me-1"></i> Browser security only provides the filename. Please paste the <b>full absolute path</b> (e.g., C:\Videos\file.mp4).
+                                </div>
+                                <div id="pathSuccess" class="text-success small mt-1" style="display: none;">
+                                    <i class="fas fa-check-circle me-1"></i> Path verified on server.
+                                </div>
+                                <div id="pathError" class="text-danger small mt-1" style="display: none;">
+                                    <i class="fas fa-times-circle me-1"></i> Path not found or inaccessible on server.
+                                </div>
                             </div>
                         </div>
 
@@ -219,12 +238,238 @@
     </div>
 </div>
 
+<!-- File Browser Modal -->
+<div class="modal fade" id="fileBrowserModal" tabindex="-1" aria-labelledby="fileBrowserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="fileBrowserModalLabel"><i class="fas fa-folder-open me-2"></i>Server File Browser</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb bg-light p-2 rounded" id="fileBrowserBreadcrumb">
+                        <li class="breadcrumb-item"><a href="#" onclick="browsePath('')">Root</a></li>
+                    </ol>
+                </nav>
+                <div class="list-group file-list" id="fileList" style="max-height: 400px; overflow-y: auto;">
+                    <!-- Files and folders will be loaded here -->
+                    <div class="text-center p-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .file-list .list-group-item {
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    .file-list .list-group-item:hover {
+        background-color: #f8f9fa;
+    }
+    .file-list .file-icon {
+        width: 24px;
+        text-align: center;
+        margin-right: 10px;
+    }
+</style>
+
 @section Scripts {
     <script>
-        // Toggle audio settings
-        document.getElementById('EnableAudio').addEventListener('change', function() {
-            document.getElementById('audioSettings').style.display = this.checked ? 'block' : 'none';
+        // Toggle input device help text and browse button functionality
+        document.getElementById('InputFormat').addEventListener('change', function() {
+            const label = document.getElementById('inputDeviceLabel');
+            const help = document.getElementById('inputDeviceHelp');
+            const browseIcon = document.getElementById('browseIcon');
+            
+            if (this.value === 'file') {
+                label.innerText = 'Full Video Path';
+                help.innerHTML = 'Provide full absolute path. <br/><small class="text-muted">Tip: Shift + Right Click file in Explorer -> "Copy as path"</small>';
+                browseIcon.className = 'fas fa-folder-open';
+                document.getElementById('verifyPathButton').style.display = 'inline-block';
+            } else {
+                label.innerText = 'Input Device';
+                help.innerText = 'e.g. video=Integrated Camera or /dev/video0';
+                browseIcon.className = 'fas fa-search';
+                document.getElementById('verifyPathButton').style.display = 'none';
+                hidePathStatus();
+            }
             updateCommandPreview();
+        });
+
+        function hidePathStatus() {
+            document.getElementById('pathWarning').style.display = 'none';
+            document.getElementById('pathSuccess').style.display = 'none';
+            document.getElementById('pathError').style.display = 'none';
+        }
+
+        // Verify path logic
+        document.getElementById('verifyPathButton').addEventListener('click', async function() {
+            const path = document.getElementById('InputDevice').value;
+            if (!path) return;
+
+            const icon = document.getElementById('verifyIcon');
+            const originalClass = icon.className;
+            icon.className = 'fas fa-spinner fa-spin';
+            this.disabled = true;
+
+            try {
+                const response = await fetch('/api/config/verify-path', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ Path: path })
+                });
+                const result = await response.json();
+                
+                hidePathStatus();
+                if (result.exists) {
+                    document.getElementById('pathSuccess').style.display = 'block';
+                } else {
+                    document.getElementById('pathError').style.display = 'block';
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Verification failed');
+            } finally {
+                icon.className = originalClass;
+                this.disabled = false;
+            }
+        });
+
+        // Browse button/file input logic
+        const fileBrowserModal = new bootstrap.Modal(document.getElementById('fileBrowserModal'));
+        
+        document.getElementById('browseButton').addEventListener('click', function() {
+            const inputFormat = document.getElementById('InputFormat').value;
+            if (inputFormat === 'file') {
+                browsePath('');
+                fileBrowserModal.show();
+            } else {
+                // Future: Add device discovery here if needed
+                alert('Device discovery not implemented yet. Please enter the device name.');
+            }
+        });
+
+        async function browsePath(path) {
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = '<div class="text-center p-5"><div class="spinner-border text-primary" role="status"></div></div>';
+            
+            try {
+                const url = path ? `/api/config/browse?path=${encodeURIComponent(path)}` : '/api/config/browse';
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    renderFileList(data);
+                    renderBreadcrumbs(data.currentPath);
+                } else {
+                    fileList.innerHTML = `<div class="alert alert-danger m-3">${data.error || 'Failed to load directory'}</div>`;
+                }
+            } catch (err) {
+                fileList.innerHTML = `<div class="alert alert-danger m-3">Connection error</div>`;
+            }
+        }
+
+        function renderFileList(data) {
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = '';
+            
+            if (data.parentPath || (data.currentPath && data.currentPath !== "")) {
+                const upItem = document.createElement('a');
+                upItem.className = 'list-group-item list-group-item-action d-flex align-items-center';
+                upItem.innerHTML = '<i class="fas fa-level-up-alt file-icon text-secondary"></i> <span>.. (Go Up)</span>';
+                upItem.onclick = () => browsePath(data.parentPath || '');
+                fileList.appendChild(upItem);
+            }
+            
+            if (data.items.length === 0) {
+                fileList.innerHTML += '<div class="text-center p-4 text-muted">No video files found in this directory</div>';
+                return;
+            }
+            
+            data.items.forEach(item => {
+                const listItem = document.createElement('a');
+                listItem.className = 'list-group-item list-group-item-action d-flex align-items-center';
+                
+                const icon = item.isDirectory ? 'fas fa-folder text-warning' : 'fas fa-file-video text-primary';
+                const size = item.isDirectory ? '' : `<small class="text-muted ms-auto">${formatBytes(item.size)}</small>`;
+                
+                listItem.innerHTML = `<i class="${icon} file-icon"></i> <span class="text-truncate" style="max-width: 80%;">${item.name}</span> ${size}`;
+                
+                if (item.isDirectory) {
+                    listItem.onclick = () => browsePath(item.path);
+                } else {
+                    listItem.onclick = () => {
+                        document.getElementById('InputDevice').value = item.path;
+                        fileBrowserModal.hide();
+                        hidePathStatus();
+                        updateCommandPreview();
+                    };
+                }
+                fileList.appendChild(listItem);
+            });
+        }
+
+        function renderBreadcrumbs(path) {
+            const bc = document.getElementById('fileBrowserBreadcrumb');
+            bc.innerHTML = '<li class="breadcrumb-item"><a href="#" onclick="browsePath(\'\')">Root</a></li>';
+            
+            if (!path) return;
+            
+            const parts = path.split(/[\\\/]/).filter(p => p !== "");
+            let currentAccumulated = "";
+            
+            // Handle Windows root (e.g. C:)
+            const isWindows = path.includes(':');
+            
+            parts.forEach((part, index) => {
+                if (isWindows && index === 0) {
+                    currentAccumulated = part + '\\';
+                } else {
+                    currentAccumulated += (currentAccumulated.endsWith('\\') || currentAccumulated.endsWith('/') ? '' : (isWindows ? '\\' : '/')) + part;
+                }
+                
+                const li = document.createElement('li');
+                li.className = 'breadcrumb-item';
+                if (index === parts.length - 1) {
+                    li.classList.add('active');
+                    li.innerText = part;
+                } else {
+                    const a = document.createElement('a');
+                    a.href = '#';
+                    const target = currentAccumulated;
+                    a.onclick = () => browsePath(target);
+                    a.innerText = part;
+                    li.appendChild(a);
+                }
+                bc.appendChild(li);
+            });
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        document.getElementById('fileInput').addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                document.getElementById('InputDevice').value = this.files[0].name;
+                hidePathStatus();
+                document.getElementById('pathWarning').style.display = 'block';
+                updateCommandPreview();
+            }
         });
 
         // Function to update the FFmpeg command preview
@@ -245,77 +490,105 @@
             const audioCodec = document.getElementById('AudioCodec').value;
             const audioBitrate = document.getElementById('AudioBitrate').value;
             
-            const multicastIp = document.getElementById('MulticastIp').value;
+            const multicastIp = document.getElementById('MulticastIp').value || '239.0.0.1';
             const port = document.getElementById('Port').value || 1234;
             const ttl = document.getElementById('Ttl').value || 64;
             const outputFormat = document.getElementById('OutputFormat').value;
 
             let args = ['ffmpeg'];
             
-            // Input settings (Windows logic)
-            const isDesktop = inputDevice.includes('desktop') || inputDevice.includes('screen');
-            if (isDesktop) {
-                args.push('-f', 'gdigrab');
-            } else {
-                args.push('-f', 'dshow');
-            }
+            if (inputFormat === 'file') {
+                // Special requirements for local file playback
+                args.push('-re');
+                args.push('-thread_queue_size', '1024');
+                args.push('-i', `"${inputDevice}"`);
+                
+                // Video encoding
+                args.push('-c:v', 'libx264');
+                args.push('-preset', preset === 'veryfast' ? 'veryfast' : preset); // User specifically asked for veryfast tune zerolatency
+                args.push('-tune', tune === 'zerolatency' ? 'zerolatency' : tune);
+                args.push('-b:v', '2000k');
+                args.push('-maxrate', '2000k');
+                args.push('-bufsize', '1000k');
+                
+                args.push('-g', '60');
+                args.push('-keyint_min', '60');
+                args.push('-sc_threshold', '0');
 
-            args.push('-thread_queue_size', '1024');
-
-            if (inputFormat && inputFormat !== 'auto' && !inputFormat.includes('mpegts') && !isDesktop) {
-                args.push('-pixel_format', inputFormat);
-            }
-
-            args.push('-video_size', videoSize);
-            args.push('-framerate', frameRate);
-            
-            let finalInputDevice = inputDevice;
-            if (!finalInputDevice.startsWith('video=') && !isDesktop) {
-                finalInputDevice = 'video=' + finalInputDevice;
-            }
-            if (isDesktop && finalInputDevice.startsWith('video=')) {
-                finalInputDevice = finalInputDevice.replace('video=', '');
-            }
-            args.push('-i', `"${finalInputDevice}"`);
-
-            // Audio settings
-            if (enableAudio && audioDevice) {
-                args.push('-f', 'dshow');
-                args.push('-thread_queue_size', '512');
-                let finalAudioDevice = audioDevice;
-                if (!finalAudioDevice.startsWith('audio=')) {
-                    finalAudioDevice = 'audio=' + finalAudioDevice;
-                }
-                args.push('-i', `"${finalAudioDevice}"`);
-            }
-
-            // Video encoding
-            args.push('-c:v', videoCodec);
-            args.push('-preset', preset);
-            args.push('-tune', tune);
-            args.push('-b:v', bitrate);
-            args.push('-maxrate', bitrate);
-            
-            // Parse bitrate for bufsize
-            let brNum = parseInt(bitrate) || 5000;
-            if (bitrate.includes('k')) brNum = parseInt(bitrate);
-            else if (bitrate.includes('m')) brNum = parseInt(bitrate) * 1000;
-            args.push('-bufsize', `${Math.floor(brNum / 2)}k`);
-            
-            args.push('-g', gopSize);
-            args.push('-keyint_min', gopSize);
-            args.push('-sc_threshold', '0');
-
-            // Audio encoding
-            if (enableAudio && audioDevice) {
-                args.push('-c:a', audioCodec);
-                args.push('-b:a', audioBitrate);
+                // Audio encoding
+                args.push('-c:a', 'aac');
+                args.push('-b:a', '128k');
                 args.push('-ac', '2');
-            }
 
-            // Output
-            args.push('-f', outputFormat);
-            args.push('-flags', '+global_header');
+                // Output
+                args.push('-f', 'mpegts');
+                args.push('-flags', '+global_header');
+            } else {
+                // Standard logic for other inputs
+                const isDesktop = inputDevice.includes('desktop') || inputDevice.includes('screen');
+                if (isDesktop) {
+                    args.push('-f', 'gdigrab');
+                } else {
+                    args.push('-f', 'dshow');
+                }
+
+                args.push('-thread_queue_size', '1024');
+
+                if (inputFormat && inputFormat !== 'auto' && !inputFormat.includes('mpegts') && !isDesktop) {
+                    args.push('-pixel_format', inputFormat);
+                }
+
+                args.push('-video_size', videoSize);
+                args.push('-framerate', frameRate);
+                
+                let finalInputDevice = inputDevice;
+                if (!finalInputDevice.startsWith('video=') && !isDesktop) {
+                    finalInputDevice = 'video=' + finalInputDevice;
+                }
+                if (isDesktop && finalInputDevice.startsWith('video=')) {
+                    finalInputDevice = finalInputDevice.replace('video=', '');
+                }
+                args.push('-i', `"${finalInputDevice}"`);
+
+                // Audio settings
+                if (enableAudio && audioDevice) {
+                    args.push('-f', 'dshow');
+                    args.push('-thread_queue_size', '512');
+                    let finalAudioDevice = audioDevice;
+                    if (!finalAudioDevice.startsWith('audio=')) {
+                        finalAudioDevice = 'audio=' + finalAudioDevice;
+                    }
+                    args.push('-i', `"${finalAudioDevice}"`);
+                }
+
+                // Video encoding
+                args.push('-c:v', videoCodec);
+                args.push('-preset', preset);
+                args.push('-tune', tune);
+                args.push('-b:v', bitrate);
+                args.push('-maxrate', bitrate);
+                
+                // Parse bitrate for bufsize
+                let brNum = parseInt(bitrate) || 5000;
+                if (bitrate.includes('k')) brNum = parseInt(bitrate);
+                else if (bitrate.includes('m')) brNum = parseInt(bitrate) * 1000;
+                args.push('-bufsize', `${Math.floor(brNum / 2)}k`);
+                
+                args.push('-g', gopSize);
+                args.push('-keyint_min', gopSize);
+                args.push('-sc_threshold', '0');
+
+                // Audio encoding
+                if (enableAudio && audioDevice) {
+                    args.push('-c:a', audioCodec);
+                    args.push('-b:a', audioBitrate);
+                    args.push('-ac', '2');
+                }
+
+                // Output
+                args.push('-f', outputFormat);
+                args.push('-flags', '+global_header');
+            }
             
             const outputUrl = `udp://${multicastIp}:${port}?pkt_size=1316&buffer_size=65536&ttl=${ttl}`;
             args.push(`"${outputUrl}"`);
@@ -347,7 +620,11 @@
         });
 
         // Initial preview update
-        window.addEventListener('DOMContentLoaded', updateCommandPreview);
+        window.addEventListener('DOMContentLoaded', () => {
+            // Trigger change event to set initial labels/icons
+            document.getElementById('InputFormat').dispatchEvent(new Event('change'));
+            updateCommandPreview();
+        });
 
         document.getElementById('editConfigForm').addEventListener('submit', async function(e) {
             e.preventDefault();

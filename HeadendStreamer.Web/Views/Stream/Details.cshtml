@@ -174,17 +174,63 @@
             }
         }
 
+        async function fetchStats() {
+            try {
+                const response = await fetch(`/api/stream/${streamId}/stats`);
+                if (response.ok) {
+                    const stats = await response.json();
+                    
+                    // Update CPU Usage
+                    const cpuElement = document.getElementById('stat-cpu');
+                    if (cpuElement && stats.cpuUsage !== undefined) {
+                        cpuElement.textContent = stats.cpuUsage.toFixed(1) + '%';
+                    }
+                    
+                    // Update Memory
+                    const memElement = document.getElementById('stat-mem');
+                    if (memElement && stats.memoryUsageMb !== undefined) {
+                        memElement.textContent = stats.memoryUsageMb.toFixed(0) + ' MB';
+                    }
+                    
+                    // Update Bitrate
+                    const bitrateElement = document.getElementById('stat-bitrate');
+                    if (bitrateElement && stats.bitrate !== undefined) {
+                        bitrateElement.textContent = stats.bitrate + 'k';
+                    }
+                    
+                    // Update Uptime
+                    const uptimeElement = document.getElementById('stat-uptime');
+                    if (uptimeElement && stats.uptime) {
+                        // Parse uptime format (e.g., "00:05:23.1234567")
+                        const uptimeParts = stats.uptime.split(':');
+                        if (uptimeParts.length >= 3) {
+                            const hours = uptimeParts[0];
+                            const minutes = uptimeParts[1];
+                            const seconds = Math.floor(parseFloat(uptimeParts[2]));
+                            uptimeElement.textContent = `${hours}:${minutes}:${seconds.toString().padStart(2, '0')}`;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to fetch stats', e);
+            }
+        }
+
+        async function refreshData() {
+            await Promise.all([fetchLogs(), fetchStats()]);
+        }
+
         // Initial fetch
-        fetchLogs();
+        refreshData();
         
         // Refresh button
-        document.getElementById('refreshLogs').addEventListener('click', fetchLogs);
+        document.getElementById('refreshLogs').addEventListener('click', refreshData);
 
         // Auto-refresh every 5s if running
         @if (Model.Status?.IsRunning == true)
         {
             <text>
-            setInterval(fetchLogs, 5000);
+            setInterval(refreshData, 5000);
             </text>
         }
     </script>
