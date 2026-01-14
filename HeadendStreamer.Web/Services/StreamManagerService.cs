@@ -315,7 +315,7 @@ public class StreamManagerService
         args.AddRange(new[] { "-i", $"\"{inputDevice}\"" });
         
         // Audio input if enabled
-        if (config.EnableAudio && !string.IsNullOrEmpty(config.AudioDevice))
+        if (!isLocalFile && config.EnableAudio && !string.IsNullOrEmpty(config.AudioDevice))
         {
             var audioDevice = config.AudioDevice;
             if (isWindows && !audioDevice.StartsWith("audio="))

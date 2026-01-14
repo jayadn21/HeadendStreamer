@@ -1,22 +1,61 @@
 using HeadendStreamer.Web.Models.Entities;
 using System.Diagnostics;
 using System.Net.NetworkInformation;
+using System.Runtime.InteropServices;
 
 namespace HeadendStreamer.Web.Services;
 
-public class SystemMonitorService
+public class SystemMonitorService : IDisposable
 {
     private readonly ILogger<SystemMonitorService> _logger;
     private SystemInfo _systemInfo = new();
+    private readonly object _lock = new();
+
+    // Persistent counters
+    private PerformanceCounter? _cpuCounter;
+    private PerformanceCounter? _ramAvailableCounter;
+    private PerformanceCounter? _ramTotalCounter; // Sometimes we can't get total RAM via counter easily, but we'll try or use Environment
+    
+    // Fallback for non-windows
+    private readonly bool _isWindows;
 
     public SystemMonitorService(ILogger<SystemMonitorService> logger)
     {
         _logger = logger;
+        _isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+
+        if (_isWindows)
+        {
+            InitializeCounters();
+        }
+    }
+
+    private void InitializeCounters()
+    {
+        try
+        {
+            _cpuCounter = new PerformanceCounter("Processor", "% Processor Time", "_Total");
+            // First call always returns 0
+            _cpuCounter.NextValue();
+
+            _ramAvailableCounter = new PerformanceCounter("Memory", "Available Bytes");
+            
+            // "Commit Limit" is roughly total memory available to processes
+            _ramTotalCounter = new PerformanceCounter("Memory", "Commit Limit");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning($"Failed to initialize performance counters: {ex.Message}");
+        }
     }
 
     public SystemInfo GetSystemInfo()
     {
-        return _systemInfo;
+        lock (_lock)
+        {
+            // Return a copy or just the reference if it's treated as immutable snapshot
+            return _systemInfo;
+        }
     }
 
     public async Task<SystemHealth> CheckSystemHealthAsync()
@@ -54,16 +93,19 @@ public class SystemMonitorService
         };
 
         // Check network interfaces
-        foreach (var ni in systemInfo.NetworkInterfaces)
+        if (systemInfo.NetworkInterfaces != null)
         {
-            if (!ni.IsOperational)
+            foreach (var ni in systemInfo.NetworkInterfaces)
             {
-                checks.Add(new HealthCheck
+                if (!ni.IsOperational)
                 {
-                    Name = $"network_{ni.Name}",
-                    Status = "error",
-                    Message = $"Network interface {ni.Name} is not operational"
-                });
+                    checks.Add(new HealthCheck
+                    {
+                        Name = $"network_{ni.Name}",
+                        Status = "error",
+                        Message = $"Network interface {ni.Name} is not operational"
+                    });
+                }
             }
         }
 
@@ -80,73 +122,85 @@ public class SystemMonitorService
         };
     }
 
-    public async Task UpdateSystemInfoAsync()
+    public Task UpdateSystemInfoAsync()
     {
-        try
+        // Use Task.Run to offload potentially heavy WMI/Counter calls from main thread
+        return Task.Run(() =>
         {
-            var info = new SystemInfo
+            try
             {
-                Hostname = Environment.MachineName,
-                OsVersion = Environment.OSVersion.VersionString,
-                Uptime = TimeSpan.FromMilliseconds(Environment.TickCount64),
-                LastUpdated = DateTime.UtcNow
-            };
+                var info = new SystemInfo
+                {
+                    Hostname = Environment.MachineName,
+                    OsVersion = Environment.OSVersion.VersionString,
+                    Uptime = TimeSpan.FromMilliseconds(Environment.TickCount64),
+                    LastUpdated = DateTime.UtcNow
+                };
 
-            // CPU Usage
-            info.CpuUsage = GetCpuUsage();
+                // CPU Usage
+                info.CpuUsage = GetCpuUsage();
 
-            // Memory
-            var memoryInfo = GetMemoryInfo();
-            info.TotalMemory = memoryInfo.Total;
-            info.AvailableMemory = memoryInfo.Available;
-            info.MemoryUsage = memoryInfo.Total > 0 ?
-                100.0 - (memoryInfo.Available * 100.0 / memoryInfo.Total) : 0;
+                // Memory
+                var memoryInfo = GetMemoryInfo();
+                info.TotalMemory = memoryInfo.Total;
+                info.AvailableMemory = memoryInfo.Available;
+                info.MemoryUsage = memoryInfo.Total > 0 ?
+                    100.0 - (memoryInfo.Available * 100.0 / memoryInfo.Total) : 0;
 
-            // Disk Usage
-            info.DiskUsage = GetDiskUsage("C:\\");
+                // Disk Usage
+                info.DiskUsage = GetDiskUsage("C:\\");
 
-            // Network Interfaces
-            info.NetworkInterfaces = GetNetworkInterfaces();
+                // Network Interfaces
+                info.NetworkInterfaces = GetNetworkInterfaces();
 
-            // Get running processes (FFmpeg processes)
-            info.RunningProcesses = GetRunningProcesses();
-            info.ActiveStreams = info.RunningProcesses.Count(p => p.Name.Contains("ffmpeg", StringComparison.OrdinalIgnoreCase));
+                // Get running processes (FFmpeg processes)
+                info.RunningProcesses = GetRunningProcesses();
+                info.ActiveStreams = info.RunningProcesses.Count(p => p.Name.Contains("ffmpeg", StringComparison.OrdinalIgnoreCase));
 
-            _systemInfo = info;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to update system info");
-        }
+                lock (_lock)
+                {
+                    _systemInfo = info;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to update system info");
+            }
+        });
     }
 
     private double GetCpuUsage()
     {
+        if (!_isWindows) return 0;
+
         try
         {
-            using var cpuCounter = new PerformanceCounter(
-                "Processor", "% Processor Time", "_Total");
-            cpuCounter.NextValue();
-            Thread.Sleep(1000);
-            return cpuCounter.NextValue();
+            if (_cpuCounter != null)
+            {
+                return _cpuCounter.NextValue();
+            }
         }
         catch
         {
-            return 0;
+            // Try to re-init?
         }
+        return 0;
     }
 
     private (long Total, long Available) GetMemoryInfo()
     {
+        if (!_isWindows) return (0, 0);
+
         try
         {
-            using var memoryCounter = new PerformanceCounter(
-                "Memory", "Available Bytes");
-            var available = (long)memoryCounter.NextValue();
+            long available = 0;
+            long total = 0;
 
-            using var totalCounter = new PerformanceCounter(
-                "Memory", "Commit Limit");
-            var total = (long)totalCounter.NextValue();
+            if (_ramAvailableCounter != null)
+                available = (long)_ramAvailableCounter.NextValue();
+
+            if (_ramTotalCounter != null)
+                total = (long)_ramTotalCounter.NextValue();
 
             return (total, available);
         }
@@ -186,26 +240,33 @@ public class SystemMonitorService
 
             foreach (var ni in netInterfaces)
             {
-                var stats = ni.GetIPv4Statistics();
-                var ip = ni.GetIPProperties().UnicastAddresses
-                    .FirstOrDefault(addr => addr.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
-                    ?.Address.ToString() ?? string.Empty;
-
-                var macAddress = string.Join(":", ni.GetPhysicalAddress()
-                    .GetAddressBytes()
-                    .Select(b => b.ToString("X2")));
-
-                interfaces.Add(new NetworkInterfaceInfo
+                try 
                 {
-                    Name = ni.Name,
-                    IpAddress = ip,
-                    BytesSent = stats.BytesSent,
-                    BytesReceived = stats.BytesReceived,
-                    SendRate = 0,
-                    ReceiveRate = 0,
-                    MacAddress = macAddress,
-                    IsOperational = ni.OperationalStatus == OperationalStatus.Up
-                });
+                    var stats = ni.GetIPv4Statistics();
+                    var ip = ni.GetIPProperties().UnicastAddresses
+                        .FirstOrDefault(addr => addr.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                        ?.Address.ToString() ?? string.Empty;
+
+                    var macAddress = string.Empty;
+                    try {
+                        macAddress = string.Join(":", ni.GetPhysicalAddress()
+                            .GetAddressBytes()
+                            .Select(b => b.ToString("X2")));
+                    } catch {}
+
+                    interfaces.Add(new NetworkInterfaceInfo
+                    {
+                        Name = ni.Name,
+                        IpAddress = ip,
+                        BytesSent = stats.BytesSent,
+                        BytesReceived = stats.BytesReceived,
+                        SendRate = 0,
+                        ReceiveRate = 0,
+                        MacAddress = macAddress,
+                        IsOperational = ni.OperationalStatus == OperationalStatus.Up
+                    });
+                }
+                catch { continue; }
             }
         }
         catch (Exception ex)
@@ -244,25 +305,6 @@ public class SystemMonitorService
                     // Ignore processes we can't access
                 }
             }
-
-            foreach (var process in dotnetProcesses)
-            {
-                try
-                {
-                    processes.Add(new ProcessInfo
-                    {
-                        Id = process.Id,
-                        Name = process.ProcessName,
-                        Memory = process.WorkingSet64,
-                        CpuTime = process.TotalProcessorTime,
-                        StartTime = process.StartTime
-                    });
-                }
-                catch
-                {
-                    // Ignore processes we can't access
-                }
-            }
         }
         catch (Exception ex)
         {
@@ -270,5 +312,12 @@ public class SystemMonitorService
         }
 
         return processes;
+    }
+
+    public void Dispose()
+    {
+        _cpuCounter?.Dispose();
+        _ramAvailableCounter?.Dispose();
+        _ramTotalCounter?.Dispose();
     }
 }
