@@ -8,15 +8,18 @@ public class ConfigController : Controller
 {
     private readonly ConfigService _configService;
     private readonly FfmpegService _ffmpegService;
+    private readonly StreamManagerService _streamManager;
     private readonly ILogger<ConfigController> _logger;
     
     public ConfigController(
         ConfigService configService,
         FfmpegService ffmpegService,
+        StreamManagerService streamManager,
         ILogger<ConfigController> logger)
     {
         _configService = configService;
         _ffmpegService = ffmpegService;
+        _streamManager = streamManager;
         _logger = logger;
     }
 
@@ -26,7 +29,15 @@ public class ConfigController : Controller
     public IActionResult Index()
     {
         var configs = _configService.GetAllConfigs();
-        return View(configs);
+        var statuses = _streamManager.GetAllStreamStatus();
+        
+        var viewModels = configs.Select(config => new HeadendStreamer.Web.Models.ViewModels.StreamViewModel
+        {
+            Config = config,
+            Status = statuses.TryGetValue(config.Id, out var status) ? status : null
+        }).ToList();
+        
+        return View(viewModels);
     }
 
     [HttpGet]
@@ -43,7 +54,15 @@ public class ConfigController : Controller
         {
             return NotFound();
         }
-        return View(config);
+
+        var status = _streamManager.GetStreamStatus(id);
+        var viewModel = new HeadendStreamer.Web.Models.ViewModels.StreamViewModel
+        {
+            Config = config,
+            Status = status
+        };
+        
+        return View(viewModel);
     }
     
     // API Actions
@@ -141,6 +160,27 @@ public class ConfigController : Controller
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to test device");
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+
+    [HttpGet("api/config/device-options")]
+    public async Task<IActionResult> GetDeviceOptions([FromQuery] string deviceName, [FromQuery] string inputFormat = "dshow")
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(deviceName))
+                return BadRequest(new { error = "Device name is required" });
+
+            var options = await _ffmpegService.GetDeviceOptionsAsync(deviceName, inputFormat);
+            if (options == null)
+                return NotFound(new { error = "Could not retrieve device options" });
+
+            return Ok(options);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Failed to get device options for {deviceName}");
             return StatusCode(500, new { error = ex.Message });
         }
     }

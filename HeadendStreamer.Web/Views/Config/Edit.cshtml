@@ -1,4 +1,4 @@
-@model HeadendStreamer.Web.Models.Entities.StreamConfig
+@model HeadendStreamer.Web.Models.ViewModels.StreamViewModel
 @{
     ViewData["Title"] = "Edit Stream";
 }
@@ -7,10 +7,32 @@
     <div class="row mb-4">
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center">
-                <h2><i class="fas fa-edit me-2 text-warning"></i>Edit Configuration</h2>
-                <a asp-action="Index" class="btn btn-outline-secondary">
-                    <i class="fas fa-arrow-left me-1"></i> Back to List
-                </a>
+                <h2>
+                    <i class="fas fa-edit me-2 text-warning"></i>Edit Configuration
+                    <span id="statusBadge" class="badge @(Model.Status?.IsRunning == true ? "bg-success" : "bg-secondary") ms-2" style="font-size: 0.5em; vertical-align: middle;">
+                        <i class="fas @(Model.Status?.IsRunning == true ? "fa-play-circle" : "fa-stop-circle") me-1"></i>
+                        @(Model.Status?.IsRunning == true ? "Running" : "Stopped")
+                    </span>
+                </h2>
+                <div class="d-flex align-items-center">
+                    <div class="btn-group me-3" role="group">
+                        <button type="button" class="btn btn-success @(Model.Status?.IsRunning == true ? "d-none" : "")" id="startBtn" onclick="controlStream('start')">
+                            <i class="fas fa-play me-1"></i> Start
+                        </button>
+                        <button type="button" class="btn btn-danger @(Model.Status?.IsRunning == true ? "" : "d-none")" id="stopBtn" onclick="controlStream('stop')">
+                            <i class="fas fa-stop me-1"></i> Stop
+                        </button>
+                        <button type="button" class="btn btn-warning" id="restartBtn" onclick="controlStream('restart')">
+                            <i class="fas fa-sync me-1"></i> Restart
+                        </button>
+                    </div>
+                    <a asp-controller="Stream" asp-action="Details" asp-route-id="@Model.Config.Id" class="btn btn-outline-info me-2">
+                        <i class="fas fa-info-circle me-1"></i> View Details
+                    </a>
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i> Back to List
+                    </a>
+                </div>
             </div>
         </div>
     </div>
@@ -20,33 +42,44 @@
             <div class="card shadow-sm">
                 <div class="card-body">
                     <form id="editConfigForm">
-                        <input type="hidden" id="ConfigId" value="@Model.Id" />
+                        <input type="hidden" id="ConfigId" value="@Model.Config.Id" />
                         
                         <div class="mb-3">
-                            <label asp-for="Name" class="form-label">Stream Name</label>
-                            <input asp-for="Name" class="form-control" required />
+                            <label asp-for="Config.Name" class="form-label">Stream Name</label>
+                            <input asp-for="Config.Name" id="Name" class="form-control" required />
                         </div>
 
                         <div class="mb-3">
-                            <label asp-for="Description" class="form-label">Description</label>
-                            <textarea asp-for="Description" class="form-control" rows="2"></textarea>
+                            <label asp-for="Config.Description" class="form-label">Description</label>
+                            <textarea asp-for="Config.Description" class="form-control" rows="2"></textarea>
                         </div>
                         
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label asp-for="InputFormat" class="form-label">Input Format</label>
-                                <select asp-for="InputFormat" class="form-select">
+                                <label asp-for="Config.InputFormat" class="form-label">Input Format</label>
+                                <select asp-for="Config.InputFormat" id="InputFormat" class="form-select">
                                     <option value="v4l2">V4L2 (Webcam/Capture Card)</option>
                                     <option value="dshow">DirectShow (Windows)</option>
                                     <option value="decklink">DeckLink</option>
                                     <option value="mpegts">MPEG-TS (UDP/RTP)</option>
                                     <option value="file">Local File</option>
+
                                 </select>
+                                <div id="deviceDiscoveryGroup" class="mt-2" style="display: none;">
+                                    <div class="input-group">
+                                        <select id="DiscoveryDevice" class="form-select form-select-sm">
+                                            <option value="">-- Discover Devices --</option>
+                                        </select>
+                                        <button class="btn btn-sm btn-outline-primary" type="button" id="refreshDevicesBtn" title="Scan for devices">
+                                            <i class="fas fa-sync-alt" id="refreshDevicesIcon"></i>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label asp-for="InputDevice" class="form-label" id="inputDeviceLabel">Input Device</label>
+                                <label asp-for="Config.InputDevice" class="form-label" id="inputDeviceLabel">Input Device</label>
                                 <div class="input-group">
-                                    <input asp-for="InputDevice" class="form-control" required />
+                                    <input asp-for="Config.InputDevice" id="InputDevice" class="form-control" required />
                                     <button class="btn btn-outline-secondary" type="button" id="browseButton" title="Browse for file">
                                         <i class="fas fa-search" id="browseIcon"></i>
                                     </button>
@@ -65,14 +98,53 @@
                                 <div id="pathError" class="text-danger small mt-1" style="display: none;">
                                     <i class="fas fa-times-circle me-1"></i> Path not found or inaccessible on server.
                                 </div>
+                                <div id="deviceOptionsGroup" class="mt-2" style="display: none;">
+                                    <label class="form-label small">
+                                        <i class="fas fa-info-circle me-1"></i> Supported Device Options
+                                        <button class="btn btn-sm btn-outline-secondary ms-2" type="button" id="refreshDeviceOptionsBtn" title="Refresh device options">
+                                            <i class="fas fa-sync-alt" id="refreshDeviceOptionsIcon"></i>
+                                        </button>
+                                    </label>
+                                    <select id="DeviceOptionsDropdown" class="form-select form-select-sm">
+                                        <option value="">-- Select Device Option --</option>
+                                    </select>
+                                    <div id="deviceOptionsLoading" class="mt-1" style="display: none;">
+                                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                        <span class="ms-2 small">Loading options...</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <div class="row" id="pixelFormatRow">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Config.PixelFormat" class="form-label">Pixel Format</label>
+                                <select asp-for="Config.PixelFormat" id="PixelFormat" class="form-select">
+                                    <option value="yuyv422">YUYV 4:2:2</option>
+                                    <option value="yuv420p">YUV 4:2:0</option>
+                                    <option value="mjpeg">Motion JPEG</option>
+                                    <option value="uyvy422">UYVY 4:2:2</option>
+                                    <option value="nv12">NV12</option>
+                                    <option value="auto">Auto</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <!-- Spacer for alignment -->
                             </div>
                         </div>
 
                         <h5 class="mt-4 mb-3 border-bottom pb-2">Video Settings</h5>
-                        <div class="row">
+                        <div class="mb-3 form-check" id="reStreamGroup" style="display: none;">
+                            <input asp-for="Config.ReStream" id="ReStream" class="form-check-input" />
+                            <label asp-for="Config.ReStream" class="form-check-label">Re-Stream (Copy Video/Audio without transcoding)</label>
+                        </div>
+                        <div class="row" id="videoFormatRow">
                             <div class="col-md-6 mb-3">
-                                <label asp-for="VideoSize" class="form-label">Video Size</label>
-                                <select asp-for="VideoSize" class="form-select">
+                                <label asp-for="Config.VideoSize" class="form-label">Video Size</label>
+                                <select asp-for="Config.VideoSize" id="VideoSize" class="form-select">
                                     <option value="3840x2160">3840x2160 (4K)</option>
                                     <option value="2560x1440">2560x1440 (2K)</option>
                                     <option value="1920x1080">1920x1080 (1080p)</option>
@@ -87,23 +159,33 @@
                                 </select>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label asp-for="FrameRate" class="form-label">Frame Rate</label>
-                                <input asp-for="FrameRate" class="form-control" type="number" />
+                                <label asp-for="Config.FrameRate" class="form-label">Frame Rate</label>
+                                <input asp-for="Config.FrameRate" id="FrameRate" class="form-control" type="number" />
                             </div>
                         </div>
 
                         <div class="row">
                             <div class="col-md-4 mb-3">
-                                <label asp-for="VideoCodec" class="form-label">Video Codec</label>
-                                <select asp-for="VideoCodec" class="form-select">
-                                    <option value="libx264">H.264 (libx264)</option>
-                                    <option value="libx265">H.265 (libx265)</option>
+                                <label asp-for="Config.VideoCodec" class="form-label">Video Codec</label>
+                                <select asp-for="Config.VideoCodec" id="VideoCodec" class="form-select">
+                                    <option value="libx264">H.264 (CPU - libx264)</option>
+                                    <option value="libx265">HEVC/H.265 (CPU - libx265)</option>
+                                    <option value="h264_qsv">H.264 (Intel QuickSync)</option>
+                                    <option value="hevc_qsv">HEVC/H.265 (Intel QuickSync)</option>
+                                    <option value="h264_nvenc">H.264 (NVIDIA NVENC)</option>
+                                    <option value="hevc_nvenc">HEVC/H.265 (NVIDIA NVENC)</option>
+                                    <option value="h264_amf">H.264 (AMD AMF)</option>
+                                    <option value="hevc_amf">HEVC/H.265 (AMD AMF)</option>
+                                    <option value="mpeg2video">MPEG-2 Video</option>
+                                    <option value="mpeg4">MPEG-4</option>
+                                    <option value="vp8">VP8 (libvpx)</option>
+                                    <option value="vp9">VP9 (libvpx-vp9)</option>
                                     <option value="copy">Copy (Pass-through)</option>
                                 </select>
                             </div>
                             <div class="col-md-4 mb-3">
-                                <label asp-for="Preset" class="form-label">Preset</label>
-                                <select asp-for="Preset" class="form-select">
+                                <label asp-for="Config.Preset" class="form-label">Preset</label>
+                                <select asp-for="Config.Preset" id="Preset" class="form-select">
                                     <option value="ultrafast">ultrafast</option>
                                     <option value="superfast">superfast</option>
                                     <option value="veryfast">veryfast</option>
@@ -113,8 +195,8 @@
                                 </select>
                             </div>
                             <div class="col-md-4 mb-3">
-                                <label asp-for="Tune" class="form-label">Tune</label>
-                                <select asp-for="Tune" class="form-select">
+                                <label asp-for="Config.Tune" class="form-label">Tune</label>
+                                <select asp-for="Config.Tune" id="Tune" class="form-select">
                                     <option value="none">none</option>
                                     <option value="zerolatency">zerolatency</option>
                                     <option value="film">film</option>
@@ -125,8 +207,8 @@
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label asp-for="Bitrate" class="form-label">Bitrate</label>
-                                <select asp-for="Bitrate" class="form-select">
+                                <label asp-for="Config.Bitrate" class="form-label">Bitrate</label>
+                                <select asp-for="Config.Bitrate" id="Bitrate" class="form-select">
                                     <option value="1000k">1000k (1 Mbps)</option>
                                     <option value="2000k">2000k (2 Mbps)</option>
                                     <option value="3000k">3000k (3 Mbps)</option>
@@ -140,27 +222,37 @@
                                 </select>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label asp-for="GopSize" class="form-label">GOP Size</label>
-                                <input asp-for="GopSize" class="form-control" type="number" />
+                                <label asp-for="Config.GopSize" class="form-label">GOP Size</label>
+                                <input asp-for="Config.GopSize" id="GopSize" class="form-control" type="number" />
                             </div>
                         </div>
 
-                        <h5 class="mt-4 mb-3 border-bottom pb-2">Audio Settings</h5>
-                        <div class="mb-3 form-check">
-                            <input asp-for="EnableAudio" class="form-check-input" />
-                            <label asp-for="EnableAudio" class="form-check-label">Enable Audio</label>
+                        <h5 class="mt-4 mb-3 border-bottom pb-2" id="audioSettingsHeader">Audio Settings</h5>
+                        <div class="mb-3 form-check" id="enableAudioGroup">
+                            <input asp-for="Config.EnableAudio" id="EnableAudio" class="form-check-input" />
+                            <label asp-for="Config.EnableAudio" class="form-check-label">Enable Audio</label>
                         </div>
 
-                        <div id="audioSettings" style="display: @(Model.EnableAudio ? "block" : "none")">
+                        <div id="audioSettings" style="display: @(Model.Config.EnableAudio ? "block" : "none")">
                             <div class="mb-3">
-                                <label asp-for="AudioDevice" class="form-label">Audio Device</label>
-                                <input asp-for="AudioDevice" class="form-control" />
+                                <label asp-for="Config.AudioDevice" class="form-label">Audio Device</label>
+                                <div class="input-group">
+                                    <input asp-for="Config.AudioDevice" id="AudioDevice" class="form-control" />
+                                    <button class="btn btn-outline-primary" type="button" id="refreshAudioDevicesBtn" title="Scan for audio devices">
+                                        <i class="fas fa-sync-alt" id="refreshAudioDevicesIcon"></i>
+                                    </button>
+                                </div>
+                                <div id="audioDiscoveryGroup" class="mt-2" style="display: none;">
+                                    <select id="DiscoveryAudioDevice" class="form-select form-select-sm">
+                                        <option value="">-- Discover Audio Devices --</option>
+                                    </select>
+                                </div>
                                 <small class="text-muted">e.g. audio=Microphone or hw:0,0</small>
                             </div>
                             <div class="row">
                                 <div class="col-md-6 mb-3">
-                                    <label asp-for="AudioCodec" class="form-label">Audio Codec</label>
-                                    <select asp-for="AudioCodec" class="form-select">
+                                    <label asp-for="Config.AudioCodec" class="form-label">Audio Codec</label>
+                                    <select asp-for="Config.AudioCodec" id="AudioCodec" class="form-select">
                                         <option value="aac">AAC</option>
                                         <option value="libmp3lame">MP3</option>
                                         <option value="opus">Opus</option>
@@ -168,8 +260,8 @@
                                     </select>
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    <label asp-for="AudioBitrate" class="form-label">Audio Bitrate</label>
-                                    <select asp-for="AudioBitrate" class="form-select">
+                                    <label asp-for="Config.AudioBitrate" class="form-label">Audio Bitrate</label>
+                                    <select asp-for="Config.AudioBitrate" id="AudioBitrate" class="form-select">
                                         <option value="64k">64k</option>
                                         <option value="128k">128k</option>
                                         <option value="192k">192k</option>
@@ -182,22 +274,22 @@
                         <h5 class="mt-4 mb-3 border-bottom pb-2">Output Settings</h5>
                         <div class="row">
                             <div class="col-md-4 mb-3">
-                                <label asp-for="MulticastIp" class="form-label">Multicast IP</label>
-                                <input asp-for="MulticastIp" class="form-control" required />
+                                <label asp-for="Config.MulticastIp" class="form-label">Multicast IP</label>
+                                <input asp-for="Config.MulticastIp" id="MulticastIp" class="form-control" required />
                             </div>
                             <div class="col-md-4 mb-3">
-                                <label asp-for="Port" class="form-label">Port</label>
-                                <input asp-for="Port" class="form-control" type="number" required />
+                                <label asp-for="Config.Port" class="form-label">Port</label>
+                                <input asp-for="Config.Port" id="Port" class="form-control" type="number" required />
                             </div>
                             <div class="col-md-4 mb-3">
-                                <label asp-for="Ttl" class="form-label">TTL</label>
-                                <input asp-for="Ttl" class="form-control" type="number" required />
+                                <label asp-for="Config.Ttl" class="form-label">TTL</label>
+                                <input asp-for="Config.Ttl" id="Ttl" class="form-control" type="number" required />
                             </div>
                         </div>
                         
                         <div class="mb-3">
-                            <label asp-for="OutputFormat" class="form-label">Output Format</label>
-                            <select asp-for="OutputFormat" class="form-select">
+                            <label asp-for="Config.OutputFormat" class="form-label">Output Format</label>
+                            <select asp-for="Config.OutputFormat" id="OutputFormat" class="form-select">
                                 <option value="mpegts">MPEG-TS (.ts)</option>
                                 <option value="hls">HLS (.m3u8)</option>
                                 <option value="dash">DASH (.mpd)</option>
@@ -211,8 +303,8 @@
                         <hr />
 
                         <div class="mb-3 form-check">
-                            <input asp-for="Enabled" class="form-check-input" />
-                            <label asp-for="Enabled" class="form-check-label">Stream Enabled (Auto-start)</label>
+                            <input asp-for="Config.Enabled" id="Enabled" class="form-check-input" />
+                            <label asp-for="Config.Enabled" class="form-check-label">Stream Enabled (Auto-start)</label>
                         </div>
 
                         <div class="mb-4">
@@ -285,8 +377,374 @@
 
 @section Scripts {
     <script>
+        // Device discovery logic
+        const inputFormatSelect = document.getElementById('InputFormat');
+        const deviceDiscoveryGroup = document.getElementById('deviceDiscoveryGroup');
+        const discoveryDeviceSelect = document.getElementById('DiscoveryDevice');
+        const refreshDevicesBtn = document.getElementById('refreshDevicesBtn');
+        const inputDeviceInput = document.getElementById('InputDevice');
+
+        // Audio discovery elements
+        const audioDeviceInput = document.getElementById('AudioDevice');
+        const audioDiscoveryGroup = document.getElementById('audioDiscoveryGroup');
+        const discoveryAudioDeviceSelect = document.getElementById('DiscoveryAudioDevice');
+        const refreshAudioDevicesBtn = document.getElementById('refreshAudioDevicesBtn');
+        const enableAudioCheck = document.getElementById('EnableAudio');
+
+        function toggleDeviceDiscovery() {
+            const format = inputFormatSelect.value;
+            const reStreamGroup = document.getElementById('reStreamGroup');
+            const pixelFormatRow = document.getElementById('pixelFormatRow');
+            const videoFormatRow = document.getElementById('videoFormatRow');
+            const audioSettingsHeader = document.getElementById('audioSettingsHeader');
+            const enableAudioGroup = document.getElementById('enableAudioGroup');
+            const audioSettings = document.getElementById('audioSettings');
+            
+            if (format === 'mpegts') {
+                reStreamGroup.style.display = 'block';
+                if (pixelFormatRow) pixelFormatRow.style.display = 'none';
+                if (videoFormatRow) videoFormatRow.style.display = 'none';
+                if (audioSettingsHeader) audioSettingsHeader.style.display = 'none';
+                if (enableAudioGroup) enableAudioGroup.style.display = 'none';
+                if (audioSettings) audioSettings.style.display = 'none';
+                if (audioDiscoveryGroup) audioDiscoveryGroup.style.display = 'none';
+            } else {
+                reStreamGroup.style.display = 'none';
+                if (pixelFormatRow) pixelFormatRow.style.display = 'flex';
+                if (videoFormatRow) videoFormatRow.style.display = 'flex';
+                if (audioSettingsHeader) audioSettingsHeader.style.display = 'block';
+                if (enableAudioGroup) enableAudioGroup.style.display = 'block';
+                if (audioSettings) audioSettings.style.display = enableAudioCheck.checked ? 'block' : 'none';
+                if (enableAudioCheck.checked && format !== 'file' && format !== 'mpegts') {
+                    audioDiscoveryGroup.style.display = 'block';
+                }
+                const reStreamCheck = document.getElementById('ReStream');
+                if (reStreamCheck.checked) {
+                    reStreamCheck.checked = false;
+                    toggleReStream();
+                }
+            }
+
+            if (format === 'dshow' || format === 'v4l2') {
+                deviceDiscoveryGroup.style.display = 'block';
+                if (discoveryDeviceSelect.options.length <= 1) {
+                    fetchDevices('video');
+                }
+            } else {
+                deviceDiscoveryGroup.style.display = 'none';
+                if (typeof deviceOptionsGroup !== 'undefined' && deviceOptionsGroup) {
+                    deviceOptionsGroup.style.display = 'none';
+                }
+            }
+        }
+
+        function toggleReStream() {
+            const isReStream = document.getElementById('ReStream').checked;
+            const videoInputs = ['VideoSize', 'FrameRate', 'VideoCodec', 'Preset', 'Tune', 'Bitrate', 'GopSize', 'PixelFormat'];
+            const audioInputs = ['EnableAudio', 'AudioCodec', 'AudioBitrate', 'AudioDevice', 'refreshAudioDevicesBtn'];
+            
+            videoInputs.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.disabled = isReStream;
+            });
+            
+            audioInputs.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.disabled = isReStream;
+            });
+            
+            const audioSettings = document.getElementById('audioSettings');
+            if (isReStream) {
+                audioSettings.style.display = 'none';
+                audioDiscoveryGroup.style.display = 'none';
+            } else {
+                const format = inputFormatSelect.value;
+                if (format === 'mpegts') {
+                    audioSettings.style.display = 'none';
+                    audioDiscoveryGroup.style.display = 'none';
+                } else {
+                    audioSettings.style.display = enableAudioCheck.checked ? 'block' : 'none';
+                    if (enableAudioCheck.checked && format !== 'file') {
+                        audioDiscoveryGroup.style.display = 'block';
+                    }
+                }
+            }
+            
+            updateCommandPreview();
+        }
+
+        document.getElementById('ReStream').addEventListener('change', toggleReStream);
+
+        function toggleAudioDiscovery() {
+            const inputFormat = inputFormatSelect.value;
+            const isLocalFile = inputFormat === 'file';
+            
+            if (enableAudioCheck.checked && !isLocalFile) {
+                audioDiscoveryGroup.style.display = 'block';
+                audioDeviceInput.disabled = false;
+                refreshAudioDevicesBtn.disabled = false;
+                if (discoveryAudioDeviceSelect.options.length <= 1) {
+                    fetchDevices('audio');
+                }
+            } else {
+                audioDiscoveryGroup.style.display = 'none';
+                if (isLocalFile) {
+                    audioDeviceInput.disabled = true;
+                    refreshAudioDevicesBtn.disabled = true;
+                } else {
+                    audioDeviceInput.disabled = false;
+                    refreshAudioDevicesBtn.disabled = false;
+                }
+            }
+        }
+
+        async function fetchDevices(filterType) {
+            const iconId = filterType === 'audio' ? 'refreshAudioDevicesIcon' : 'refreshDevicesIcon';
+            const btnId = filterType === 'audio' ? 'refreshAudioDevicesBtn' : 'refreshDevicesBtn';
+            const selectId = filterType === 'audio' ? 'DiscoveryAudioDevice' : 'DiscoveryDevice';
+            
+            const icon = document.getElementById(iconId);
+            const btn = document.getElementById(btnId);
+            const select = document.getElementById(selectId);
+
+            icon.classList.add('fa-spin');
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/api/config/devices');
+                const devices = await response.json();
+                
+                const placeholder = filterType === 'audio' ? '-- Discover Audio Devices --' : '-- Discover Devices --';
+                select.innerHTML = `<option value="">${placeholder}</option>`;
+                
+                devices.filter(d => d.type === filterType).forEach(device => {
+                    const option = document.createElement('option');
+                    option.value = device.devicePath;
+                    option.textContent = device.name;
+                    select.appendChild(option);
+                });
+            } catch (err) {
+                console.error(`Error fetching ${filterType} devices:`, err);
+            } finally {
+                icon.classList.remove('fa-spin');
+                btn.disabled = false;
+            }
+        }
+
+        inputFormatSelect.addEventListener('change', () => {
+            toggleDeviceDiscovery();
+            toggleAudioDiscovery();
+        });
+        refreshDevicesBtn.addEventListener('click', () => fetchDevices('video'));
+        discoveryDeviceSelect.addEventListener('change', function() {
+            if (this.value) {
+                inputDeviceInput.value = this.value;
+                updateCommandPreview();
+                // Fetch device options when a device is selected
+                fetchDeviceOptions(this.value);
+            }
+        });
+
+        // Device options functionality
+        const deviceOptionsGroup = document.getElementById('deviceOptionsGroup');
+        const deviceOptionsDropdown = document.getElementById('DeviceOptionsDropdown');
+        const deviceOptionsLoading = document.getElementById('deviceOptionsLoading');
+        const refreshDeviceOptionsBtn = document.getElementById('refreshDeviceOptionsBtn');
+        const refreshDeviceOptionsIcon = document.getElementById('refreshDeviceOptionsIcon');
+
+        let currentDeviceOptions = [];
+
+        async function fetchDeviceOptions(deviceName) {
+            if (!deviceName) return;
+
+            // Remove "video=" prefix if present
+            const cleanDeviceName = deviceName.replace(/^video=/, '');
+            const inputFormat = inputFormatSelect.value;
+
+            // Only show for dshow or v4l2 formats
+            if (inputFormat !== 'dshow' && inputFormat !== 'v4l2') {
+                deviceOptionsGroup.style.display = 'none';
+                return;
+            }
+
+            deviceOptionsGroup.style.display = 'block';
+            deviceOptionsDropdown.style.display = 'none';
+            deviceOptionsLoading.style.display = 'block';
+            deviceOptionsDropdown.innerHTML = '<option value="">-- Select Device Option --</option>';
+
+            try {
+                const response = await fetch(`/api/config/device-options?deviceName=${encodeURIComponent(cleanDeviceName)}&inputFormat=${inputFormat}`);
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch device options');
+                }
+
+                const options = await response.json();
+                currentDeviceOptions = options.optionCombinations || [];
+                displayDeviceOptions(currentDeviceOptions);
+            } catch (err) {
+                console.error('Error fetching device options:', err);
+                deviceOptionsDropdown.innerHTML = '<option value="">Error loading options</option>';
+            } finally {
+                deviceOptionsLoading.style.display = 'none';
+                deviceOptionsDropdown.style.display = 'block';
+            }
+        }
+
+        function displayDeviceOptions(combinations) {
+            if (!combinations || combinations.length === 0) {
+                deviceOptionsDropdown.innerHTML = '<option value="">No options found</option>';
+                return;
+            }
+
+            deviceOptionsDropdown.innerHTML = '<option value="">-- Select Device Option --</option>';
+            combinations.forEach((combo, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = combo.displayText;
+                deviceOptionsDropdown.appendChild(option);
+            });
+        }
+
+        deviceOptionsDropdown.addEventListener('change', function() {
+            const index = this.value;
+            if (index === "" || !currentDeviceOptions[index]) return;
+
+            const combo = currentDeviceOptions[index];
+            
+            // Auto-fill fields
+            if (combo.resolution) {
+                const videoSizeSelect = document.getElementById('VideoSize');
+                // Check if the resolution exists in our predefined list
+                let found = false;
+                for (let i = 0; i < videoSizeSelect.options.length; i++) {
+                    if (videoSizeSelect.options[i].value === combo.resolution) {
+                        videoSizeSelect.value = combo.resolution;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    // If not found, add it temporarily or alert? Usually it's better to add it.
+                    const newOpt = document.createElement('option');
+                    newOpt.value = combo.resolution;
+                    newOpt.textContent = combo.resolution + ' (Custom)';
+                    videoSizeSelect.appendChild(newOpt);
+                    videoSizeSelect.value = combo.resolution;
+                }
+            }
+
+            if (combo.frameRate) {
+                document.getElementById('FrameRate').value = combo.frameRate;
+            }
+
+            if (combo.pixelFormat || combo.codec) {
+                const pixelFormatSelect = document.getElementById('PixelFormat');
+                const valToSet = combo.pixelFormat || combo.codec;
+                
+                let found = false;
+                for (let i = 0; i < pixelFormatSelect.options.length; i++) {
+                    if (pixelFormatSelect.options[i].value === valToSet) {
+                        pixelFormatSelect.value = valToSet;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found && valToSet) {
+                    const newOpt = document.createElement('option');
+                    newOpt.value = valToSet;
+                    newOpt.textContent = valToSet + ' (Custom)';
+                    pixelFormatSelect.appendChild(newOpt);
+                    pixelFormatSelect.value = valToSet;
+                }
+            }
+
+            updateCommandPreview();
+        });
+
+        refreshDeviceOptionsBtn.addEventListener('click', function() {
+            const deviceName = inputDeviceInput.value;
+            if (deviceName) {
+                refreshDeviceOptionsIcon.classList.add('fa-spin');
+                fetchDeviceOptions(deviceName).finally(() => {
+                    refreshDeviceOptionsIcon.classList.remove('fa-spin');
+                });
+            }
+        });
+
+        // Also fetch device options when input device changes manually
+        inputDeviceInput.addEventListener('blur', function() {
+            const inputFormat = inputFormatSelect.value;
+            if ((inputFormat === 'dshow' || inputFormat === 'v4l2') && this.value) {
+                fetchDeviceOptions(this.value);
+            }
+        });
+
+        refreshAudioDevicesBtn.addEventListener('click', () => fetchDevices('audio'));
+        discoveryAudioDeviceSelect.addEventListener('change', function() {
+            if (this.value) {
+                audioDeviceInput.value = this.value;
+                updateCommandPreview();
+            }
+        });
+
+        enableAudioCheck.addEventListener('change', () => {
+            toggleAudioDiscovery();
+            updateCommandPreview();
+        });
+
+        // Stream control function
+        async function controlStream(action) {
+            const id = document.getElementById('ConfigId').value;
+            const startBtn = document.getElementById('startBtn');
+            const stopBtn = document.getElementById('stopBtn');
+            const restartBtn = document.getElementById('restartBtn');
+            const badge = document.getElementById('statusBadge');
+            
+            try {
+                const response = await fetch(`/api/stream/${id}/${action}`, { method: 'POST' });
+                if (response.ok) {
+                    if (action === 'start') {
+                        startBtn.classList.add('d-none');
+                        stopBtn.classList.remove('d-none');
+                        badge.className = 'badge bg-success ms-2';
+                        badge.innerHTML = '<i class="fas fa-play-circle me-1"></i>Running';
+                    } else if (action === 'stop') {
+                        stopBtn.classList.add('d-none');
+                        startBtn.classList.remove('d-none');
+                        badge.className = 'badge bg-secondary ms-2';
+                        badge.innerHTML = '<i class="fas fa-stop-circle me-1"></i>Stopped';
+                    } else if (action === 'restart') {
+                        // For restart, we just blink the badge
+                        badge.innerHTML = '<i class="fas fa-sync fa-spin me-1"></i>Restarting...';
+                        setTimeout(async () => {
+                            const statusResponse = await fetch(`/api/stream/${id}/stats`);
+                            const status = await statusResponse.json();
+                            if (status.isRunning) {
+                                startBtn.classList.add('d-none');
+                                stopBtn.classList.remove('d-none');
+                                badge.className = 'badge bg-success ms-2';
+                                badge.innerHTML = '<i class="fas fa-play-circle me-1"></i>Running';
+                            } else {
+                                stopBtn.classList.add('d-none');
+                                startBtn.classList.remove('d-none');
+                                badge.className = 'badge bg-secondary ms-2';
+                                badge.innerHTML = '<i class="fas fa-stop-circle me-1"></i>Stopped';
+                            }
+                        }, 2000);
+                    }
+                } else {
+                    const error = await response.json();
+                    alert(`Failed to ${action} stream: ` + (error.error || 'Unknown error'));
+                }
+            } catch (err) {
+                console.error(`Error during ${action}:`, err);
+                alert(`Network error during ${action}`);
+            }
+        }
+
         // Toggle input device help text and browse button functionality
-        document.getElementById('InputFormat').addEventListener('change', function() {
+        inputFormatSelect.addEventListener('change', function() {
             const label = document.getElementById('inputDeviceLabel');
             const help = document.getElementById('inputDeviceHelp');
             const browseIcon = document.getElementById('browseIcon');
@@ -474,38 +932,57 @@
 
         // Function to update the FFmpeg command preview
         function updateCommandPreview() {
-            const name = document.getElementById('Name').value;
-            const inputFormat = document.getElementById('InputFormat').value;
-            const inputDevice = document.getElementById('InputDevice').value;
-            const videoSize = document.getElementById('VideoSize').value;
-            const frameRate = document.getElementById('FrameRate').value || 30;
-            const videoCodec = document.getElementById('VideoCodec').value;
-            const preset = document.getElementById('Preset').value;
-            const tune = document.getElementById('Tune').value;
-            const bitrate = document.getElementById('Bitrate').value;
-            const gopSize = document.getElementById('GopSize').value || 60;
-            
-            const enableAudio = document.getElementById('EnableAudio').checked;
-            const audioDevice = document.getElementById('AudioDevice').value;
-            const audioCodec = document.getElementById('AudioCodec').value;
-            const audioBitrate = document.getElementById('AudioBitrate').value;
-            
-            const multicastIp = document.getElementById('MulticastIp').value || '239.0.0.1';
-            const port = document.getElementById('Port').value || 1234;
-            const ttl = document.getElementById('Ttl').value || 64;
-            const outputFormat = document.getElementById('OutputFormat').value;
+            try {
+                const getVal = (id) => {
+                    const el = document.getElementById(id);
+                    if (!el) {
+                        console.error('Element not found:', id);
+                        return '';
+                    }
+                    return el.type === 'checkbox' ? el.checked : el.value;
+                };
 
-            let args = ['ffmpeg'];
+                const name = getVal('Name');
+                const inputFormat = getVal('InputFormat');
+                const inputDevice = getVal('InputDevice');
+                const pixelFormat = getVal('PixelFormat');
+                const videoSize = getVal('VideoSize');
+                const frameRate = getVal('FrameRate') || 30;
+                const videoCodec = getVal('VideoCodec');
+                const preset = getVal('Preset');
+                const tune = getVal('Tune');
+                const bitrate = getVal('Bitrate');
+                const gopSize = getVal('GopSize') || 60;
+                
+                const enableAudio = getVal('EnableAudio');
+                const audioDevice = getVal('AudioDevice');
+                const audioCodec = getVal('AudioCodec');
+                const audioBitrate = getVal('AudioBitrate');
+                
+                const multicastIp = getVal('MulticastIp') || '239.0.0.1';
+                const port = getVal('Port') || 1234;
+                const ttl = getVal('Ttl') || 64;
+                const outputFormat = getVal('OutputFormat');
+
+                const reStream = getVal('ReStream');
+
+                let args = ['ffmpeg'];
             
-            if (inputFormat === 'file') {
+            if (reStream && (inputFormat === 'mpegts' || inputFormat === 'youtube')) {
+                args.push('-i', `"${inputDevice}"`);
+                args.push('-c:v', 'copy');
+                args.push('-c:a', 'copy');
+                args.push('-f', 'mpegts');
+                args.push('-flags', '+global_header');
+            } else if (inputFormat === 'file') {
                 // Special requirements for local file playback
                 args.push('-re');
                 args.push('-thread_queue_size', '1024');
                 args.push('-i', `"${inputDevice}"`);
                 
                 // Video encoding
-                args.push('-c:v', 'libx264');
-                args.push('-preset', preset === 'veryfast' ? 'veryfast' : preset); // User specifically asked for veryfast tune zerolatency
+                args.push('-c:v', videoCodec);
+                args.push('-preset', preset === 'veryfast' ? 'veryfast' : preset);
                 args.push('-tune', tune === 'zerolatency' ? 'zerolatency' : tune);
                 args.push('-b:v', '2000k');
                 args.push('-maxrate', '2000k');
@@ -516,9 +993,16 @@
                 args.push('-sc_threshold', '0');
 
                 // Audio encoding
-                args.push('-c:a', 'aac');
-                args.push('-b:a', '128k');
-                args.push('-ac', '2');
+                if (enableAudio) {
+                    args.push('-c:a', audioCodec);
+                    args.push('-b:a', audioBitrate);
+                    args.push('-ac', '2');
+                }
+
+                // Pixel Format configuration (for local files)
+                if (pixelFormat && pixelFormat !== 'auto') {
+                     args.push('-pix_fmt', pixelFormat);
+                }
 
                 // Output
                 args.push('-f', 'mpegts');
@@ -528,21 +1012,22 @@
                 const isDesktop = inputDevice.includes('desktop') || inputDevice.includes('screen');
                 if (isDesktop) {
                     args.push('-f', 'gdigrab');
-                } else {
+                } else if (inputFormat && inputFormat !== 'auto' && inputFormat !== 'mpegts' && inputFormat !== 'youtube') {
+                    args.push('-f', inputFormat);
+                } else if (!inputFormat || inputFormat === 'auto') {
+                    // Default for windows if not specified
                     args.push('-f', 'dshow');
                 }
 
                 args.push('-thread_queue_size', '1024');
 
-                if (inputFormat && inputFormat !== 'auto' && !inputFormat.includes('mpegts') && !isDesktop) {
-                    args.push('-pixel_format', inputFormat);
+                if (inputFormat !== 'mpegts' && inputFormat !== 'youtube') {
+                    args.push('-video_size', videoSize);
+                    args.push('-framerate', frameRate);
                 }
-
-                args.push('-video_size', videoSize);
-                args.push('-framerate', frameRate);
                 
                 let finalInputDevice = inputDevice;
-                if (!finalInputDevice.startsWith('video=') && !isDesktop) {
+                if (!finalInputDevice.startsWith('video=') && !isDesktop && inputFormat !== 'mpegts' && inputFormat !== 'youtube') {
                     finalInputDevice = 'video=' + finalInputDevice;
                 }
                 if (isDesktop && finalInputDevice.startsWith('video=')) {
@@ -550,10 +1035,9 @@
                 }
                 args.push('-i', `"${finalInputDevice}"`);
 
-                // Audio settings
-                if (enableAudio && audioDevice) {
+                // Audio settings - SKIP FOR MPEGTS AND YOUTUBE
+                if (inputFormat !== 'mpegts' && inputFormat !== 'youtube' && enableAudio && audioDevice) {
                     args.push('-f', 'dshow');
-                    args.push('-thread_queue_size', '512');
                     let finalAudioDevice = audioDevice;
                     if (!finalAudioDevice.startsWith('audio=')) {
                         finalAudioDevice = 'audio=' + finalAudioDevice;
@@ -594,6 +1078,9 @@
             args.push(`"${outputUrl}"`);
 
             document.getElementById('ffmpegCommandPreview').value = args.join(' ');
+            } catch (err) {
+                console.error('Error updating preview:', err);
+            }
         }
 
         // Copy command button
@@ -615,14 +1102,25 @@
         // Add event listeners to all inputs to update preview
         const form = document.getElementById('editConfigForm');
         form.querySelectorAll('input, select, textarea').forEach(input => {
-            input.addEventListener('input', updateCommandPreview);
-            input.addEventListener('change', updateCommandPreview);
+            input.addEventListener('input', () => {
+                console.log('Input changed:', input.id, input.value);
+                updateCommandPreview();
+            });
+            input.addEventListener('change', () => {
+                console.log('Select changed:', input.id, input.value);
+                updateCommandPreview();
+            });
         });
 
-        // Initial preview update
+        // Explicitly listen to PixelFormat just in case
+        document.getElementById('PixelFormat').addEventListener('change', updateCommandPreview);
+
         window.addEventListener('DOMContentLoaded', () => {
             // Trigger change event to set initial labels/icons
             document.getElementById('InputFormat').dispatchEvent(new Event('change'));
+            toggleDeviceDiscovery();
+            toggleAudioDiscovery();
+            toggleReStream();
             updateCommandPreview();
         });
 
@@ -632,7 +1130,11 @@
             const id = document.getElementById('ConfigId').value;
             const formData = new FormData(this);
             const data = {};
-            formData.forEach((value, key) => data[key] = value);
+            formData.forEach((value, key) => {
+                // Strip 'Config.' prefix if present
+                const cleanKey = key.startsWith('Config.') ? key.substring(7) : key;
+                data[cleanKey] = value;
+            });
             
             // Convert types
             data.Port = parseInt(data.Port) || 0;
@@ -641,6 +1143,7 @@
             data.Ttl = parseInt(data.Ttl) || 64;
             data.Enabled = document.getElementById('Enabled').checked;
             data.EnableAudio = document.getElementById('EnableAudio').checked;
+            data.ReStream = document.getElementById('ReStream').checked;
             data.Id = id;
 
             try {

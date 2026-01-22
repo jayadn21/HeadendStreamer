@@ -1,32 +1,10 @@
 // Dashboard JavaScript
 document.addEventListener('DOMContentLoaded', function () {
-    // Initialize SignalR connection
-    const connection = new signalR.HubConnectionBuilder()
-        .withUrl("/streamHub")
-        .withAutomaticReconnect()
-        .configureLogging(signalR.LogLevel.Information)
-        .build();
+    console.log("Dashboard JS loaded (v2.1)");
 
-    // Connection events
-    connection.on("SystemInfo", updateSystemInfo);
-    connection.on("StreamStatus", updateStreamStatus);
-    connection.on("StreamStarted", handleStreamStarted);
-    connection.on("StreamStopped", handleStreamStopped);
-    connection.on("StreamExited", handleStreamExited);
-    connection.on("StreamStats", handleStreamStats);
-
-    // Start connection
-    connection.start()
-        .then(() => {
-            console.log("Connected to Stream Hub");
-            connection.invoke("RequestSystemInfo");
-        })
-        .catch(err => console.error("Connection failed: ", err));
-
-    // Button event listeners
+    // 1. Register Button Event Listeners FIRST
     document.getElementById('refreshStreams')?.addEventListener('click', refreshStreams);
 
-    // Stream control buttons (delegated events)
     document.addEventListener('click', function (e) {
         const target = e.target.closest('.start-stream, .stop-stream, .restart-stream, .delete-stream');
         if (!target) return;
@@ -36,11 +14,102 @@ document.addEventListener('DOMContentLoaded', function () {
             target.classList.contains('stop-stream') ? 'stop' :
                 target.classList.contains('restart-stream') ? 'restart' : 'delete';
 
+        console.log(`Stream action triggered: ${action} for ${streamId}`);
         handleStreamAction(streamId, action);
     });
 
+    // 2. Initialize SignalR
+    let connection = null;
+    try {
+        if (typeof signalR !== 'undefined') {
+            connection = new signalR.HubConnectionBuilder()
+                .withUrl("/streamHub")
+                .withAutomaticReconnect()
+                .configureLogging(signalR.LogLevel.Information)
+                .build();
+
+            connection.on("SystemInfo", updateSystemInfo);
+            connection.on("StreamStatus", updateStreamStatus);
+            connection.on("StreamStarted", (status) => {
+                console.log("SignalR: StreamStarted", status);
+                handleStreamStarted(status);
+            });
+            connection.on("StreamStopped", (id) => {
+                console.log("SignalR: StreamStopped", id);
+                handleStreamStopped(id);
+            });
+            connection.on("StreamExited", (id) => {
+                console.log("SignalR: StreamExited", id);
+                handleStreamExited(id);
+            });
+            connection.on("StreamStats", (data) => {
+                // Only update if it's not the erratic NaNh format
+                if (data.stats && data.stats.time && !data.stats.time.includes('NaN')) {
+                    handleStreamStats(data);
+                }
+            });
+
+            connection.start()
+                .then(() => {
+                    console.log("Connected to Stream Hub");
+                    connection.invoke("RequestSystemInfo");
+                })
+                .catch(err => console.error("SignalR connection failed: ", err));
+        } else {
+            console.error("SignalR library not loaded!");
+        }
+    } catch (err) {
+        console.error("Error initializing SignalR:", err);
+    }
+
+    // Helper: Format Uptime
+    function formatUptime(uptime) {
+        if (uptime === null || uptime === undefined) return "00:00:00";
+
+        let seconds;
+        if (typeof uptime === 'number') {
+            if (isNaN(uptime)) return "00:00:00";
+            seconds = uptime;
+        } else if (typeof uptime === 'string') {
+            if (uptime.includes('NaN')) return "00:00:00";
+            const parts = uptime.split(':');
+            if (parts.length === 3) {
+                let h = parts[0];
+                let d = 0;
+                if (h.includes('.')) {
+                    const hParts = h.split('.');
+                    d = parseInt(hParts[0]) || 0;
+                    h = hParts[1];
+                }
+                seconds = (d * 86400) + (parseInt(h) * 3600) + (parseInt(parts[1]) * 60) + parseFloat(parts[2]);
+            } else {
+                return uptime; // Return as is if unknown format
+            }
+        } else if (uptime.totalSeconds !== undefined) {
+            seconds = uptime.totalSeconds;
+        } else {
+            return "00:00:00";
+        }
+
+        if (isNaN(seconds)) return "00:00:00";
+
+        const days = Math.floor(seconds / 86400);
+        const hours = Math.floor((seconds % 86400) / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = Math.floor(seconds % 60);
+
+        const timeStr = [
+            hours.toString().padStart(2, '0'),
+            minutes.toString().padStart(2, '0'),
+            secs.toString().padStart(2, '0')
+        ].join(':');
+
+        return days > 0 ? `${days}d ${timeStr}` : timeStr;
+    }
+
     // Functions
     async function fetchDashboardStats() {
+        console.log("Polling dashboard stats...");
         try {
             const response = await fetch('/api/dashboard/stats');
             if (response.ok) {
@@ -53,123 +122,74 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function updateDashboardUI(data) {
-        // Update CPU
-        const cpuProgress = document.getElementById('cpu-progress');
-        const cpuText = document.getElementById('cpu-text');
-        if (cpuProgress && data.systemInfo) {
-            cpuProgress.style.width = `${data.systemInfo.cpuUsage}%`;
-            cpuProgress.setAttribute('aria-valuenow', data.systemInfo.cpuUsage);
-        }
-        if (cpuText && data.systemInfo) {
-            cpuText.textContent = `${data.systemInfo.cpuUsage.toFixed(1)}%`;
+        if (data.systemInfo) {
+            updateSystemInfo(data.systemInfo);
         }
 
-        // Update Memory
-        const memoryProgress = document.getElementById('memory-progress');
-        const memoryText = document.getElementById('memory-text');
-        if (memoryProgress && data.systemInfo) {
-            memoryProgress.style.width = `${data.systemInfo.memoryUsage}%`;
-            memoryProgress.setAttribute('aria-valuenow', data.systemInfo.memoryUsage);
-        }
-        if (memoryText && data.systemInfo) {
-            const usedGB = (data.systemInfo.totalMemory - data.systemInfo.availableMemory) / 1024 / 1024 / 1024;
-            const totalGB = data.systemInfo.totalMemory / 1024 / 1024 / 1024;
-            memoryText.textContent = `${usedGB.toFixed(1)}GB / ${totalGB.toFixed(1)}GB`;
-        }
-
-        // Update Disk
-        const diskProgress = document.getElementById('disk-progress');
-        const diskText = document.getElementById('disk-text');
-        if (diskProgress && data.systemInfo) {
-            diskProgress.style.width = `${data.systemInfo.diskUsage}%`;
-            diskProgress.setAttribute('aria-valuenow', data.systemInfo.diskUsage);
-        }
-        if (diskText && data.systemInfo) {
-            diskText.textContent = `${data.systemInfo.diskUsage.toFixed(1)}% Used`;
-        }
-
-        // Update Streams count
         const streamsCount = document.getElementById('streams-count');
         if (streamsCount && data.streams) {
             streamsCount.textContent = `${data.streams.active}/${data.streams.total}`;
         }
 
-        // Update System uptime
-        const systemUptime = document.getElementById('system-uptime');
-        if (systemUptime && data.systemInfo) {
-            const uptime = data.systemInfo.uptime;
-            const days = Math.floor(uptime / 86400);
-            const hours = Math.floor((uptime % 86400) / 3600);
-            const minutes = Math.floor((uptime % 3600) / 60);
-            const seconds = Math.floor(uptime % 60);
-            systemUptime.innerHTML = `<i class="fas fa-clock me-1"></i> Uptime: ${days.toString().padStart(2, '0')}.${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-        }
-
-        // Update individual stream uptimes
         if (data.streamStatuses) {
-            data.streamStatuses.forEach(stream => {
-                const uptimeElement = document.getElementById(`stream-uptime-${stream.configId}`);
-                if (uptimeElement && stream.isRunning) {
-                    const uptime = stream.uptime;
-                    const hours = Math.floor(uptime / 3600);
-                    const minutes = Math.floor((uptime % 3600) / 60);
-                    const seconds = Math.floor(uptime % 60);
-                    uptimeElement.innerHTML = `<i class="fas fa-clock me-1"></i> ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-                }
+            data.streamStatuses.forEach(status => {
+                updateStreamCard(status.configId, status);
             });
         }
     }
 
     function updateSystemInfo(systemInfo) {
-        // Update CPU progress bar
-        const cpuProgress = document.querySelector('.progress-bar.bg-primary');
+        // Update CPU
+        const cpuProgress = document.getElementById('cpu-progress');
+        const cpuText = document.getElementById('cpu-text');
         if (cpuProgress) {
-            cpuProgress.style.width = `${systemInfo.cpuUsage}%`;
-            cpuProgress.setAttribute('aria-valuenow', systemInfo.cpuUsage);
-            cpuProgress.parentElement.nextElementSibling.textContent =
-                `${systemInfo.cpuUsage.toFixed(1)}%`;
+            const usage = systemInfo.cpuUsage !== undefined ? systemInfo.cpuUsage : (systemInfo.CpuUsage || 0);
+            const validUsage = isNaN(usage) ? 0 : usage;
+            cpuProgress.style.width = `${validUsage}%`;
+            cpuProgress.setAttribute('aria-valuenow', validUsage);
+            if (cpuText) cpuText.textContent = `${validUsage.toFixed(1)}%`;
         }
 
-        // Update memory
-        const memoryProgress = document.querySelector('.progress-bar.bg-success');
+        // Update Memory
+        const memoryProgress = document.getElementById('memory-progress');
+        const memoryText = document.getElementById('memory-text');
         if (memoryProgress) {
-            memoryProgress.style.width = `${systemInfo.memoryUsage}%`;
-            memoryProgress.setAttribute('aria-valuenow', systemInfo.memoryUsage);
+            const usage = systemInfo.memoryUsage !== undefined ? systemInfo.memoryUsage : (systemInfo.MemoryUsage || 0);
+            const validUsage = isNaN(usage) ? 0 : usage;
+            memoryProgress.style.width = `${validUsage}%`;
+            memoryProgress.setAttribute('aria-valuenow', validUsage);
 
-            const usedGB = (systemInfo.totalMemory - systemInfo.availableMemory) / 1024 / 1024 / 1024;
-            const totalGB = systemInfo.totalMemory / 1024 / 1024 / 1024;
-            memoryProgress.parentElement.nextElementSibling.textContent =
-                `${usedGB.toFixed(1)}GB / ${totalGB.toFixed(1)}GB`;
+            const total = systemInfo.totalMemory || systemInfo.TotalMemory || 0;
+            const available = systemInfo.availableMemory || systemInfo.AvailableMemory || 0;
+            const usedGB = (total - available) / 1024 / 1024 / 1024;
+            const totalGB = total / 1024 / 1024 / 1024;
+
+            if (memoryText) {
+                memoryText.textContent = `${usedGB.toFixed(1)}GB / ${totalGB.toFixed(1)}GB`;
+            }
         }
 
-        // Update disk
-        const diskProgress = document.querySelector('.progress-bar.bg-warning');
-        if (diskProgress) {
-            diskProgress.style.width = `${systemInfo.diskUsage}%`;
-            diskProgress.setAttribute('aria-valuenow', systemInfo.diskUsage);
-            diskProgress.parentElement.nextElementSibling.textContent =
-                `${systemInfo.diskUsage.toFixed(1)}% Used`;
-        }
-
-        // Update streams count
-        const streamsElement = document.querySelector('.col-md-3:last-child h3');
-        if (streamsElement) {
-            streamsElement.textContent = `${systemInfo.activeStreams}/${systemInfo.totalStreams || 0}`;
-        }
-
-        // Update uptime
-        const uptimeElement = document.querySelector('.text-end small');
+        // Update Uptime
+        const uptimeElement = document.getElementById('system-uptime');
         if (uptimeElement) {
-            const days = Math.floor(systemInfo.uptime / 86400);
-            const hours = Math.floor((systemInfo.uptime % 86400) / 3600);
-            const minutes = Math.floor((systemInfo.uptime % 3600) / 60);
-            const seconds = Math.floor(systemInfo.uptime % 60);
-            uptimeElement.innerHTML = `<i class="fas fa-clock me-1"></i> Uptime: ${days}d ${hours}h ${minutes}m ${seconds}s`;
+            let uptime = systemInfo.uptime !== undefined ? systemInfo.uptime : systemInfo.Uptime;
+            if (typeof uptime === 'number' && !isNaN(uptime)) {
+                const days = Math.floor(uptime / 86400);
+                const hours = Math.floor((uptime % 86400) / 3600);
+                const minutes = Math.floor((uptime % 3600) / 60);
+                const seconds = Math.floor(uptime % 60);
+                uptimeElement.innerHTML = `<i class="fas fa-clock me-1"></i> Uptime: ${days}d ${hours}h ${minutes}m ${seconds}s`;
+            } else if (typeof uptime === 'string' && !uptime.includes('NaN')) {
+                uptimeElement.innerHTML = `<i class="fas fa-clock me-1"></i> Uptime: ${uptime}`;
+            } else {
+                // Fallback if NaN
+                uptimeElement.innerHTML = `<i class="fas fa-clock me-1"></i> Uptime: 00:00:00`;
+            }
         }
     }
 
     function updateStreamStatus(streamStatus) {
-        // Update individual stream cards
+        console.log("Bulk StreamStatus update received");
         for (const [streamId, status] of Object.entries(streamStatus)) {
             updateStreamCard(streamId, status);
         }
@@ -180,60 +200,73 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!card) return;
 
         const badge = card.querySelector('.badge');
-        const statusAlert = card.querySelector('.alert');
-        const startBtn = card.querySelector('.start-stream');
-        const stopBtn = card.querySelector('.stop-stream');
+        const statusContainer = document.getElementById(`status-container-${streamId}`);
 
-        if (status.isRunning) {
-            // Update to running state
-            card.querySelector('.stream-card').classList.remove('border-secondary');
-            card.querySelector('.stream-card').classList.add('border-success');
+        // Find ALL buttons that might need toggling
+        const startBtns = card.querySelectorAll('.start-stream');
+        const stopBtns = card.querySelectorAll('.stop-stream');
+        const restartBtns = card.querySelectorAll('.restart-stream');
 
+        const isRunning = status && (status.isRunning || status.IsRunning);
+
+        if (isRunning) {
+            // Card Border
+            const innerCard = card.querySelector('.stream-card');
+            if (innerCard) {
+                innerCard.classList.remove('border-secondary');
+                innerCard.classList.add('border-success');
+            }
+
+            // Badge
             if (badge) {
                 badge.className = 'badge bg-success me-1';
                 badge.innerHTML = '<i class="fas fa-circle"></i>';
             }
 
-            if (statusAlert) {
-                statusAlert.className = 'alert alert-success py-2 mb-0';
-                const days = Math.floor(status.uptime / 86400);
-                const hours = Math.floor((status.uptime % 86400) / 3600);
-                const minutes = Math.floor((status.uptime % 3600) / 60);
-                const seconds = Math.floor(status.uptime % 60);
+            // Status Container
+            const uptime = status.uptime !== undefined ? status.uptime : status.Uptime;
+            const pid = status.processId !== undefined ? status.processId : status.ProcessId;
+            const formattedUptime = formatUptime(uptime);
 
-                const timeStr = days > 0 ?
-                    `${days}d ${hours}h ${minutes}m` :
-                    `${hours}h ${minutes}m ${seconds}s`;
-
-                statusAlert.innerHTML = `
-                    <div class="d-flex justify-content-between">
-                        <small><i class="fas fa-clock me-1"></i> ${timeStr}</small>
-                        <small>PID: ${status.processId}</small>
+            if (statusContainer) {
+                statusContainer.innerHTML = `
+                    <div class="alert alert-success py-2 mb-0">
+                        <div class="d-flex justify-content-between">
+                            <small id="stream-uptime-${streamId}"><i class="fas fa-clock me-1"></i> ${formattedUptime}</small>
+                            <small>PID: ${pid}</small>
+                        </div>
                     </div>
                 `;
             }
 
-            if (startBtn) startBtn.disabled = true;
-            if (stopBtn) stopBtn.disabled = false;
+            // Button Visibility
+            startBtns.forEach(btn => btn.classList.add('d-none'));
+            stopBtns.forEach(btn => btn.classList.remove('d-none'));
+            restartBtns.forEach(btn => btn.classList.remove('d-none'));
         } else {
-            // Update to stopped state
-            card.querySelector('.stream-card').classList.remove('border-success');
-            card.querySelector('.stream-card').classList.add('border-secondary');
+            // Stopped state
+            const innerCard = card.querySelector('.stream-card');
+            if (innerCard) {
+                innerCard.classList.remove('border-success');
+                innerCard.classList.add('border-secondary');
+            }
 
             if (badge) {
                 badge.className = 'badge bg-secondary me-1';
                 badge.innerHTML = '<i class="fas fa-circle"></i>';
             }
 
-            if (statusAlert) {
-                statusAlert.className = 'alert alert-secondary py-2 mb-0';
-                statusAlert.innerHTML = `
-                    <small><i class="fas fa-stop-circle me-1"></i> Stopped</small>
+            if (statusContainer) {
+                statusContainer.innerHTML = `
+                    <div class="alert alert-secondary py-2 mb-0">
+                        <small><i class="fas fa-stop-circle me-1"></i> Stopped</small>
+                    </div>
                 `;
             }
 
-            if (startBtn) startBtn.disabled = false;
-            if (stopBtn) stopBtn.disabled = true;
+            startBtns.forEach(btn => btn.classList.remove('d-none'));
+            stopBtns.forEach(btn => btn.classList.add('d-none'));
+            restartBtns.forEach(btn => btn.classList.add('d-none'));
         }
     }
 
@@ -254,81 +287,93 @@ document.addEventListener('DOMContentLoaded', function () {
                 method = 'POST';
                 break;
             case 'delete':
-                if (!confirm('Are you sure you want to delete this stream configuration?')) {
-                    return;
-                }
+                if (!confirm('Are you sure you want to delete this stream configuration?')) return;
                 endpoint = `/api/config/${streamId}`;
                 method = 'DELETE';
                 break;
         }
 
+        // Optimistic UI update
+        console.log(`Optimistic update for ${action} on ${streamId}`);
+        if (action === 'start') {
+            updateStreamCard(streamId, { isRunning: true, uptime: 0, processId: '...' });
+        } else if (action === 'stop' || action === 'restart') {
+            updateStreamCard(streamId, { isRunning: false });
+        }
+
         fetch(endpoint, { method: method })
-            .then(response => {
+            .then(async response => {
                 if (response.ok) {
                     if (action === 'delete') {
-                        // Remove the card from UI
                         const card = document.getElementById(`stream-${streamId}`);
                         if (card) card.remove();
                     }
-                    return response.json();
+                    const contentType = response.headers.get("content-type");
+                    if (contentType && contentType.indexOf("application/json") !== -1) {
+                        return response.json();
+                    } else {
+                        return { message: "Success" };
+                    }
                 }
-                throw new Error('Action failed');
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || 'Action failed');
             })
             .then(data => {
+                console.log(`Action ${action} successful:`, data);
                 showToast(`${action.charAt(0).toUpperCase() + action.slice(1)} successful`, 'success');
+
+                if (action === 'start' && data && data.configId) {
+                    updateStreamCard(streamId, data);
+                }
+
+                setTimeout(fetchDashboardStats, 1000);
             })
             .catch(error => {
-                console.error('Error:', error);
-                showToast(`Failed to ${action} stream`, 'error');
+                console.error(`Error during ${action}:`, error);
+                showToast(`Failed to ${action} stream: ${error.message}`, 'error');
+                fetchDashboardStats();
             });
     }
 
     function handleStreamStarted(status) {
-        showToast(`Stream "${status.name}" started successfully`, 'success');
-        updateStreamCard(status.configId, status);
+        showToast(`Stream "${status.name || status.Name}" started`, 'success');
+        updateStreamCard(status.configId || status.ConfigId, status);
     }
 
-    function handleStreamStopped(streamId) {
-        showToast('Stream stopped successfully', 'info');
-        // Stream status will be updated via StreamStatus message
+    function handleStreamStopped(id) {
+        showToast('Stream stopped', 'info');
+        updateStreamCard(id, { isRunning: false });
     }
 
-    function handleStreamExited(streamId) {
-        showToast('Stream process exited unexpectedly', 'warning');
+    function handleStreamExited(id) {
+        showToast('Stream process exited unexpected', 'warning');
+        updateStreamCard(id, { isRunning: false });
     }
 
     function handleStreamStats(data) {
-        // Optional: Update detailed stats on stream cards
-        console.log('Stream stats:', data);
+        // Safe update for uptime from real-time stats
+        const uptimeElement = document.getElementById(`stream-uptime-${data.configId}`);
+        if (uptimeElement && data.stats && data.stats.time) {
+            uptimeElement.innerHTML = `<i class="fas fa-clock me-1"></i> ${data.stats.time}`;
+        }
     }
 
     function refreshStreams() {
-        fetch('/api/stream')
-            .then(response => response.json())
-            .then(streams => {
-                // Could update the streams grid here
-                showToast('Streams refreshed', 'info');
-            })
-            .catch(error => {
-                console.error('Error refreshing streams:', error);
-            });
+        showToast('Refreshing dashboard...', 'info');
+        fetchDashboardStats();
     }
 
     function showToast(message, type = 'info') {
-        // Create toast element
         const toastId = 'toast-' + Date.now();
         const toastHtml = `
             <div id="${toastId}" class="toast align-items-center text-bg-${type} border-0" role="alert">
                 <div class="d-flex">
-                    <div class="toast-body">
-                        ${message}
-                    </div>
+                    <div class="toast-body">${message}</div>
                     <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
                 </div>
             </div>
         `;
 
-        // Add to toast container
         let toastContainer = document.getElementById('toastContainer');
         if (!toastContainer) {
             toastContainer = document.createElement('div');
@@ -338,21 +383,13 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         toastContainer.insertAdjacentHTML('beforeend', toastHtml);
-
-        // Show toast
         const toastElement = document.getElementById(toastId);
         const toast = new bootstrap.Toast(toastElement, { delay: 3000 });
         toast.show();
-
-        // Remove after hide
-        toastElement.addEventListener('hidden.bs.toast', function () {
-            toastElement.remove();
-        });
+        toastElement.addEventListener('hidden.bs.toast', () => toastElement.remove());
     }
 
-    // Initial fetch of dashboard stats
+    // Init
     fetchDashboardStats();
-
-    // Auto-refresh dashboard stats every 5 seconds
     setInterval(fetchDashboardStats, 5000);
 });

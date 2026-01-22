@@ -5,6 +5,7 @@
   "Enabled": true,
   "InputDevice": "E:\\Videos\\SUNDARAKAANDA BY SRI VIDYABHUSHANA IN KANNADA.mp4",
   "InputFormat": "file",
+  "PixelFormat": "yuyv422",
   "VideoSize": "1920x1080",
   "FrameRate": 30,
   "VideoCodec": "libx264",
@@ -22,5 +23,5 @@
   "OutputFormat": "mpegts",
   "AdvancedOptions": {},
   "CreatedAt": "2026-01-11T09:39:42.3639579Z",
-  "UpdatedAt": "2026-01-11T10:19:29.6477902Z"
+  "UpdatedAt": "2026-01-14T16:55:54.2446178Z"
 }

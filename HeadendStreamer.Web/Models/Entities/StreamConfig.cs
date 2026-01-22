@@ -9,7 +9,8 @@ public class StreamConfig
     
     // Input Configuration
     public string InputDevice { get; set; } = "/dev/video0";
-    public string InputFormat { get; set; } = "yuyv422";
+    public string InputFormat { get; set; } = "yuyv422"; // This is actually the input format/driver (e.g. dshow, v4l2) or pixel format depending on context. Refactoring to separate.
+    public string PixelFormat { get; set; } = "yuyv422";
     public string VideoSize { get; set; } = "1920x1080";
     public int FrameRate { get; set; } = 30;
     
@@ -22,6 +23,7 @@ public class StreamConfig
     
     // Audio Configuration
     public bool EnableAudio { get; set; } = true;
+    public bool ReStream { get; set; } = false;
     public string AudioDevice { get; set; } = "hw:0,0";
     public string AudioCodec { get; set; } = "aac";
     public string AudioBitrate { get; set; } = "128k";

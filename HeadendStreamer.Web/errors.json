@@ -1,0 +1,2227 @@
+{
+  "$schema": "http://json.schemastore.org/sarif-1.0.0",
+  "version": "1.0.0",
+  "runs": [
+    {
+      "tool": {
+        "name": "Microsoft (R) Visual C# Compiler",
+        "version": "5.0.0.0",
+        "fileVersion": "5.0.0-2.25569.105 (fad253f5)",
+        "semanticVersion": "5.0.0",
+        "language": "en-US"
+      },
+      "results": [
+        {
+          "ruleId": "CS8602",
+          "level": "warning",
+          "message": "Dereference of a possibly null reference.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/StreamManagerService.cs",
+                "region": {
+                  "startLine": 574,
+                  "startColumn": 29,
+                  "endLine": 574,
+                  "endColumn": 52
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CS1061",
+          "level": "error",
+          "message": "'StreamConfig' does not contain a definition for 'Config' and no accessible extension method 'Config' accepting a first argument of type 'StreamConfig' could be found (are you missing a using directive or an assembly reference?)",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Views/Config/Create.cshtml",
+                "region": {
+                  "startLine": 118,
+                  "startColumn": 45,
+                  "endLine": 118,
+                  "endColumn": 51
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "CS1061",
+          "level": "error",
+          "message": "'StreamConfig' does not contain a definition for 'Config' and no accessible extension method 'Config' accepting a first argument of type 'StreamConfig' could be found (are you missing a using directive or an assembly reference?)",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Views/Config/Create.cshtml",
+                "region": {
+                  "startLine": 119,
+                  "startColumn": 45,
+                  "endLine": 119,
+                  "endColumn": 51
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "CS0169",
+          "level": "warning",
+          "message": "The field 'Views_Home_Index.__tagHelperStringValueBuffer' is never used",
+          "suppressionStates": [
+            "suppressedInSource"
+          ],
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/obj/Debug/net8.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views_Home_Index_cshtml.g.cs",
+                "region": {
+                  "startLine": 56,
+                  "startColumn": 24,
+                  "endLine": 56,
+                  "endColumn": 52
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 3
+          }
+        },
+        {
+          "ruleId": "CS0169",
+          "level": "warning",
+          "message": "The field 'Views_Shared__Layout.__tagHelperStringValueBuffer' is never used",
+          "suppressionStates": [
+            "suppressedInSource"
+          ],
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/obj/Debug/net8.0/Microsoft.CodeAnalysis.Razor.Compiler/Microsoft.NET.Sdk.Razor.SourceGenerators.RazorSourceGenerator/Views_Shared__Layout_cshtml.g.cs",
+                "region": {
+                  "startLine": 57,
+                  "startColumn": 24,
+                  "endLine": 57,
+                  "endColumn": 52
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 3
+          }
+        },
+        {
+          "ruleId": "CA2254",
+          "level": "note",
+          "message": "The logging message template should not vary between calls to 'LoggerExtensions.LogWarning(ILogger, string?, params object?[])'",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/SystemMonitorService.cs",
+                "region": {
+                  "startLine": 48,
+                  "startColumn": 32,
+                  "endLine": 48,
+                  "endColumn": 90
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA2254",
+          "level": "note",
+          "message": "The logging message template should not vary between calls to 'LoggerExtensions.LogInformation(ILogger, string?, params object?[])'",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Hubs/StreamHub.cs",
+                "region": {
+                  "startLine": 25,
+                  "startColumn": 32,
+                  "endLine": 25,
+                  "endColumn": 75
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA2254",
+          "level": "note",
+          "message": "The logging message template should not vary between calls to 'LoggerExtensions.LogError(ILogger, Exception?, string?, params object?[])'",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Controllers/StreamController.cs",
+                "region": {
+                  "startLine": 89,
+                  "startColumn": 34,
+                  "endLine": 89,
+                  "endColumn": 64
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA2254",
+          "level": "note",
+          "message": "The logging message template should not vary between calls to 'LoggerExtensions.LogInformation(ILogger, string?, params object?[])'",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Hubs/StreamHub.cs",
+                "region": {
+                  "startLine": 39,
+                  "startColumn": 32,
+                  "endLine": 39,
+                  "endColumn": 78
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA2254",
+          "level": "note",
+          "message": "The logging message template should not vary between calls to 'LoggerExtensions.LogInformation(ILogger, string?, params object?[])'",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/ConfigService.cs",
+                "region": {
+                  "startLine": 49,
+                  "startColumn": 32,
+                  "endLine": 49,
+                  "endColumn": 89
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA2254",
+          "level": "note",
+          "message": "The logging message template should not vary between calls to 'LoggerExtensions.LogInformation(ILogger, string?, params object?[])'",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Hubs/StreamHub.cs",
+                "region": {
+                  "startLine": 46,
+                  "startColumn": 32,
+                  "endLine": 46,
+                  "endColumn": 95
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA2016",
+          "level": "note",
+          "message": "Forward the 'stoppingToken' parameter to the 'SendAsync' method or pass in 'CancellationToken.None' explicitly to indicate intentionally not propagating the token",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/BackgroundMonitorService.cs",
+                "region": {
+                  "startLine": 42,
+                  "startColumn": 23,
+                  "endLine": 42,
+                  "endColumn": 56
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "ArgumentName": "stoppingToken",
+              "ParameterName": "cancellationToken",
+              "ShouldFix": "1"
+            }
+          }
+        },
+        {
+          "ruleId": "CA2254",
+          "level": "note",
+          "message": "The logging message template should not vary between calls to 'LoggerExtensions.LogInformation(ILogger, string?, params object?[])'",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/ConfigService.cs",
+                "region": {
+                  "startLine": 89,
+                  "startColumn": 32,
+                  "endLine": 89,
+                  "endColumn": 86
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA2254",
+          "level": "note",
+          "message": "The logging message template should not vary between calls to 'LoggerExtensions.LogInformation(ILogger, string?, params object?[])'",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Hubs/StreamHub.cs",
+                "region": {
+                  "startLine": 52,
+                  "startColumn": 32,
+                  "endLine": 52,
+                  "endColumn": 93
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA2254",
+          "level": "note",
+          "message": "The logging message template should not vary between calls to 'LoggerExtensions.LogError(ILogger, Exception?, string?, params object?[])'",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Controllers/StreamController.cs",
+                "region": {
+                  "startLine": 107,
+                  "startColumn": 34,
+                  "endLine": 107,
+                  "endColumn": 63
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA2254",
+          "level": "note",
+          "message": "The logging message template should not vary between calls to 'LoggerExtensions.LogError(ILogger, Exception?, string?, params object?[])'",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Hubs/StreamHub.cs",
+                "region": {
+                  "startLine": 65,
+                  "startColumn": 34,
+                  "endLine": 65,
+                  "endColumn": 77
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA2254",
+          "level": "note",
+          "message": "The logging message template should not vary between calls to 'LoggerExtensions.LogError(ILogger, Exception?, string?, params object?[])'",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Controllers/StreamController.cs",
+                "region": {
+                  "startLine": 122,
+                  "startColumn": 34,
+                  "endLine": 122,
+                  "endColumn": 66
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA2254",
+          "level": "note",
+          "message": "The logging message template should not vary between calls to 'LoggerExtensions.LogInformation(ILogger, string?, params object?[])'",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Hubs/StreamHub.cs",
+                "region": {
+                  "startLine": 71,
+                  "startColumn": 32,
+                  "endLine": 71,
+                  "endColumn": 84
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA2254",
+          "level": "note",
+          "message": "The logging message template should not vary between calls to 'LoggerExtensions.LogWarning(ILogger, string?, params object?[])'",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Hubs/StreamHub.cs",
+                "region": {
+                  "startLine": 86,
+                  "startColumn": 36,
+                  "endLine": 86,
+                  "endColumn": 65
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA2254",
+          "level": "note",
+          "message": "The logging message template should not vary between calls to 'LoggerExtensions.LogError(ILogger, Exception?, string?, params object?[])'",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Controllers/StreamController.cs",
+                "region": {
+                  "startLine": 137,
+                  "startColumn": 34,
+                  "endLine": 137,
+                  "endColumn": 71
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA2254",
+          "level": "note",
+          "message": "The logging message template should not vary between calls to 'LoggerExtensions.LogError(ILogger, Exception?, string?, params object?[])'",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/FfmpegService.cs",
+                "region": {
+                  "startLine": 199,
+                  "startColumn": 34,
+                  "endLine": 199,
+                  "endColumn": 65
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA2254",
+          "level": "note",
+          "message": "The logging message template should not vary between calls to 'LoggerExtensions.LogError(ILogger, Exception?, string?, params object?[])'",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Controllers/ConfigController.cs",
+                "region": {
+                  "startLine": 115,
+                  "startColumn": 34,
+                  "endLine": 115,
+                  "endColumn": 65
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1416",
+          "level": "warning",
+          "message": "This call site is reachable on all platforms. 'PerformanceCounter' is only supported on: 'windows'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/SystemMonitorService.cs",
+                "region": {
+                  "startLine": 44,
+                  "startColumn": 32,
+                  "endLine": 44,
+                  "endColumn": 80
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1416",
+          "level": "warning",
+          "message": "This call site is reachable on all platforms. 'PerformanceCounter' is only supported on: 'windows'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/SystemMonitorService.cs",
+                "region": {
+                  "startLine": 41,
+                  "startColumn": 36,
+                  "endLine": 41,
+                  "endColumn": 87
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1416",
+          "level": "warning",
+          "message": "This call site is reachable on all platforms. 'PerformanceCounter' is only supported on: 'windows'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/SystemMonitorService.cs",
+                "region": {
+                  "startLine": 37,
+                  "startColumn": 27,
+                  "endLine": 37,
+                  "endColumn": 92
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1416",
+          "level": "warning",
+          "message": "This call site is reachable on all platforms. 'PerformanceCounter.NextValue()' is only supported on: 'windows'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/SystemMonitorService.cs",
+                "region": {
+                  "startLine": 39,
+                  "startColumn": 13,
+                  "endLine": 39,
+                  "endColumn": 36
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1869",
+          "level": "note",
+          "message": "Avoid creating a new 'JsonSerializerOptions' instance for every serialization operation. Cache and reuse instances instead.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/ConfigService.cs",
+                "region": {
+                  "startLine": 124,
+                  "startColumn": 57,
+                  "endLine": 127,
+                  "endColumn": 10
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA2254",
+          "level": "note",
+          "message": "The logging message template should not vary between calls to 'LoggerExtensions.LogError(ILogger, Exception?, string?, params object?[])'",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/FfmpegService.cs",
+                "region": {
+                  "startLine": 245,
+                  "startColumn": 34,
+                  "endLine": 245,
+                  "endColumn": 82
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA2254",
+          "level": "note",
+          "message": "The logging message template should not vary between calls to 'LoggerExtensions.LogInformation(ILogger, string?, params object?[])'",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/ConfigService.cs",
+                "region": {
+                  "startLine": 103,
+                  "startColumn": 32,
+                  "endLine": 103,
+                  "endColumn": 62
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1861",
+          "level": "note",
+          "message": "Prefer 'static readonly' fields over constant array arguments if the called method is called repeatedly and is not mutating the passed array",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/FfmpegService.cs",
+                "region": {
+                  "startLine": 109,
+                  "startColumn": 38,
+                  "endLine": 109,
+                  "endColumn": 60
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "paramName": "separator"
+            }
+          }
+        },
+        {
+          "ruleId": "CA2254",
+          "level": "note",
+          "message": "The logging message template should not vary between calls to 'LoggerExtensions.LogInformation(ILogger, string?, params object?[])'",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/StreamManagerService.cs",
+                "region": {
+                  "startLine": 60,
+                  "startColumn": 36,
+                  "endLine": 60,
+                  "endColumn": 94
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1416",
+          "level": "warning",
+          "message": "This call site is reachable on all platforms. 'PerformanceCounter.NextValue()' is only supported on: 'windows'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/SystemMonitorService.cs",
+                "region": {
+                  "startLine": 180,
+                  "startColumn": 24,
+                  "endLine": 180,
+                  "endColumn": 47
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA2254",
+          "level": "note",
+          "message": "The logging message template should not vary between calls to 'LoggerExtensions.LogInformation(ILogger, string?, params object?[])'",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/StreamManagerService.cs",
+                "region": {
+                  "startLine": 122,
+                  "startColumn": 36,
+                  "endLine": 122,
+                  "endColumn": 100
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA2254",
+          "level": "note",
+          "message": "The logging message template should not vary between calls to 'LoggerExtensions.LogError(ILogger, Exception?, string?, params object?[])'",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/StreamManagerService.cs",
+                "region": {
+                  "startLine": 127,
+                  "startColumn": 34,
+                  "endLine": 127,
+                  "endColumn": 70
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA2254",
+          "level": "note",
+          "message": "The logging message template should not vary between calls to 'LoggerExtensions.LogInformation(ILogger, string?, params object?[])'",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/ConfigService.cs",
+                "region": {
+                  "startLine": 171,
+                  "startColumn": 36,
+                  "endLine": 171,
+                  "endColumn": 84
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA2254",
+          "level": "note",
+          "message": "The logging message template should not vary between calls to 'LoggerExtensions.LogError(ILogger, Exception?, string?, params object?[])'",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Controllers/ConfigController.cs",
+                "region": {
+                  "startLine": 183,
+                  "startColumn": 34,
+                  "endLine": 183,
+                  "endColumn": 82
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1869",
+          "level": "note",
+          "message": "Avoid creating a new 'JsonSerializerOptions' instance for every serialization operation. Cache and reuse instances instead.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/ConfigService.cs",
+                "region": {
+                  "startLine": 238,
+                  "startColumn": 53,
+                  "endLine": 241,
+                  "endColumn": 10
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1416",
+          "level": "warning",
+          "message": "This call site is reachable on all platforms. 'PerformanceCounter.NextValue()' is only supported on: 'windows'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/SystemMonitorService.cs",
+                "region": {
+                  "startLine": 203,
+                  "startColumn": 31,
+                  "endLine": 203,
+                  "endColumn": 59
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1416",
+          "level": "warning",
+          "message": "This call site is reachable on all platforms. 'PerformanceCounter.NextValue()' is only supported on: 'windows'.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/SystemMonitorService.cs",
+                "region": {
+                  "startLine": 200,
+                  "startColumn": 35,
+                  "endLine": 200,
+                  "endColumn": 67
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA2254",
+          "level": "note",
+          "message": "The logging message template should not vary between calls to 'LoggerExtensions.LogWarning(ILogger, string?, params object?[])'",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/StreamManagerService.cs",
+                "region": {
+                  "startLine": 141,
+                  "startColumn": 40,
+                  "endLine": 141,
+                  "endColumn": 121
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA2254",
+          "level": "note",
+          "message": "The logging message template should not vary between calls to 'LoggerExtensions.LogInformation(ILogger, string?, params object?[])'",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/StreamManagerService.cs",
+                "region": {
+                  "startLine": 146,
+                  "startColumn": 36,
+                  "endLine": 146,
+                  "endColumn": 99
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA2254",
+          "level": "note",
+          "message": "The logging message template should not vary between calls to 'LoggerExtensions.LogInformation(ILogger, string?, params object?[])'",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/StreamManagerService.cs",
+                "region": {
+                  "startLine": 156,
+                  "startColumn": 44,
+                  "endLine": 156,
+                  "endColumn": 99
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA2254",
+          "level": "note",
+          "message": "The logging message template should not vary between calls to 'LoggerExtensions.LogWarning(ILogger, string?, params object?[])'",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/StreamManagerService.cs",
+                "region": {
+                  "startLine": 162,
+                  "startColumn": 44,
+                  "endLine": 162,
+                  "endColumn": 124
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA2254",
+          "level": "note",
+          "message": "The logging message template should not vary between calls to 'LoggerExtensions.LogWarning(ILogger, Exception?, string?, params object?[])'",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/StreamManagerService.cs",
+                "region": {
+                  "startLine": 169,
+                  "startColumn": 40,
+                  "endLine": 169,
+                  "endColumn": 87
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA2254",
+          "level": "note",
+          "message": "The logging message template should not vary between calls to 'LoggerExtensions.LogInformation(ILogger, string?, params object?[])'",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/StreamManagerService.cs",
+                "region": {
+                  "startLine": 187,
+                  "startColumn": 36,
+                  "endLine": 187,
+                  "endColumn": 77
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA2254",
+          "level": "note",
+          "message": "The logging message template should not vary between calls to 'LoggerExtensions.LogError(ILogger, Exception?, string?, params object?[])'",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/StreamManagerService.cs",
+                "region": {
+                  "startLine": 192,
+                  "startColumn": 34,
+                  "endLine": 192,
+                  "endColumn": 69
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA2254",
+          "level": "note",
+          "message": "The logging message template should not vary between calls to 'LoggerExtensions.LogError(ILogger, Exception?, string?, params object?[])'",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/ConfigService.cs",
+                "region": {
+                  "startLine": 271,
+                  "startColumn": 42,
+                  "endLine": 271,
+                  "endColumn": 79
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA2254",
+          "level": "note",
+          "message": "The logging message template should not vary between calls to 'LoggerExtensions.LogInformation(ILogger, string?, params object?[])'",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/ConfigService.cs",
+                "region": {
+                  "startLine": 275,
+                  "startColumn": 36,
+                  "endLine": 275,
+                  "endColumn": 84
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1861",
+          "level": "note",
+          "message": "Prefer 'static readonly' fields over constant array arguments if the called method is called repeatedly and is not mutating the passed array",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/FfmpegService.cs",
+                "region": {
+                  "startLine": 256,
+                  "startColumn": 44,
+                  "endLine": 256,
+                  "endColumn": 66
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "paramName": "separator"
+            }
+          }
+        },
+        {
+          "ruleId": "CA1822",
+          "level": "note",
+          "message": "Member 'GetTemplate' does not access instance data and can be marked as static",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/ConfigService.cs",
+                "region": {
+                  "startLine": 187,
+                  "startColumn": 26,
+                  "endLine": 187,
+                  "endColumn": 37
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1816",
+          "level": "note",
+          "message": "Change SystemMonitorService.Dispose() to call GC.SuppressFinalize(object). This will prevent derived types that introduce a finalizer from needing to re-implement 'IDisposable' to call it.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/SystemMonitorService.cs",
+                "region": {
+                  "startLine": 317,
+                  "startColumn": 17,
+                  "endLine": 317,
+                  "endColumn": 24
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA2254",
+          "level": "note",
+          "message": "The logging message template should not vary between calls to 'LoggerExtensions.LogError(ILogger, Exception?, string?, params object?[])'",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Controllers/ConfigController.cs",
+                "region": {
+                  "startLine": 254,
+                  "startColumn": 34,
+                  "endLine": 254,
+                  "endColumn": 66
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1822",
+          "level": "note",
+          "message": "Member 'GetDiskUsage' does not access instance data and can be marked as static",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/SystemMonitorService.cs",
+                "region": {
+                  "startLine": 213,
+                  "startColumn": 20,
+                  "endLine": 213,
+                  "endColumn": 32
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "SYSLIB1045",
+          "level": "note",
+          "message": "Use 'GeneratedRegexAttribute' to generate the regular expression implementation at compile-time.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/FfmpegService.cs",
+                "region": {
+                  "startLine": 264,
+                  "startColumn": 35,
+                  "endLine": 264,
+                  "endColumn": 129
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "SYSLIB1045",
+          "level": "note",
+          "message": "Use 'GeneratedRegexAttribute' to generate the regular expression implementation at compile-time.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/FfmpegService.cs",
+                "region": {
+                  "startLine": 265,
+                  "startColumn": 40,
+                  "endLine": 265,
+                  "endColumn": 140
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "SYSLIB1045",
+          "level": "note",
+          "message": "Use 'GeneratedRegexAttribute' to generate the regular expression implementation at compile-time.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/FfmpegService.cs",
+                "region": {
+                  "startLine": 428,
+                  "startColumn": 23,
+                  "endLine": 428,
+                  "endColumn": 94
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "SYSLIB1045",
+          "level": "note",
+          "message": "Use 'GeneratedRegexAttribute' to generate the regular expression implementation at compile-time.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/FfmpegService.cs",
+                "region": {
+                  "startLine": 421,
+                  "startColumn": 21,
+                  "endLine": 421,
+                  "endColumn": 76
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "SYSLIB1045",
+          "level": "note",
+          "message": "Use 'GeneratedRegexAttribute' to generate the regular expression implementation at compile-time.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/FfmpegService.cs",
+                "region": {
+                  "startLine": 442,
+                  "startColumn": 23,
+                  "endLine": 442,
+                  "endColumn": 87
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "SYSLIB1045",
+          "level": "note",
+          "message": "Use 'GeneratedRegexAttribute' to generate the regular expression implementation at compile-time.",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/FfmpegService.cs",
+                "region": {
+                  "startLine": 119,
+                  "startColumn": 29,
+                  "endLine": 119,
+                  "endColumn": 85
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1866",
+          "level": "note",
+          "message": "Use 'string.EndsWith(char)' instead of 'string.EndsWith(string)' when you have a string with a single char",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/StreamManagerService.cs",
+                "region": {
+                  "startLine": 659,
+                  "startColumn": 29,
+                  "endLine": 659,
+                  "endColumn": 34
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1866",
+          "level": "note",
+          "message": "Use 'string.EndsWith(char)' instead of 'string.EndsWith(string)' when you have a string with a single char",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/StreamManagerService.cs",
+                "region": {
+                  "startLine": 664,
+                  "startColumn": 34,
+                  "endLine": 664,
+                  "endColumn": 39
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA2254",
+          "level": "note",
+          "message": "The logging message template should not vary between calls to 'LoggerExtensions.LogInformation(ILogger, string?, params object?[])'",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/StreamManagerService.cs",
+                "region": {
+                  "startLine": 486,
+                  "startColumn": 44,
+                  "endLine": 486,
+                  "endColumn": 97
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1862",
+          "level": "note",
+          "message": "Prefer the string comparison method overload of 'string.Contains(string)' that takes a 'StringComparison' enum value to perform a case-insensitive comparison, but keep in mind that this might cause subtle changes in behavior, so make sure to conduct thorough testing after applying the suggestion, or if culturally sensitive comparison is not required, consider using 'StringComparison.OrdinalIgnoreCase'",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/StreamManagerService.cs",
+                "region": {
+                  "startLine": 574,
+                  "startColumn": 29,
+                  "endLine": 574,
+                  "endColumn": 82
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "LeftOffendingMethod": "ToLower",
+              "RightOffendingMethod": null
+            }
+          }
+        },
+        {
+          "ruleId": "CA2254",
+          "level": "note",
+          "message": "The logging message template should not vary between calls to 'LoggerExtensions.LogWarning(ILogger, string?, params object?[])'",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/StreamManagerService.cs",
+                "region": {
+                  "startLine": 490,
+                  "startColumn": 36,
+                  "endLine": 490,
+                  "endColumn": 100
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA2254",
+          "level": "note",
+          "message": "The logging message template should not vary between calls to 'LoggerExtensions.LogInformation(ILogger, string?, params object?[])'",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/StreamManagerService.cs",
+                "region": {
+                  "startLine": 496,
+                  "startColumn": 44,
+                  "endLine": 496,
+                  "endColumn": 80
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA2254",
+          "level": "note",
+          "message": "The logging message template should not vary between calls to 'LoggerExtensions.LogError(ILogger, Exception?, string?, params object?[])'",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/StreamManagerService.cs",
+                "region": {
+                  "startLine": 514,
+                  "startColumn": 34,
+                  "endLine": 514,
+                  "endColumn": 79
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1822",
+          "level": "note",
+          "message": "Member 'BuildFfmpegCommand' does not access instance data and can be marked as static",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/FfmpegService.cs",
+                "region": {
+                  "startLine": 398,
+                  "startColumn": 20,
+                  "endLine": 398,
+                  "endColumn": 38
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1822",
+          "level": "note",
+          "message": "Member 'ExtractDeviceName' does not access instance data and can be marked as static",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/FfmpegService.cs",
+                "region": {
+                  "startLine": 419,
+                  "startColumn": 20,
+                  "endLine": 419,
+                  "endColumn": 37
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1822",
+          "level": "note",
+          "message": "Member 'ExtractVideoFormats' does not access instance data and can be marked as static",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/FfmpegService.cs",
+                "region": {
+                  "startLine": 425,
+                  "startColumn": 26,
+                  "endLine": 425,
+                  "endColumn": 45
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1822",
+          "level": "note",
+          "message": "Member 'ExtractResolutions' does not access instance data and can be marked as static",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/FfmpegService.cs",
+                "region": {
+                  "startLine": 439,
+                  "startColumn": 26,
+                  "endLine": 439,
+                  "endColumn": 44
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1861",
+          "level": "note",
+          "message": "Prefer 'static readonly' fields over constant array arguments if the called method is called repeatedly and is not mutating the passed array",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/StreamManagerService.cs",
+                "region": {
+                  "startLine": 297,
+                  "startColumn": 27,
+                  "endLine": 297,
+                  "endColumn": 51
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "paramName": "collection"
+            }
+          }
+        },
+        {
+          "ruleId": "CA1861",
+          "level": "note",
+          "message": "Prefer 'static readonly' fields over constant array arguments if the called method is called repeatedly and is not mutating the passed array",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/StreamManagerService.cs",
+                "region": {
+                  "startLine": 298,
+                  "startColumn": 27,
+                  "endLine": 298,
+                  "endColumn": 51
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "paramName": "collection"
+            }
+          }
+        },
+        {
+          "ruleId": "CA1861",
+          "level": "note",
+          "message": "Prefer 'static readonly' fields over constant array arguments if the called method is called repeatedly and is not mutating the passed array",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/StreamManagerService.cs",
+                "region": {
+                  "startLine": 299,
+                  "startColumn": 27,
+                  "endLine": 299,
+                  "endColumn": 51
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "paramName": "collection"
+            }
+          }
+        },
+        {
+          "ruleId": "CA1861",
+          "level": "note",
+          "message": "Prefer 'static readonly' fields over constant array arguments if the called method is called repeatedly and is not mutating the passed array",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/StreamManagerService.cs",
+                "region": {
+                  "startLine": 300,
+                  "startColumn": 27,
+                  "endLine": 300,
+                  "endColumn": 63
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "paramName": "collection"
+            }
+          }
+        },
+        {
+          "ruleId": "CA1861",
+          "level": "note",
+          "message": "Prefer 'static readonly' fields over constant array arguments if the called method is called repeatedly and is not mutating the passed array",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/StreamManagerService.cs",
+                "region": {
+                  "startLine": 314,
+                  "startColumn": 27,
+                  "endLine": 314,
+                  "endColumn": 65
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "paramName": "collection"
+            }
+          }
+        },
+        {
+          "ruleId": "CA1861",
+          "level": "note",
+          "message": "Prefer 'static readonly' fields over constant array arguments if the called method is called repeatedly and is not mutating the passed array",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/StreamManagerService.cs",
+                "region": {
+                  "startLine": 320,
+                  "startColumn": 31,
+                  "endLine": 320,
+                  "endColumn": 56
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "paramName": "collection"
+            }
+          }
+        },
+        {
+          "ruleId": "CA1861",
+          "level": "note",
+          "message": "Prefer 'static readonly' fields over constant array arguments if the called method is called repeatedly and is not mutating the passed array",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/StreamManagerService.cs",
+                "region": {
+                  "startLine": 324,
+                  "startColumn": 31,
+                  "endLine": 324,
+                  "endColumn": 54
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "paramName": "collection"
+            }
+          }
+        },
+        {
+          "ruleId": "CA1861",
+          "level": "note",
+          "message": "Prefer 'static readonly' fields over constant array arguments if the called method is called repeatedly and is not mutating the passed array",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/StreamManagerService.cs",
+                "region": {
+                  "startLine": 326,
+                  "startColumn": 27,
+                  "endLine": 326,
+                  "endColumn": 65
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "paramName": "collection"
+            }
+          }
+        },
+        {
+          "ruleId": "CA1861",
+          "level": "note",
+          "message": "Prefer 'static readonly' fields over constant array arguments if the called method is called repeatedly and is not mutating the passed array",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/StreamManagerService.cs",
+                "region": {
+                  "startLine": 330,
+                  "startColumn": 27,
+                  "endLine": 330,
+                  "endColumn": 49
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "paramName": "collection"
+            }
+          }
+        },
+        {
+          "ruleId": "CA1861",
+          "level": "note",
+          "message": "Prefer 'static readonly' fields over constant array arguments if the called method is called repeatedly and is not mutating the passed array",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/StreamManagerService.cs",
+                "region": {
+                  "startLine": 331,
+                  "startColumn": 27,
+                  "endLine": 331,
+                  "endColumn": 65
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "paramName": "collection"
+            }
+          }
+        },
+        {
+          "ruleId": "CA1861",
+          "level": "note",
+          "message": "Prefer 'static readonly' fields over constant array arguments if the called method is called repeatedly and is not mutating the passed array",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/StreamManagerService.cs",
+                "region": {
+                  "startLine": 392,
+                  "startColumn": 31,
+                  "endLine": 392,
+                  "endColumn": 54
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "paramName": "collection"
+            }
+          }
+        },
+        {
+          "ruleId": "CA1861",
+          "level": "note",
+          "message": "Prefer 'static readonly' fields over constant array arguments if the called method is called repeatedly and is not mutating the passed array",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/StreamManagerService.cs",
+                "region": {
+                  "startLine": 393,
+                  "startColumn": 31,
+                  "endLine": 393,
+                  "endColumn": 68
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "paramName": "collection"
+            }
+          }
+        },
+        {
+          "ruleId": "CA1861",
+          "level": "note",
+          "message": "Prefer 'static readonly' fields over constant array arguments if the called method is called repeatedly and is not mutating the passed array",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/StreamManagerService.cs",
+                "region": {
+                  "startLine": 398,
+                  "startColumn": 31,
+                  "endLine": 398,
+                  "endColumn": 53
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "paramName": "collection"
+            }
+          }
+        },
+        {
+          "ruleId": "CA1861",
+          "level": "note",
+          "message": "Prefer 'static readonly' fields over constant array arguments if the called method is called repeatedly and is not mutating the passed array",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/StreamManagerService.cs",
+                "region": {
+                  "startLine": 399,
+                  "startColumn": 31,
+                  "endLine": 399,
+                  "endColumn": 68
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "paramName": "collection"
+            }
+          }
+        },
+        {
+          "ruleId": "CA1861",
+          "level": "note",
+          "message": "Prefer 'static readonly' fields over constant array arguments if the called method is called repeatedly and is not mutating the passed array",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/StreamManagerService.cs",
+                "region": {
+                  "startLine": 416,
+                  "startColumn": 23,
+                  "endLine": 416,
+                  "endColumn": 53
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "paramName": "collection"
+            }
+          }
+        },
+        {
+          "ruleId": "CA1861",
+          "level": "note",
+          "message": "Prefer 'static readonly' fields over constant array arguments if the called method is called repeatedly and is not mutating the passed array",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/StreamManagerService.cs",
+                "region": {
+                  "startLine": 423,
+                  "startColumn": 27,
+                  "endLine": 423,
+                  "endColumn": 47
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "paramName": "collection"
+            }
+          }
+        },
+        {
+          "ruleId": "CA1861",
+          "level": "note",
+          "message": "Prefer 'static readonly' fields over constant array arguments if the called method is called repeatedly and is not mutating the passed array",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/StreamManagerService.cs",
+                "region": {
+                  "startLine": 428,
+                  "startColumn": 23,
+                  "endLine": 428,
+                  "endColumn": 59
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1,
+            "customProperties": {
+              "paramName": "collection"
+            }
+          }
+        },
+        {
+          "ruleId": "CA2254",
+          "level": "note",
+          "message": "The logging message template should not vary between calls to 'LoggerExtensions.LogInformation(ILogger, string?, params object?[])'",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/StreamManagerService.cs",
+                "region": {
+                  "startLine": 291,
+                  "startColumn": 32,
+                  "endLine": 291,
+                  "endColumn": 134
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA2254",
+          "level": "note",
+          "message": "The logging message template should not vary between calls to 'LoggerExtensions.LogWarning(ILogger, string?, params object?[])'",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/StreamManagerService.cs",
+                "region": {
+                  "startLine": 727,
+                  "startColumn": 32,
+                  "endLine": 727,
+                  "endColumn": 94
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1822",
+          "level": "note",
+          "message": "Member 'ParseFfmpegStats' does not access instance data and can be marked as static",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/StreamManagerService.cs",
+                "region": {
+                  "startLine": 631,
+                  "startColumn": 40,
+                  "endLine": 631,
+                  "endColumn": 56
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1822",
+          "level": "note",
+          "message": "Member 'ParseBitrate' does not access instance data and can be marked as static",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/StreamManagerService.cs",
+                "region": {
+                  "startLine": 651,
+                  "startColumn": 17,
+                  "endLine": 651,
+                  "endColumn": 29
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1822",
+          "level": "note",
+          "message": "Member 'CreateStreamStatus' does not access instance data and can be marked as static",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/StreamManagerService.cs",
+                "region": {
+                  "startLine": 518,
+                  "startColumn": 26,
+                  "endLine": 518,
+                  "endColumn": 44
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        },
+        {
+          "ruleId": "CA1822",
+          "level": "note",
+          "message": "Member 'ParseLogLine' does not access instance data and can be marked as static",
+          "locations": [
+            {
+              "resultFile": {
+                "uri": "file:///E:/JC/Simpfo/HeadendStreamer/HeadendStreamer.Web/Services/StreamManagerService.cs",
+                "region": {
+                  "startLine": 676,
+                  "startColumn": 24,
+                  "endLine": 676,
+                  "endColumn": 36
+                }
+              }
+            }
+          ],
+          "properties": {
+            "warningLevel": 1
+          }
+        }
+      ],
+      "rules": {
+        "CA1416": {
+          "id": "CA1416",
+          "shortDescription": "Validate platform compatibility",
+          "fullDescription": "Using platform dependent API on a component makes the code no longer work across all platforms.",
+          "defaultLevel": "warning",
+          "helpUri": "https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1416",
+          "properties": {
+            "category": "Interoperability",
+            "isEnabledByDefault": true,
+            "tags": [
+              "Telemetry",
+              "EnabledRuleInAggressiveMode"
+            ]
+          }
+        },
+        "CA1816": {
+          "id": "CA1816",
+          "shortDescription": "Dispose methods should call SuppressFinalize",
+          "fullDescription": "A method that is an implementation of Dispose does not call GC.SuppressFinalize; or a method that is not an implementation of Dispose calls GC.SuppressFinalize; or a method calls GC.SuppressFinalize and passes something other than this (Me in Visual Basic).",
+          "defaultLevel": "note",
+          "helpUri": "https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1816",
+          "properties": {
+            "category": "Usage",
+            "isEnabledByDefault": true,
+            "tags": [
+              "PortedFromFxCop",
+              "Telemetry",
+              "EnabledRuleInAggressiveMode"
+            ]
+          }
+        },
+        "CA1822": {
+          "id": "CA1822",
+          "shortDescription": "Mark members as static",
+          "fullDescription": "Members that do not access instance data or call instance methods can be marked as static. After you mark the methods as static, the compiler will emit nonvirtual call sites to these members. This can give you a measurable performance gain for performance-sensitive code.",
+          "defaultLevel": "note",
+          "helpUri": "https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1822",
+          "properties": {
+            "category": "Performance",
+            "isEnabledByDefault": true,
+            "tags": [
+              "PortedFromFxCop",
+              "Telemetry",
+              "EnabledRuleInAggressiveMode"
+            ]
+          }
+        },
+        "CA1861": {
+          "id": "CA1861",
+          "shortDescription": "Avoid constant arrays as arguments",
+          "fullDescription": "Constant arrays passed as arguments are not reused when called repeatedly, which implies a new array is created each time. Consider extracting them to 'static readonly' fields to improve performance if the passed array is not mutated within the called method.",
+          "defaultLevel": "note",
+          "helpUri": "https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1861",
+          "properties": {
+            "category": "Performance",
+            "isEnabledByDefault": true,
+            "tags": [
+              "Telemetry",
+              "EnabledRuleInAggressiveMode"
+            ]
+          }
+        },
+        "CA1862": {
+          "id": "CA1862",
+          "shortDescription": "Use the 'StringComparison' method overloads to perform case-insensitive string comparisons",
+          "fullDescription": "Avoid calling 'ToLower', 'ToUpper', 'ToLowerInvariant' and 'ToUpperInvariant' to perform case-insensitive string comparisons because they lead to an allocation. Instead, prefer calling the method overloads of 'Contains', 'IndexOf' and 'StartsWith' that take a 'StringComparison' enum value to perform case-insensitive comparisons. Switching to using an overload that takes a 'StringComparison' might cause subtle changes in behavior, so it's important to conduct thorough testing after applying the suggestion. Additionally, if a culturally sensitive comparison is not required, consider using 'StringComparison.OrdinalIgnoreCase'.",
+          "defaultLevel": "note",
+          "helpUri": "https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1862",
+          "properties": {
+            "category": "Performance",
+            "isEnabledByDefault": true,
+            "tags": [
+              "Telemetry",
+              "EnabledRuleInAggressiveMode"
+            ]
+          }
+        },
+        "CA1866": {
+          "id": "CA1866",
+          "shortDescription": "Use char overload",
+          "fullDescription": "The char overload is a better performing overload than a string with a single char.",
+          "defaultLevel": "note",
+          "helpUri": "https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1866",
+          "properties": {
+            "category": "Performance",
+            "isEnabledByDefault": true,
+            "tags": [
+              "Telemetry",
+              "EnabledRuleInAggressiveMode"
+            ]
+          }
+        },
+        "CA1869": {
+          "id": "CA1869",
+          "shortDescription": "Cache and reuse 'JsonSerializerOptions' instances",
+          "fullDescription": "Avoid creating a new 'JsonSerializerOptions' instance for every serialization operation. Cache and reuse instances instead. Single use 'JsonSerializerOptions' instances can substantially degrade the performance of your application.",
+          "defaultLevel": "note",
+          "helpUri": "https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1869",
+          "properties": {
+            "category": "Performance",
+            "isEnabledByDefault": true,
+            "tags": [
+              "Telemetry",
+              "EnabledRuleInAggressiveMode"
+            ]
+          }
+        },
+        "CA2016": {
+          "id": "CA2016",
+          "shortDescription": "Forward the 'CancellationToken' parameter to methods",
+          "fullDescription": "Forward the 'CancellationToken' parameter to methods to ensure the operation cancellation notifications gets properly propagated, or pass in 'CancellationToken.None' explicitly to indicate intentionally not propagating the token.",
+          "defaultLevel": "note",
+          "helpUri": "https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca2016",
+          "properties": {
+            "category": "Reliability",
+            "isEnabledByDefault": true,
+            "tags": [
+              "Telemetry",
+              "EnabledRuleInAggressiveMode"
+            ]
+          }
+        },
+        "CA2254": {
+          "id": "CA2254",
+          "shortDescription": "Template should be a static expression",
+          "fullDescription": "The logging message template should not vary between calls.",
+          "defaultLevel": "note",
+          "helpUri": "https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca2254",
+          "properties": {
+            "category": "Usage",
+            "isEnabledByDefault": true,
+            "tags": [
+              "Telemetry",
+              "EnabledRuleInAggressiveMode"
+            ]
+          }
+        },
+        "CS0169": {
+          "id": "CS0169",
+          "shortDescription": "Field is never used",
+          "defaultLevel": "warning",
+          "helpUri": "https://msdn.microsoft.com/query/roslyn.query?appId=roslyn&k=k(CS0169)",
+          "properties": {
+            "category": "Compiler",
+            "isEnabledByDefault": true,
+            "tags": [
+              "Compiler",
+              "Telemetry"
+            ]
+          }
+        },
+        "CS1061": {
+          "id": "CS1061",
+          "defaultLevel": "error",
+          "helpUri": "https://msdn.microsoft.com/query/roslyn.query?appId=roslyn&k=k(CS1061)",
+          "properties": {
+            "category": "Compiler",
+            "isEnabledByDefault": true,
+            "tags": [
+              "Compiler",
+              "Telemetry",
+              "NotConfigurable"
+            ]
+          }
+        },
+        "CS8602": {
+          "id": "CS8602",
+          "shortDescription": "Dereference of a possibly null reference.",
+          "defaultLevel": "warning",
+          "helpUri": "https://msdn.microsoft.com/query/roslyn.query?appId=roslyn&k=k(CS8602)",
+          "properties": {
+            "category": "Compiler",
+            "isEnabledByDefault": true,
+            "tags": [
+              "Compiler",
+              "Telemetry"
+            ]
+          }
+        },
+        "SYSLIB1045": {
+          "id": "SYSLIB1045",
+          "shortDescription": "Convert to 'GeneratedRegexAttribute'.",
+          "defaultLevel": "note",
+          "helpUri": "https://learn.microsoft.com/dotnet/fundamentals/syslib-diagnostics/syslib1045",
+          "properties": {
+            "category": "Performance",
+            "isEnabledByDefault": true
+          }
+        }
+      }
+    }
+  ]
+}

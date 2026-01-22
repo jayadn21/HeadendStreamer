@@ -8,6 +8,7 @@ public class ConfigService
     private readonly ILogger<ConfigService> _logger;
     private readonly string _configDirectory;
     private Dictionary<string, StreamConfig> _configs = new();
+    private readonly object _lock = new();
     
     public ConfigService(ILogger<ConfigService> logger, IWebHostEnvironment env)
     {
@@ -19,12 +20,18 @@ public class ConfigService
     
     public async Task<StreamConfig?> GetConfigAsync(string id)
     {
-        return _configs.TryGetValue(id, out var config) ? config : null;
+        lock (_lock)
+        {
+            return _configs.TryGetValue(id, out var config) ? config : null;
+        }
     }
     
     public List<StreamConfig> GetAllConfigs()
     {
-        return _configs.Values.ToList();
+        lock (_lock)
+        {
+            return _configs.Values.ToList();
+        }
     }
     
     public async Task<StreamConfig> CreateConfigAsync(StreamConfig config)
@@ -33,7 +40,10 @@ public class ConfigService
         config.CreatedAt = DateTime.UtcNow;
         config.UpdatedAt = DateTime.UtcNow;
         
-        _configs[config.Id] = config;
+        lock (_lock)
+        {
+            _configs[config.Id] = config;
+        }
         await SaveConfigAsync(config);
         
         _logger.LogInformation($"Created new stream config: {config.Name} ({config.Id})");
@@ -42,8 +52,12 @@ public class ConfigService
     
     public async Task<StreamConfig?> UpdateConfigAsync(string id, StreamConfig updates)
     {
-        if (!_configs.TryGetValue(id, out var existingConfig))
-            return null;
+        StreamConfig? existingConfig;
+        lock (_lock)
+        {
+            if (!_configs.TryGetValue(id, out existingConfig))
+                return null;
+        }
         
         // Update properties
         existingConfig.Name = updates.Name ?? existingConfig.Name;
@@ -51,6 +65,7 @@ public class ConfigService
         existingConfig.Enabled = updates.Enabled;
         existingConfig.InputDevice = updates.InputDevice ?? existingConfig.InputDevice;
         existingConfig.InputFormat = updates.InputFormat ?? existingConfig.InputFormat;
+        existingConfig.PixelFormat = updates.PixelFormat ?? existingConfig.PixelFormat;
         existingConfig.VideoSize = updates.VideoSize ?? existingConfig.VideoSize;
         existingConfig.FrameRate = updates.FrameRate;
         existingConfig.VideoCodec = updates.VideoCodec ?? existingConfig.VideoCodec;
@@ -77,16 +92,13 @@ public class ConfigService
     
     public async Task<bool> DeleteConfigAsync(string id)
     {
-        if (!_configs.ContainsKey(id))
-            return false;
-        
-        var configPath = GetConfigFilePath(id);
-        if (File.Exists(configPath))
+        lock (_lock)
         {
-            File.Delete(configPath);
+            if (!_configs.ContainsKey(id))
+                return false;
+            
+            _configs.Remove(id);
         }
-        
-        _configs.Remove(id);
         
         _logger.LogInformation($"Deleted stream config: {id}");
         return true;
@@ -99,11 +111,15 @@ public class ConfigService
         
         var backupFile = Path.Combine(backupDir, $"backup_{DateTime.UtcNow:yyyyMMdd_HHmmss}.json");
         
-        var backupData = new
+        object backupData;
+        lock (_lock)
         {
-            Timestamp = DateTime.UtcNow,
-            Configs = _configs.Values.ToList()
-        };
+            backupData = new
+            {
+                Timestamp = DateTime.UtcNow,
+                Configs = _configs.Values.ToList()
+            };
+        }
         
         var json = JsonSerializer.Serialize(backupData, new JsonSerializerOptions
         {
@@ -135,13 +151,20 @@ public class ConfigService
             if (backupData?.Configs == null)
                 return false;
             
-            // Clear existing configs
-            _configs.Clear();
+            lock (_lock)
+            {
+                // Clear existing configs
+                _configs.Clear();
+                
+                // Restore configs
+                foreach (var config in backupData.Configs)
+                {
+                    _configs[config.Id] = config;
+                }
+            }
             
-            // Restore configs
             foreach (var config in backupData.Configs)
             {
-                _configs[config.Id] = config;
                 await SaveConfigAsync(config);
             }
             
@@ -237,7 +260,10 @@ public class ConfigService
                     
                     if (config != null && !string.IsNullOrEmpty(config.Id))
                     {
-                        _configs[config.Id] = config;
+                        lock (_lock)
+                        {
+                            _configs[config.Id] = config;
+                        }
                     }
                 }
                 catch (Exception ex)

@@ -3,6 +3,25 @@
     ViewData["Title"] = "Headend Streamer Dashboard";
 }
 
+<style>
+    /* Fix for dropdown menus being clipped by adjacent cards */
+    .stream-card {
+        overflow: visible !important;
+        position: relative;
+    }
+    
+    /* Ensure the card with the open dropdown is on top */
+    .stream-card:focus-within,
+    .stream-card:hover {
+        z-index: 10;
+    }
+    
+    /* Ensure the dropdown menu itself has a very high z-index */
+    .dropdown-menu {
+        z-index: 1100 !important;
+    }
+</style>
+
 <div class="container-fluid">
     <!-- System Status Card -->
     <div class="row mb-4">
@@ -157,31 +176,19 @@
                                                         </a>
                                                     </li>
                                                     <li><hr class="dropdown-divider"></li>
-                                                    @if (stream.CanStart)
-                                                    {
-                                                        <li>
-                                                            <button class="dropdown-item start-stream" data-id="@stream.Config.Id">
-                                                                <i class="fas fa-play me-2 text-success"></i>Start Stream
-                                                            </button>
-                                                        </li>
-                                                    }
-                                                    @if (stream.CanStop)
-                                                    {
-                                                        <li>
-                                                            <button class="dropdown-item stop-stream" data-id="@stream.Config.Id">
-                                                                <i class="fas fa-stop me-2 text-danger"></i>Stop Stream
-                                                            </button>
-                                                        </li>
-                                                    }
+                                                    <li>
+                                                        <button class="dropdown-item start-stream @(stream.Status?.IsRunning == true ? "d-none" : "")" data-id="@stream.Config.Id">
+                                                            <i class="fas fa-play me-2 text-success"></i>Start Stream
+                                                        </button>
+                                                    </li>
+                                                    <li>
+                                                        <button class="dropdown-item stop-stream @(stream.Status?.IsRunning == true ? "" : "d-none")" data-id="@stream.Config.Id">
+                                                            <i class="fas fa-stop me-2 text-danger"></i>Stop Stream
+                                                        </button>
+                                                    </li>
                                                     <li>
                                                         <button class="dropdown-item restart-stream" data-id="@stream.Config.Id">
                                                             <i class="fas fa-redo me-2 text-warning"></i>Restart Stream
-                                                        </button>
-                                                    </li>
-                                                    <li><hr class="dropdown-divider"></li>
-                                                    <li>
-                                                        <button class="dropdown-item text-danger delete-stream" data-id="@stream.Config.Id">
-                                                            <i class="fas fa-trash me-2"></i>Delete
                                                         </button>
                                                     </li>
                                                 </ul>
@@ -208,29 +215,56 @@
                                                     <strong>@stream.Config.VideoCodec</strong>
                                                 </div>
                                             </div>
+
+                                            <div class="d-flex justify-content-end mb-3">
+                                                <div class="btn-group w-100">
+                                                    <button class="btn btn-sm btn-success start-stream @(stream.Status?.IsRunning == true ? "d-none" : "")" data-id="@stream.Config.Id">
+                                                        <i class="fas fa-play me-1"></i> Start
+                                                    </button>
+                                                    <button class="btn btn-sm btn-warning stop-stream @(stream.Status?.IsRunning == true ? "" : "d-none")" data-id="@stream.Config.Id">
+                                                        <i class="fas fa-stop me-1"></i> Stop
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-info restart-stream" data-id="@stream.Config.Id">
+                                                        <i class="fas fa-sync-alt me-1"></i> Restart
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div class="d-flex justify-content-end mb-3">
+                                                <div class="btn-group w-100">
+                                                    <a href="/stream/details/@stream.Config.Id" class="btn btn-sm btn-outline-secondary">
+                                                        <i class="fas fa-eye me-1"></i> View Details
+                                                    </a>
+                                                    <a href="/config/edit/@stream.Config.Id" class="btn btn-sm btn-outline-secondary">
+                                                        <i class="fas fa-edit me-1"></i> Edit Config
+                                                    </a>
+                                                </div>
+                                            </div>
                                             
-                                            @if (stream.Status?.IsRunning == true)
-                                            {
-                                                <div class="alert alert-success py-2 mb-0">
-                                                    <div class="d-flex justify-content-between">
-                                                        <small id="stream-uptime-@stream.Config.Id">
-                                                            <i class="fas fa-clock me-1"></i> 
-                                                            @stream.Status.Uptime.ToString(@"hh\:mm\:ss")
-                                                        </small>
+                                            <div id="status-container-@stream.Config.Id" class="status-container">
+                                                @if (stream.Status?.IsRunning == true)
+                                                {
+                                                    <div class="alert alert-success py-2 mb-0">
+                                                        <div class="d-flex justify-content-between">
+                                                            <small id="stream-uptime-@stream.Config.Id">
+                                                                <i class="fas fa-clock me-1"></i> 
+                                                                @stream.Status.Uptime.ToString(@"hh\:mm\:ss")
+                                                            </small>
+                                                            <small>
+                                                                PID: @stream.Status.ProcessId
+                                                            </small>
+                                                        </div>
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <div class="alert alert-secondary py-2 mb-0">
                                                         <small>
-                                                            PID: @stream.Status.ProcessId
+                                                            <i class="fas fa-stop-circle me-1"></i> Stopped
                                                         </small>
                                                     </div>
-                                                </div>
-                                            }
-                                            else
-                                            {
-                                                <div class="alert alert-secondary py-2 mb-0">
-                                                    <small>
-                                                        <i class="fas fa-stop-circle me-1"></i> Stopped
-                                                    </small>
-                                                </div>
-                                            }
+                                                }
+                                            </div>
                                         </div>
                                         <div class="card-footer bg-transparent border-top-0 pt-0">
                                             <small class="text-muted">
@@ -261,6 +295,6 @@
 </div>
 
 @section Scripts {
-    <script src="~/js/signalr/dist/browser/signalr.js"></script>
-    <script src="~/js/dashboard.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script src="~/js/dashboard.js" asp-append-version="true"></script>
 }

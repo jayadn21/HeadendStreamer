@@ -13,6 +13,7 @@ namespace HeadendStreamer.Web.Services;
 public class StreamManagerService
 {
     private readonly Dictionary<string, StreamProcess> _processes = new();
+    private readonly object _processLock = new();
     private readonly ILogger<StreamManagerService> _logger;
     private readonly ConfigService _configService;
     private readonly IConfiguration _configuration;
@@ -39,7 +40,12 @@ public class StreamManagerService
                 throw new ArgumentException($"Configuration {configId} not found");
             
             // Check if already running
-            if (_processes.ContainsKey(configId))
+            bool isAlreadyRunning;
+            lock (_processLock)
+            {
+                isAlreadyRunning = _processes.ContainsKey(configId);
+            }
+            if (isAlreadyRunning)
             {
                 var streamStatus = GetStreamStatus(configId);
                 if (streamStatus.IsRunning)
@@ -95,7 +101,10 @@ public class StreamManagerService
                 LogFile = $"logs/ffmpeg/{configId}_{DateTime.UtcNow:yyyyMMdd_HHmmss}.log"
             };
             
-            _processes[configId] = streamProcess;
+            lock (_processLock)
+            {
+                _processes[configId] = streamProcess;
+            }
             
             // Write startup log
             await File.WriteAllTextAsync(streamProcess.LogFile, 
@@ -124,10 +133,14 @@ public class StreamManagerService
     {
         try
         {
-            if (!_processes.TryGetValue(configId, out var streamProcess))
+            StreamProcess? streamProcess;
+            lock (_processLock)
             {
-                _logger.LogWarning($"Attempted to stop stream {configId} but it's not in the active processes list.");
-                return false;
+                if (!_processes.TryGetValue(configId, out streamProcess))
+                {
+                    _logger.LogWarning($"Attempted to stop stream {configId} but it's not in the active processes list.");
+                    return false;
+                }
             }
             
             _logger.LogInformation($"Stopping stream {streamProcess.Config.Name} (ID: {configId})");
@@ -158,7 +171,10 @@ public class StreamManagerService
             }
             
             // Remove from tracking first to avoid race conditions with monitor
-            _processes.Remove(configId);
+            lock (_processLock)
+            {
+                _processes.Remove(configId);
+            }
 
             // Update log safely
             await AppendToLogAsync(streamProcess, $"\n\nStopped at: {DateTime.UtcNow}\n");
@@ -185,20 +201,45 @@ public class StreamManagerService
         return await StartStreamAsync(configId);
     }
     
-    public StreamStatus? GetStreamStatus(string configId)
+    public StreamStatus GetStreamStatus(string configId)
     {
-        if (!_processes.TryGetValue(configId, out var streamProcess))
-            return null;
+        StreamProcess? streamProcess;
+        lock (_processLock)
+        {
+            _processes.TryGetValue(configId, out streamProcess);
+        }
         
-        return CreateStreamStatus(configId, streamProcess);
+        if (streamProcess != null)
+        {
+            return CreateStreamStatus(configId, streamProcess);
+        }
+        
+        // Return a "Stopped" status
+        // We can try to get the config name if it exists in the config service
+        // Since this is sync, we use the sync GetAllConfigs or we just return an empty name
+        var configs = _configService.GetAllConfigs();
+        var config = configs.FirstOrDefault(c => c.Id == configId);
+        
+        return new StreamStatus
+        {
+            ConfigId = configId,
+            Name = config?.Name ?? "Unknown",
+            IsRunning = false,
+            LastUpdated = DateTime.UtcNow
+        };
     }
     
     public Dictionary<string, StreamStatus> GetAllStreamStatus()
     {
-        return _processes.ToDictionary(
-            kvp => kvp.Key,
-            kvp => CreateStreamStatus(kvp.Key, kvp.Value)
-        );
+        var result = new Dictionary<string, StreamStatus>();
+        var configs = _configService.GetAllConfigs();
+        
+        foreach (var config in configs)
+        {
+            result[config.Id] = GetStreamStatus(config.Id);
+        }
+        
+        return result;
     }
     
     public async Task<StreamLog[]> GetStreamLogsAsync(string configId, int lines = 100)
@@ -246,8 +287,25 @@ public class StreamManagerService
         var isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
         var inputFormat = config.InputFormat?.ToLower() ?? "auto";
         var isLocalFile = inputFormat == "file" || inputFormat == "local file";
+        var isMpegTs = inputFormat == "mpegts";
         
         _logger.LogInformation($"Building FFmpeg command. OS: {(isWindows ? "Windows" : "Linux/Other")}, Input Format: {inputFormat}");
+        
+        if (config.ReStream && (inputFormat == "mpegts"))
+        {
+            // Re-stream mode: copy streams without transcoding
+            args.AddRange(new[] { "-i", $"\"{config.InputDevice}\"" });
+            args.AddRange(new[] { "-c:v", "copy" });
+            args.AddRange(new[] { "-c:a", "copy" });
+            args.AddRange(new[] { "-f", "mpegts" });
+            args.AddRange(new[] { "-flags", "+global_header" });
+            
+            var reStreamOutputUrl = $"udp://{config.MulticastIp}:{config.Port}" +
+                           $"?pkt_size=1316&buffer_size=65536&ttl={config.Ttl}";
+            args.Add($"\"{reStreamOutputUrl}\"");
+            
+            return string.Join(" ", args);
+        }
         
         // Input configuration
         if (isLocalFile)
@@ -262,7 +320,7 @@ public class StreamManagerService
             {
                 args.AddRange(new[] { "-f", "gdigrab" });
             }
-            else
+            else if (!isMpegTs)
             {
                 args.AddRange(new[] { "-f", "dshow" });
             }
@@ -270,36 +328,42 @@ public class StreamManagerService
         }
         else
         {
-            args.AddRange(new[] { "-f", "v4l2" });
+            if (!isMpegTs)
+            {
+                args.AddRange(new[] { "-f", "v4l2" });
+            }
             args.AddRange(new[] { "-thread_queue_size", "1024" });
         }
         
-        // input_format / pixel_format (only for live devices, not files)
-        if (!isLocalFile && !string.IsNullOrEmpty(config.InputFormat))
+        // input_format / pixel_format (only for live devices, not files, YouTube or network streams)
+        if (!isLocalFile && !isMpegTs && !string.IsNullOrEmpty(config.PixelFormat))
         {
             if (isWindows)
             {
                 // Only use -pixel_format for dshow and if it's a known pixel format
                 bool isGdigrab = args.Contains("gdigrab");
-                if (!isGdigrab && !config.InputFormat.Contains("mpegts") && !config.InputFormat.Contains("auto"))
+                if (!isGdigrab && !config.PixelFormat.Contains("auto"))
                 {
-                    args.AddRange(new[] { "-pixel_format", config.InputFormat });
+                    args.AddRange(new[] { "-pixel_format", config.PixelFormat });
                 }
             }
             else
             {
-                args.AddRange(new[] { "-input_format", config.InputFormat });
+                if (!config.PixelFormat.Contains("auto"))
+                {
+                    args.AddRange(new[] { "-input_format", config.PixelFormat });
+                }
             }
         }
 
-        if (!isLocalFile)
+        if (!isLocalFile && !isMpegTs)
         {
             args.AddRange(new[] { "-video_size", config.VideoSize });
             args.AddRange(new[] { "-framerate", config.FrameRate.ToString() });
         }
         
         var inputDevice = config.InputDevice;
-        if (!isLocalFile)
+        if (!isLocalFile && !isMpegTs)
         {
             if (isWindows && !args.Contains("gdigrab") && !inputDevice.StartsWith("video="))
             {
@@ -314,8 +378,8 @@ public class StreamManagerService
         // Always quote paths/devices
         args.AddRange(new[] { "-i", $"\"{inputDevice}\"" });
         
-        // Audio input if enabled
-        if (!isLocalFile && config.EnableAudio && !string.IsNullOrEmpty(config.AudioDevice))
+        // Audio input if enabled - skip for MPEG-TS
+        if (!isLocalFile && !isMpegTs && config.EnableAudio && !string.IsNullOrEmpty(config.AudioDevice))
         {
             var audioDevice = config.AudioDevice;
             if (isWindows && !audioDevice.StartsWith("audio="))

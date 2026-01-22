@@ -22,7 +22,10 @@ builder.Services.AddDataProtection()
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
-builder.Services.AddSignalR();
+builder.Services.AddSignalR()
+    .AddJsonProtocol(options => {
+        options.PayloadSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+    });
 
 // Register services in CORRECT ORDER
 builder.Services.AddSingleton<SystemMonitorService>();
