@@ -77,6 +77,22 @@ public class StreamManagerService
                 CreateNoWindow = true
             };
             
+            // Fix for shared builds: Add ../lib to LD_LIBRARY_PATH
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                var ffmpegDir = Path.GetDirectoryName(ffmpegPath);
+                if (ffmpegDir != null)
+                {
+                    var libDir = Path.GetFullPath(Path.Combine(ffmpegDir, "../lib"));
+                    if (Directory.Exists(libDir))
+                    {
+                        var currentLdPath = Environment.GetEnvironmentVariable("LD_LIBRARY_PATH") ?? "";
+                        processInfo.EnvironmentVariables["LD_LIBRARY_PATH"] = $"{libDir}:{currentLdPath}";
+                        _logger.LogInformation($"Setting LD_LIBRARY_PATH to include: {libDir}");
+                    }
+                }
+            }
+            
             var process = new Process { StartInfo = processInfo };
             
             // Setup output handlers
@@ -98,7 +114,7 @@ public class StreamManagerService
                 Config = config,
                 Process = process,
                 StartTime = DateTime.UtcNow,
-                LogFile = $"logs/ffmpeg/{configId}_{DateTime.UtcNow:yyyyMMdd_HHmmss}.log"
+                LogFile = $"logs/ffmpeg/{configId}_{DateTime.Now:yyyyMMdd_HHmmss}.log"
             };
             
             lock (_processLock)
@@ -108,7 +124,7 @@ public class StreamManagerService
             
             // Write startup log
             await File.WriteAllTextAsync(streamProcess.LogFile, 
-                $"Started at: {DateTime.UtcNow}\nCommand: {ffmpegCmd}\n\n");
+                $"Started at: {DateTime.Now}\nCommand: {ffmpegCmd}\n\n");
             
             // Monitor process in background
             _ = MonitorStreamProcessAsync(configId, process);
@@ -177,7 +193,7 @@ public class StreamManagerService
             }
 
             // Update log safely
-            await AppendToLogAsync(streamProcess, $"\n\nStopped at: {DateTime.UtcNow}\n");
+            await AppendToLogAsync(streamProcess, $"\n\nStopped at: {DateTime.Now}\n");
             
             streamProcess.Dispose();
             
@@ -386,10 +402,8 @@ public class StreamManagerService
             {
                 audioDevice = "audio=" + audioDevice;
             }
-            else if (!isWindows && !audioDevice.StartsWith("audio="))
-            {
-                audioDevice = "audio=" + audioDevice;
-            }
+            // On Linux with PulseAudio, we don't need "audio=" prefix usually, just the source name.
+            // If the user selected a device from our list, it's already the correct name/ID.
 
             if (isWindows)
             {
@@ -399,7 +413,8 @@ public class StreamManagerService
             }
             else
             {
-                args.AddRange(new[] { "-f", "alsa" });
+                // Use PulseAudio
+                args.AddRange(new[] { "-f", "pulse" });
                 args.AddRange(new[] { "-thread_queue_size", "512" });
                 args.AddRange(new[] { "-i", $"\"{audioDevice}\"" });
             }
@@ -425,6 +440,14 @@ public class StreamManagerService
             args.AddRange(new[] { "-c:a", config.AudioCodec });
             args.AddRange(new[] { "-b:a", config.AudioBitrate });
             args.AddRange(new[] { "-ac", "2" });
+            
+            // Apply volume if not 100%
+            if (config.AudioVolume != 100)
+            {
+                // Volume filter format: volume=1.5
+                double vol = config.AudioVolume / 100.0;
+                args.AddRange(new[] { $"-filter:a", $"\"volume={vol}\"" });
+            }
         }
         
         // Output configuration
@@ -464,7 +487,7 @@ public class StreamManagerService
             // Log the output
             if (_processes.TryGetValue(configId, out var streamProcess))
             {
-                await AppendToLogAsync(streamProcess, $"[{DateTime.UtcNow:HH:mm:ss}] {output}\n");
+                await AppendToLogAsync(streamProcess, $"[{DateTime.Now:HH:mm:ss}] {output}\n");
             }
             
             // Send to SignalR for real-time monitoring

@@ -3,7 +3,7 @@
   "Name": "Test Stream",
   "Description": "Test description",
   "Enabled": true,
-  "InputDevice": "E:\\Videos\\SUNDARAKAANDA BY SRI VIDYABHUSHANA IN KANNADA.mp4",
+  "InputDevice": "/home/siti/Videos/Videos/Coding_Music2.mp4",
   "InputFormat": "file",
   "PixelFormat": "yuyv422",
   "VideoSize": "1920x1080",
@@ -14,14 +14,16 @@
   "Bitrate": "2000k",
   "GopSize": 60,
   "EnableAudio": false,
+  "ReStream": false,
   "AudioDevice": "hw:0,0",
   "AudioCodec": "aac",
   "AudioBitrate": "128k",
+  "AudioVolume": 100,
   "MulticastIp": "239.255.255.250",
-  "Port": 1234,
+  "Port": 1235,
   "Ttl": 64,
   "OutputFormat": "mpegts",
   "AdvancedOptions": {},
   "CreatedAt": "2026-01-11T09:39:42.3639579Z",
-  "UpdatedAt": "2026-01-14T16:55:54.2446178Z"
+  "UpdatedAt": "2026-02-01T16:09:22.9614769Z"
 }

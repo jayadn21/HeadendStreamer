@@ -2,6 +2,7 @@ using HeadendStreamer.Web.Models.Entities;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
+using System;
 
 namespace HeadendStreamer.Web.Services;
 
@@ -20,9 +21,10 @@ public class FfmpegService
     {
         try
         {
+            var ffmpegPath = _configuration["HeadendStreamer:FfmpegPath"] ?? "ffmpeg";
             var processInfo = new ProcessStartInfo
             {
-                FileName = "ffmpeg",
+                FileName = ffmpegPath,
                 Arguments = $"-f v4l2 -list_formats all -i {devicePath}",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
@@ -63,12 +65,30 @@ public class FfmpegService
                     .OrderBy(d => d)
                     .ToArray();
                 
+                _logger.LogInformation($"Found {videoDevices.Length} video devices in /dev: {string.Join(", ", videoDevices)}");
+
                 foreach (var device in videoDevices)
                 {
+                    _logger.LogInformation($"Probing device: {device}");
                     var info = await GetDeviceInfoAsync(device);
                     if (info != null)
+                    {
                         devices.Add(info);
+                        _logger.LogInformation($"Successfully added device: {device}");
+                    }
+                    else
+                    {
+                        _logger.LogWarning($"Failed to get info for device: {device}");
+                    }
                 }
+
+                // Also get audio devices
+                var audioDevices = await GetLinuxAudioDevicesAsync();
+                devices.AddRange(audioDevices);
+            }
+            else
+            {
+                _logger.LogError("/dev directory does not exist");
             }
         }
         catch (Exception ex)
@@ -94,6 +114,8 @@ public class FfmpegService
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
+            _logger.LogInformation("===> List Devices");
+            _logger.LogInformation(processInfo.Arguments);
 
             using var process = Process.Start(processInfo);
             if (process == null) return devices;
@@ -135,6 +157,7 @@ public class FfmpegService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error listing Windows video devices");
+            Console.WriteLine(ex.Message);
         }
         return devices;
     }
@@ -143,15 +166,18 @@ public class FfmpegService
     {
         try
         {
+            var ffmpegPath = _configuration["HeadendStreamer:FfmpegPath"] ?? "ffmpeg";
             var processInfo = new ProcessStartInfo
             {
-                FileName = "ffmpeg",
+                FileName = ffmpegPath,
                 Arguments = $"-f v4l2 -list_formats all -i {devicePath}",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
+            _logger.LogInformation("===> List Devices");
+            _logger.LogInformation(processInfo.Arguments);
             
             using var process = Process.Start(processInfo);
             if (process == null)
@@ -166,18 +192,44 @@ public class FfmpegService
                 IsAvailable = process.ExitCode == 0
             };
             
+            _logger.LogInformation($"FFmpeg exit code for {devicePath}: {process.ExitCode}. Output length: {output.Length}");
+            
+            // Try to get a better name from sysfs regardless of availability
+            string friendlyName = await GetLinuxDeviceNameAsync(devicePath);
+            
+            // Parse device information from ffmpeg output as secondary source
+            var ffmpegName = ExtractDeviceName(output);
+            
+            // Prioritize sysfs name, then ffmpeg name (if valid), then fallback to path
+            if (!string.IsNullOrEmpty(friendlyName))
+            {
+                deviceInfo.Name = friendlyName;
+                _logger.LogInformation($"Using sysfs name: '{friendlyName}' for {devicePath}");
+            }
+            else if (!string.IsNullOrEmpty(ffmpegName) && ffmpegName != "Unknown Device")
+            {
+                deviceInfo.Name = ffmpegName;
+                _logger.LogInformation($"Using ffmpeg name: '{ffmpegName}' for {devicePath}");
+            }
+            else
+            {
+                deviceInfo.Name = devicePath; // Fallback to /dev/videoX
+                _logger.LogInformation($"Using fallback path name: '{devicePath}' for {devicePath}");
+            }
+            
+            _logger.LogInformation($"Final resolved name for {devicePath}: '{deviceInfo.Name}' (Length: {deviceInfo.Name.Length})");
+
             if (deviceInfo.IsAvailable)
             {
-                // Parse device information
-                deviceInfo.Name = ExtractDeviceName(output);
                 deviceInfo.Formats = ExtractVideoFormats(output);
                 deviceInfo.Resolutions = ExtractResolutions(output);
             }
             
             return deviceInfo;
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogError(ex, $"Exception in GetDeviceInfoAsync for {devicePath}");
             return null;
         }
     }
@@ -214,7 +266,59 @@ public class FfmpegService
                 devicePath = $"video={deviceName}";
             }
 
-            var processInfo = new ProcessStartInfo
+            // Linux V4L2 handling
+            if (inputFormat == "v4l2")
+            {
+                var processInfo = new ProcessStartInfo
+                {
+                    FileName = ffmpegPath,
+                    Arguments = $"-f v4l2 -list_formats all -i \"{devicePath}\"",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+
+                // Fix for shared builds: Add ../lib to LD_LIBRARY_PATH
+                var ffmpegDir = Path.GetDirectoryName(ffmpegPath);
+                if (ffmpegDir != null)
+                {
+                    var libDir = Path.GetFullPath(Path.Combine(ffmpegDir, "../lib"));
+                    if (Directory.Exists(libDir))
+                    {
+                        var currentLdPath = Environment.GetEnvironmentVariable("LD_LIBRARY_PATH") ?? "";
+                        processInfo.EnvironmentVariables["LD_LIBRARY_PATH"] = $"{libDir}:{currentLdPath}";
+                        _logger.LogInformation($"Setting LD_LIBRARY_PATH to include: {libDir}");
+                    }
+                }
+
+                using var process = Process.Start(processInfo);
+                if (process == null) return null;
+
+                // var output = await process.StandardError.ReadToEndAsync();
+                // await process.WaitForExitAsync();
+
+                var output = await process.StandardError.ReadToEndAsync();
+                await process.WaitForExitAsync();
+
+                _logger.LogInformation($"V4L2 Options Output for {devicePath}:\n{output}");
+
+                var result = new DeviceOptions
+                {
+                    DeviceName = deviceName,
+                    OptionCombinations = ParseLinuxDeviceOptions(output)
+                };
+                
+                if (process.ExitCode != 0)
+                {
+                    result.Error = $"FFmpeg exited with code {process.ExitCode}. This usually means missing libraries or incompatible binary. Output: {output}";
+                }
+                
+                return result;
+            }
+
+            // Windows dshow handling (existing logic)
+            var dshowProcessInfo = new ProcessStartInfo
             {
                 FileName = ffmpegPath,
                 Arguments = $"-list_options true -f {inputFormat} -i \"{devicePath}\"",
@@ -224,18 +328,18 @@ public class FfmpegService
                 CreateNoWindow = true
             };
 
-            using var process = Process.Start(processInfo);
-            if (process == null)
+            using var dshowProcess = Process.Start(dshowProcessInfo);
+            if (dshowProcess == null)
                 return null;
 
-            var output = await process.StandardError.ReadToEndAsync();
-            await process.WaitForExitAsync();
+            var dshowOutput = await dshowProcess.StandardError.ReadToEndAsync();
+            await dshowProcess.WaitForExitAsync();
 
             // Parse the output to extract device option combinations
             var options = new DeviceOptions
             {
                 DeviceName = deviceName,
-                OptionCombinations = ParseDeviceOptionCombinations(output)
+                OptionCombinations = ParseDeviceOptionCombinations(dshowOutput)
             };
 
             return options;
@@ -338,6 +442,56 @@ public class FfmpegService
         }
         
         return combinations;
+    }
+
+    private List<DeviceOptionCombination> ParseLinuxDeviceOptions(string ffmpegOutput)
+    {
+        var combinations = new List<DeviceOptionCombination>();
+        try
+        {
+            var lines = ffmpegOutput.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+            _logger.LogInformation($"Parsing {lines.Length} lines of V4L2 output");
+            
+            foreach (var line in lines)
+            {
+                // Format example: [video4linux2,v4l2 @ 0x...] Raw       :     yuyv422 :           YUYV 4:2:2 : 640x480 320x240
+                // Format example: [video4linux2,v4l2 @ 0x...] Compressed:       mjpeg :          Motion-JPEG : 1280x720 640x480
+                
+                if (!line.Contains(" : ")) continue;
+
+                var parts = line.Split(':', StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length >= 4)
+                {
+                    var codec = parts[1].Trim(); // e.g., mjpeg or yuyv422
+                    var resolutionsPart = parts[parts.Length - 1].Trim(); // The last part contains resolutions
+                    
+                    _logger.LogInformation($"Found codec: {codec}, Resolutions: {resolutionsPart}");
+                    
+                    var resolutions = resolutionsPart.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    
+                    foreach (var res in resolutions)
+                    {
+                        if (Regex.IsMatch(res, @"^\d+x\d+$"))
+                        {
+                            combinations.Add(new DeviceOptionCombination
+                            {
+                                Codec = codec,
+                                Resolution = res,
+                                FrameRate = "30", // Default as V4L2 list_formats often doesn't show FPS explicitly per line here
+                                DisplayText = $"{codec} - {res}"
+                            });
+                        }
+                    }
+                }
+            }
+            
+            _logger.LogInformation($"Found {combinations.Count} combinations");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error parsing Linux device options");
+        }
+        return combinations.OrderBy(c => c.DisplayText).ToList();
     }
     
     public async Task<bool> TestStreamOutputAsync(StreamConfig config, int timeoutSeconds = 10)
@@ -448,6 +602,110 @@ public class FfmpegService
         
         return resolutions.Distinct().OrderBy(r => r).ToList();
     }
+
+    private async Task<string> GetLinuxDeviceNameAsync(string devicePath)
+    {
+        try
+        {
+            // devicePath is like /dev/video0
+            var deviceName = Path.GetFileName(devicePath); // video0
+            var namePath = $"/sys/class/video4linux/{deviceName}/name";
+            
+            if (File.Exists(namePath))
+            {
+                var name = await File.ReadAllTextAsync(namePath);
+                return name.Trim();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, $"Failed to read device name from sysfs for {devicePath}");
+        }
+        return string.Empty;
+    }
+    private async Task<List<VideoDeviceInfo>> GetLinuxAudioDevicesAsync()
+    {
+        var devices = new List<VideoDeviceInfo>();
+        try
+        {
+            var ffmpegPath = _configuration["HeadendStreamer:FfmpegPath"] ?? "ffmpeg";
+            var processInfo = new ProcessStartInfo
+            {
+                FileName = ffmpegPath,
+                Arguments = "-sources pulse",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true, // sources output often goes to stderr or stdout depending on version, capturing both is safer or checking which one
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            // Fix for shared builds: Add ../lib to LD_LIBRARY_PATH
+            var ffmpegDir = Path.GetDirectoryName(ffmpegPath);
+            if (ffmpegDir != null)
+            {
+                var libDir = Path.GetFullPath(Path.Combine(ffmpegDir, "../lib"));
+                if (Directory.Exists(libDir))
+                {
+                    var currentLdPath = Environment.GetEnvironmentVariable("LD_LIBRARY_PATH") ?? "";
+                    processInfo.EnvironmentVariables["LD_LIBRARY_PATH"] = $"{libDir}:{currentLdPath}";
+                }
+            }
+
+            using var process = Process.Start(processInfo);
+            if (process == null) return devices;
+
+            // ffmpeg -sources output usually comes effectively on stdout, but sometimes mixed.
+            // The command we tested specifically sent stderr to file, so it might be on stderr? 
+            // ffmpeg generally prints info on stderr, but -sources might be stdout.
+            // Let's read both to be safe.
+            
+            var stdoutTask = process.StandardOutput.ReadToEndAsync();
+            var stderrTask = process.StandardError.ReadToEndAsync();
+            
+            await Task.WhenAll(stdoutTask, stderrTask);
+            await process.WaitForExitAsync();
+
+            var output = stdoutTask.Result + "\n" + stderrTask.Result;
+            
+            // Example Pulse output:
+            // Auto-detected sources for pulse:
+            //   auto_null.monitor [Monitor of Dummy Output] (none)
+            // * alsa_input.usb-MACROSILICON_USB3._0_capture-02.analog-stereo [USB3. 0 capture Analog Stereo] (none)
+
+            var lines = output.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var line in lines)
+            {
+                if (line.Trim().StartsWith("Auto-detected")) continue;
+
+                // Regex to match: [* ] device_id [Description] ...
+                // Matches optional *, then whitespace, then non-whitespace device ID, then whitespace, then [Description]
+                var match = Regex.Match(line, @"^\s*\*?\s*(\S+)\s+\[(.*?)\]");
+                
+                if (match.Success)
+                {
+                    var deviceId = match.Groups[1].Value;
+                    var description = match.Groups[2].Value;
+                    
+                    // Skip monitors if we only want real inputs? Usually monitors are useless for capture unless loopback.
+                    // But user might want it. Let's include everything but maybe prioritize real hardware?
+                    // For now, simple list.
+                    
+                    devices.Add(new VideoDeviceInfo
+                    {
+                        Name = description,
+                        DevicePath = deviceId, // For pulse, the device is passed as -i "default" or -i "device_id" with -f pulse
+                        Type = "audio",
+                        IsAvailable = true
+                    });
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error listing Linux audio devices via PulseAudio");
+        }
+        return devices;
+    }
 }
 
 public class VideoDeviceInfo
@@ -464,6 +722,7 @@ public class VideoDeviceInfo
 public class DeviceOptions
 {
     public string DeviceName { get; set; } = string.Empty;
+    public string? Error { get; set; }
     public List<DeviceOptionCombination> OptionCombinations { get; set; } = new();
 }
 

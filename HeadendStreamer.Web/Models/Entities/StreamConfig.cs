@@ -27,6 +27,7 @@ public class StreamConfig
     public string AudioDevice { get; set; } = "hw:0,0";
     public string AudioCodec { get; set; } = "aac";
     public string AudioBitrate { get; set; } = "128k";
+    public int AudioVolume { get; set; } = 100; // Percentage 0-200
     
     // Output Configuration
     public string MulticastIp { get; set; } = "239.255.255.250";

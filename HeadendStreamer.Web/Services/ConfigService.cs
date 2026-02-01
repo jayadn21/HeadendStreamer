@@ -77,6 +77,7 @@ public class ConfigService
         existingConfig.AudioDevice = updates.AudioDevice ?? existingConfig.AudioDevice;
         existingConfig.AudioCodec = updates.AudioCodec ?? existingConfig.AudioCodec;
         existingConfig.AudioBitrate = updates.AudioBitrate ?? existingConfig.AudioBitrate;
+        existingConfig.AudioVolume = updates.AudioVolume;
         existingConfig.MulticastIp = updates.MulticastIp ?? existingConfig.MulticastIp;
         existingConfig.Port = updates.Port;
         existingConfig.Ttl = updates.Ttl;

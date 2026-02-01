@@ -269,6 +269,10 @@
                                     </select>
                                 </div>
                             </div>
+                            <div class="mb-3">
+                                <label asp-for="Config.AudioVolume" class="form-label">Audio Volume: <span id="volumeValue">@Model.Config.AudioVolume</span>%</label>
+                                <input type="range" asp-for="Config.AudioVolume" id="AudioVolume" class="form-range" min="0" max="200" step="10" oninput="document.getElementById('volumeValue').innerText = this.value">
+                            </div>
                         </div>
 
                         <h5 class="mt-4 mb-3 border-bottom pb-2">Output Settings</h5>
@@ -958,6 +962,7 @@
                 const audioDevice = getVal('AudioDevice');
                 const audioCodec = getVal('AudioCodec');
                 const audioBitrate = getVal('AudioBitrate');
+                const audioVolume = getVal('AudioVolume') || 100;
                 
                 const multicastIp = getVal('MulticastIp') || '239.0.0.1';
                 const port = getVal('Port') || 1234;
@@ -997,6 +1002,10 @@
                     args.push('-c:a', audioCodec);
                     args.push('-b:a', audioBitrate);
                     args.push('-ac', '2');
+                    
+                    if (audioVolume != 100) {
+                        args.push('-filter:a', `"volume=${audioVolume/100}"`);
+                    }
                 }
 
                 // Pixel Format configuration (for local files)
@@ -1067,6 +1076,10 @@
                     args.push('-c:a', audioCodec);
                     args.push('-b:a', audioBitrate);
                     args.push('-ac', '2');
+                    
+                    if (audioVolume != 100) {
+                        args.push('-filter:a', `"volume=${audioVolume/100}"`);
+                    }
                 }
 
                 // Output
@@ -1141,6 +1154,7 @@
             data.FrameRate = parseInt(data.FrameRate) || 30;
             data.GopSize = parseInt(data.GopSize) || 60;
             data.Ttl = parseInt(data.Ttl) || 64;
+            data.AudioVolume = parseInt(data.AudioVolume) || 100;
             data.Enabled = document.getElementById('Enabled').checked;
             data.EnableAudio = document.getElementById('EnableAudio').checked;
             data.ReStream = document.getElementById('ReStream').checked;
