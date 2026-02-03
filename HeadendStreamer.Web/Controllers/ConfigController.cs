@@ -1,9 +1,11 @@
 using HeadendStreamer.Web.Models.Entities;
 using HeadendStreamer.Web.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace HeadendStreamer.Web.Controllers;
 
+[Authorize]
 public class ConfigController : Controller
 {
     private readonly ConfigService _configService;

@@ -32,3 +32,7 @@ ffmpeg on fedora giving error Unrecognized option 'list_devices'.Error splitting
 -----
 sudo dnf reinstall ffmpeg ffmpeg-libs
 ffmpeg -f v4l2 -list_devices true -i /dev/video0
+============
+Users:
+admin / admin
+Database: Used LibSQL (SQLite) with Encryption (using the password simpfo@siti@2026)

@@ -3,6 +3,7 @@ using HeadendStreamer.Web.Services;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.SignalR;
 using Serilog;
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,7 +33,16 @@ builder.Services.AddSingleton<SystemMonitorService>();
 builder.Services.AddSingleton<StreamManagerService>();
 builder.Services.AddSingleton<FfmpegService>();
 builder.Services.AddSingleton<ConfigService>();
+builder.Services.AddSingleton<IUserService, UserService>();
 builder.Services.AddHostedService<BackgroundMonitorService>();
+
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Auth/Login";
+        options.LogoutPath = "/Auth/Logout";
+        options.ExpireTimeSpan = TimeSpan.FromDays(7);
+    });
 
 var app = builder.Build();
 
@@ -51,6 +61,7 @@ if (builder.Configuration.GetValue<bool>("EnableHttpsRedirection", false))
 
 app.UseStaticFiles();
 app.UseRouting();
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllerRoute(
@@ -59,9 +70,15 @@ app.MapControllerRoute(
 
 app.MapHub<StreamHub>("/streamHub");
 
-// Ensure directories exist
 Directory.CreateDirectory("logs");
 Directory.CreateDirectory("logs/ffmpeg");
 Directory.CreateDirectory(keysPath);
+
+// Initialize Database
+using (var scope = app.Services.CreateScope())
+{
+    var userService = scope.ServiceProvider.GetRequiredService<IUserService>();
+    await userService.InitializeAsync();
+}
 
 app.Run();

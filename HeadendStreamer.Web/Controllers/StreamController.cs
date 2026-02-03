@@ -2,9 +2,11 @@ using HeadendStreamer.Web.Models.Entities;
 using HeadendStreamer.Web.Models.ViewModels;
 using HeadendStreamer.Web.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace HeadendStreamer.Web.Controllers;
 
+[Authorize]
 public class StreamController : Controller
 {
     private readonly StreamManagerService _streamManager;

@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
 using HeadendStreamer.Web.Services;
 using HeadendStreamer.Web.Models.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 
 namespace HeadendStreamer.Web.Controllers;
 
+[Authorize]
 public class HomeController : Controller
 {
     private readonly SystemMonitorService _systemMonitor;
@@ -78,6 +80,7 @@ public class HomeController : Controller
         });
     }
 
+    [AllowAnonymous]
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()
     {
