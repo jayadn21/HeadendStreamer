@@ -36,3 +36,10 @@ ffmpeg -f v4l2 -list_devices true -i /dev/video0
 Users:
 admin / admin
 Database: Used LibSQL (SQLite) with Encryption (using the password simpfo@siti@2026)
+
+=========
+The error Platform linker not found occurred because <PublishAot>true</PublishAot> was enabled in your 
+HeadendStreamer.Web.csproj
+ file. Native AOT requires Visual Studio "Desktop development with C++" tools to be installed on your machine.
+
+I have replaced PublishAot with PublishSingleFile in your project file. This allows you to still publish a single executable (which handles the "one file" requirement) without needing the heavy C++ build tools installed.
