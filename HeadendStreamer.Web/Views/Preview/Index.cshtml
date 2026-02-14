@@ -1,0 +1,129 @@
+@{
+    ViewData["Title"] = "Stream Preview";
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-play-circle me-2"></i>Stream Preview
+                    </h5>
+                    <div>
+                        <button id="togglePreview" class="btn btn-primary">
+                            <i class="fas fa-power-off me-1"></i><span id="btnText">Start Preview Service</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="serviceStatusAlert" class="alert alert-info py-2 mb-3 d-none">
+                        <i class="fas fa-info-circle me-2"></i>Service is running. Select a stream below to view it.
+                    </div>
+
+                    <div id="streamListContainer" class="row row-cols-1 row-cols-md-3 g-3">
+                        <!-- Stream buttons will be injected here -->
+                    </div>
+
+                    <div id="noStreamsMessage" class="text-center py-5 d-none">
+                        <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                        <h5 class="text-muted">No Streams Found</h5>
+                        <p class="text-muted">Check your go2rtc.yaml configuration.</p>
+                    </div>
+
+                    <div id="stoppedMessage" class="text-center py-5">
+                        <i class="fas fa-video-slash fa-4x text-muted mb-3"></i>
+                        <h4 class="text-muted">Preview Service is Stopped</h4>
+                        <p class="text-muted">Click "Start Preview Service" to begin the go2rtc server.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            const btn = $('#togglePreview');
+            const btnText = $('#btnText');
+            const statusAlert = $('#serviceStatusAlert');
+            const streamListContainer = $('#streamListContainer');
+            const stoppedMsg = $('#stoppedMessage');
+            const noStreamsMsg = $('#noStreamsMessage');
+            let isRunning = false;
+
+            function updateUI(running) {
+                isRunning = running;
+                if (isRunning) {
+                    btnText.text('Stop Preview Service');
+                    btn.removeClass('btn-primary').addClass('btn-danger');
+                    statusAlert.removeClass('d-none');
+                    stoppedMsg.addClass('d-none');
+                    loadStreams();
+                } else {
+                    btnText.text('Start Preview Service');
+                    btn.removeClass('btn-danger').addClass('btn-primary');
+                    statusAlert.addClass('d-none');
+                    stoppedMsg.removeClass('d-none');
+                    streamListContainer.empty();
+                    noStreamsMsg.addClass('d-none');
+                }
+            }
+
+            function loadStreams() {
+                $.get('/Preview/Streams', function(streams) {
+                    streamListContainer.empty();
+                    if (streams && streams.length > 0) {
+                        streams.forEach(stream => {
+                            const col = $('<div class="col"></div>');
+                            const button = $(`
+                                <button class="btn btn-outline-primary w-100 p-3 h-100 d-flex align-items-center justify-content-center flex-column">
+                                    <i class="fas fa-play fa-2x mb-2"></i>
+                                    <strong>${stream}</strong>
+                                </button>
+                            `);
+                            
+                            button.click(function() {
+                                window.open(`http://localhost:1984/stream.html?src=${stream}`, '_blank');
+                            });
+                            
+                            col.append(button);
+                            streamListContainer.append(col);
+                        });
+                        noStreamsMsg.addClass('d-none');
+                    } else {
+                        noStreamsMsg.removeClass('d-none');
+                    }
+                });
+            }
+
+            function checkStatus() {
+                $.get('/Preview/Status', function(data) {
+                    if (data.isRunning !== isRunning) {
+                        updateUI(data.isRunning);
+                    }
+                });
+            }
+
+            btn.click(function() {
+                const url = isRunning ? '/Preview/Stop' : '/Preview/Start';
+                btn.prop('disabled', true);
+                
+                $.post(url, function(data) {
+                    updateUI(data.isRunning);
+                    btn.prop('disabled', false);
+                }).fail(function() {
+                    alert('Error communicating with server');
+                    btn.prop('disabled', false);
+                });
+            });
+
+            // Initial status check
+            checkStatus();
+
+            // Periodic status check
+            setInterval(checkStatus, 5000);
+        });
+    </script>
+}

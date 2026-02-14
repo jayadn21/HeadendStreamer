@@ -34,6 +34,7 @@ builder.Services.AddSingleton<StreamManagerService>();
 builder.Services.AddSingleton<FfmpegService>();
 builder.Services.AddSingleton<ConfigService>();
 builder.Services.AddSingleton<IUserService, UserService>();
+builder.Services.AddSingleton<Go2rtcService>();
 builder.Services.AddHostedService<BackgroundMonitorService>();
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
