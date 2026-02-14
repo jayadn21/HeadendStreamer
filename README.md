@@ -4,6 +4,8 @@ In "["text"](HeadendStreamer.Web/appsettings.json), update the "FfmpegPath" vari
 On Windows:
 "FfmpegPath": "D:\\Softs\\ffmpeg\\ffmpeg-2026-01-05-git-2892815c45-full_build\\bin\\ffmpeg",
 On Linux:
+Copy ffmpeg filesxs to /usr/local/bin/ffmpeg using command: sudo cp ff* /usr/bin/
+
 "FfmpegPath": "/usr/bin/ffmpeg",
 On Linux install codec:
 sudo dnf install openh264
@@ -35,6 +37,7 @@ ffmpeg -f v4l2 -list_devices true -i /dev/video0
 ============
 Users:
 admin / admin
+jc/1
 Database: Used LibSQL (SQLite) with Encryption (using the password simpfo@siti@2026)
 
 =========
@@ -43,3 +46,8 @@ HeadendStreamer.Web.csproj
  file. Native AOT requires Visual Studio "Desktop development with C++" tools to be installed on your machine.
 
 I have replaced PublishAot with PublishSingleFile in your project file. This allows you to still publish a single executable (which handles the "one file" requirement) without needing the heavy C++ build tools installed.
+
+============Preview Feature============
+1. https://github.com/AlexxIT/go2rtc?tab=readme-ov-file#go2rtc-binary
+
+To Preview:http://localhost:1984/
