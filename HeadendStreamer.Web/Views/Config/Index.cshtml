@@ -112,7 +112,11 @@
                                             <a asp-action="Edit" asp-route-id="@config.Id" class="btn btn-outline-primary" title="Edit">
                                                 <i class="fas fa-edit"></i>
                                             </a>
-                                            <button class="btn btn-outline-danger delete-config" data-id="@config.Id" title="Delete">
+                                            <button class="btn btn-outline-danger" title="Delete" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#deleteModal" 
+                                                    data-config-id="@config.Id" 
+                                                    data-config-name="@config.Name">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </div>
@@ -127,26 +131,30 @@
     </div>
 </div>
 
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete the configuration "<span id="deleteConfigName"></span>"?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteForm" method="post" style="display: inline;">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
-        document.querySelectorAll('.delete-config').forEach(btn => {
-            btn.addEventListener('click', async function() {
-                if (!confirm('Are you sure you want to delete this configuration?')) return;
-                
-                const id = this.getAttribute('data-id');
-                try {
-                    const response = await fetch(`/api/config/${id}`, { method: 'DELETE' });
-                    if (response.ok) {
-                        location.reload();
-                    } else {
-                        alert('Failed to delete config');
-                    }
-                } catch (e) {
-                    alert('Error deleting config');
-                }
-            });
-        });
-
         async function controlStream(id, action) {
             try {
                 const response = await fetch(`/api/stream/${id}/${action}`, { method: 'POST' });
@@ -178,5 +186,18 @@
                 controlStream(this.getAttribute('data-id'), 'restart');
             });
         });
+
+        // Handle delete modal
+        const deleteModal = document.getElementById('deleteModal');
+        if (deleteModal) {
+            deleteModal.addEventListener('show.bs.modal', function(event) {
+                const button = event.relatedTarget;
+                const configId = button.getAttribute('data-config-id');
+                const configName = button.getAttribute('data-config-name');
+                
+                document.getElementById('deleteConfigName').textContent = configName;
+                document.getElementById('deleteForm').action = '/Config/Delete/' + configId;
+            });
+        }
     </script>
 }

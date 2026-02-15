@@ -6,6 +6,8 @@ public class StreamViewModel
 {
     public StreamConfig Config { get; set; } = new();
     public StreamStatus? Status { get; set; }
+    public string? Go2rtcStreamName { get; set; }
+    public bool IsPreviewServiceRunning { get; set; }
     public bool CanStart => !Status?.IsRunning ?? true;
     public bool CanStop => Status?.IsRunning ?? false;
 }

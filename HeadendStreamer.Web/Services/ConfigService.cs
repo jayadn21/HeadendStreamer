@@ -91,18 +91,33 @@ public class ConfigService
         return existingConfig;
     }
     
-    public async Task<bool> DeleteConfigAsync(string id)
+    public async Task<StreamConfig?> DeleteConfigAsync(string id)
     {
+        StreamConfig? config;
         lock (_lock)
         {
-            if (!_configs.ContainsKey(id))
-                return false;
+            if (!_configs.TryGetValue(id, out config))
+                return null;
             
             _configs.Remove(id);
         }
         
-        _logger.LogInformation($"Deleted stream config: {id}");
-        return true;
+        try
+        {
+            var configPath = GetConfigFilePath(id);
+            if (File.Exists(configPath))
+            {
+                File.Delete(configPath);
+                _logger.LogInformation($"Deleted stream config file: {configPath}");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Failed to delete config file for stream: {id}");
+        }
+        
+        _logger.LogInformation($"Deleted stream config from memory: {id}");
+        return config;
     }
     
     public async Task<string> CreateBackupAsync()

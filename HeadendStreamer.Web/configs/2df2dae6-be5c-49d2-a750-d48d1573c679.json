@@ -1,6 +1,6 @@
 {
   "Id": "2df2dae6-be5c-49d2-a750-d48d1573c679",
-  "Name": "Linux Mint Local File Stream",
+  "Name": "Linux Mint Local File Stream_1",
   "Description": "Linux Mint Local File Stream",
   "Enabled": true,
   "InputDevice": "/mnt/JC_Data/Movies/GuruTrading3.mkv",
@@ -25,5 +25,5 @@
   "OutputFormat": "mpegts",
   "AdvancedOptions": {},
   "CreatedAt": "2026-02-14T03:04:39.6859189Z",
-  "UpdatedAt": "2026-02-14T03:17:31.4217735Z"
+  "UpdatedAt": "2026-02-14T12:48:46.2263793Z"
 }

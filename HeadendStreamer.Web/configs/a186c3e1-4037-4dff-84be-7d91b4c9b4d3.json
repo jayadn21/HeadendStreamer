@@ -18,11 +18,12 @@
   "AudioDevice": "hw:0,0",
   "AudioCodec": "libmp3lame",
   "AudioBitrate": "128k",
+  "AudioVolume": 100,
   "MulticastIp": "239.255.255.250",
   "Port": 1234,
   "Ttl": 64,
   "OutputFormat": "mpegts",
   "AdvancedOptions": {},
   "CreatedAt": "2026-01-22T05:03:55.2260187Z",
-  "UpdatedAt": "2026-01-22T05:03:55.2260189Z"
+  "UpdatedAt": "2026-02-15T08:18:00.1840486Z"
 }

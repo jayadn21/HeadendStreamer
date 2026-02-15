@@ -11,15 +11,18 @@ public class StreamController : Controller
 {
     private readonly StreamManagerService _streamManager;
     private readonly ConfigService _configService;
+    private readonly Go2rtcService _go2rtcService;
     private readonly ILogger<StreamController> _logger;
     
     public StreamController(
         StreamManagerService streamManager,
         ConfigService configService,
+        Go2rtcService go2rtcService,
         ILogger<StreamController> logger)
     {
         _streamManager = streamManager;
         _configService = configService;
+        _go2rtcService = go2rtcService;
         _logger = logger;
     }
 
@@ -39,7 +42,9 @@ public class StreamController : Controller
         var viewModel = new StreamViewModel
         {
             Config = config,
-            Status = status
+            Status = status,
+            Go2rtcStreamName = config.Name.Replace(" ", "_"),
+            IsPreviewServiceRunning = await _go2rtcService.IsRunningAsync()
         };
 
         return View(viewModel);

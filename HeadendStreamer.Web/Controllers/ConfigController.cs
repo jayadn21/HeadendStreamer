@@ -11,17 +11,20 @@ public class ConfigController : Controller
     private readonly ConfigService _configService;
     private readonly FfmpegService _ffmpegService;
     private readonly StreamManagerService _streamManager;
+    private readonly Go2rtcService _go2rtcService;
     private readonly ILogger<ConfigController> _logger;
     
     public ConfigController(
         ConfigService configService,
         FfmpegService ffmpegService,
         StreamManagerService streamManager,
+        Go2rtcService go2rtcService,
         ILogger<ConfigController> logger)
     {
         _configService = configService;
         _ffmpegService = ffmpegService;
         _streamManager = streamManager;
+        _go2rtcService = go2rtcService;
         _logger = logger;
     }
 
@@ -92,6 +95,10 @@ public class ConfigController : Controller
         try
         {
             var createdConfig = await _configService.CreateConfigAsync(config);
+            
+            // Sync with go2rtc
+            await _go2rtcService.AddOrUpdateStreamAsync(null, createdConfig.Name, createdConfig.MulticastIp, createdConfig.Port);
+            
             return CreatedAtAction(nameof(GetConfig), new { id = createdConfig.Id }, createdConfig);
         }
         catch (Exception ex)
@@ -106,9 +113,16 @@ public class ConfigController : Controller
     {
         try
         {
+            // Get existing to find the old name before update
+            var existing = await _configService.GetConfigAsync(id);
+            string? oldName = existing?.Name;
+
             var updatedConfig = await _configService.UpdateConfigAsync(id, updates);
             if (updatedConfig == null)
                 return NotFound();
+            
+            // Sync with go2rtc
+            await _go2rtcService.AddOrUpdateStreamAsync(oldName, updatedConfig.Name, updatedConfig.MulticastIp, updatedConfig.Port);
             
             return Ok(updatedConfig);
         }
@@ -119,14 +133,64 @@ public class ConfigController : Controller
         }
     }
     
-    [HttpDelete("api/config/{id}")]
-    public async Task<IActionResult> DeleteConfig(string id)
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Delete(string id)
     {
-        var result = await _configService.DeleteConfigAsync(id);
-        if (!result)
-            return NotFound();
-        
-        return Ok(new { message = "Config deleted successfully" });
+        try
+        {
+            _logger.LogInformation($"Received form-based delete request for config ID: {id}");
+            
+            // Stop the stream if it's running
+            await _streamManager.StopStreamAsync(id);
+
+            // Delete the config and its file
+            var deletedConfig = await _configService.DeleteConfigAsync(id);
+            if (deletedConfig != null)
+            {
+                // Sync with go2rtc
+                await _go2rtcService.DeleteStreamAsync(deletedConfig.Name);
+                _logger.LogInformation($"Successfully deleted config {id} ({deletedConfig.Name}) via form");
+            }
+            
+            return RedirectToAction(nameof(Index));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Failed to delete config {id} via form");
+            return RedirectToAction(nameof(Index));
+        }
+    }
+
+    [HttpPost("api/config/{id}/delete")]
+    public async Task<IActionResult> DeleteConfig([FromRoute] string id)
+    {
+        try
+        {
+            _logger.LogInformation($"Received API delete request for config ID: {id}");
+            
+            // Stop the stream if it's running
+            await _streamManager.StopStreamAsync(id);
+
+            // Delete the config and its file
+            var deletedConfig = await _configService.DeleteConfigAsync(id);
+            if (deletedConfig == null)
+            {
+                _logger.LogWarning($"Config with ID {id} not found for deletion");
+                return NotFound();
+            }
+            
+            // Sync with go2rtc
+            await _go2rtcService.DeleteStreamAsync(deletedConfig.Name);
+            
+            _logger.LogInformation($"Successfully deleted config {id} ({deletedConfig.Name}) via API");
+            return Ok(new { message = "Config deleted successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Failed to delete config {id} via API");
+            return StatusCode(500, new { error = ex.Message });
+        }
     }
     
     [HttpGet("api/config/templates/{name}")]

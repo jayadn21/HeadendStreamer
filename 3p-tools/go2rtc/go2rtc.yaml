@@ -1,4 +1,6 @@
 streams:
+  Fedora_Stream: "ffmpeg:udp://239.255.255.250:1234?overrun_nonfatal=1&fifo_size=500000#video=h264#audio=aac"
+  Linux_Mint_Local_File_Stream_1: "ffmpeg:udp://239.255.255.250:1234?overrun_nonfatal=1&fifo_size=500000#video=h264#audio=aac"
   udp_stream: 
     - "ffmpeg:udp://239.255.255.250:1234?overrun_nonfatal=1&fifo_size=500000#video=h264#audio=aac"
   udp_stream_noaudio: "ffmpeg:udp://239.255.255.250:1234?overrun_nonfatal=1&fifo_size=500000"

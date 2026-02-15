@@ -46,6 +46,21 @@
                         <span class="text-muted d-block mb-1">Destination</span>
                         <code>udp://@Model.Config.MulticastIp:@Model.Config.Port</code>
                     </li>
+                    <li class="list-group-item">
+                        <span class="text-muted d-block mb-1">Preview</span>
+                        @if (Model.IsPreviewServiceRunning)
+                        {
+                            <a href="http://localhost:1984/stream.html?src=@Model.Go2rtcStreamName" target="_blank" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-external-link-alt me-1"></i> Preview Stream
+                            </a>
+                        }
+                        else
+                        {
+                            <button class="btn btn-sm btn-outline-warning start-preview-service">
+                                <i class="fas fa-play me-1"></i> Start Preview Service
+                            </button>
+                        }
+                    </li>
                     <li class="list-group-item d-flex justify-content-between align-items-center">
                         <span class="text-muted">Status</span>
                         @if (Model.Status?.IsRunning == true)
@@ -142,6 +157,30 @@
         document.querySelectorAll('.restart-stream').forEach(btn => {
             btn.addEventListener('click', () => controlStream('restart'));
         });
+
+        // Preview Service Actions
+        const startPreviewBtn = document.querySelector('.start-preview-service');
+        if (startPreviewBtn) {
+            startPreviewBtn.addEventListener('click', async () => {
+                startPreviewBtn.disabled = true;
+                startPreviewBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Starting...';
+                try {
+                    const response = await fetch('/Preview/Start', { method: 'POST' });
+                    const data = await response.json();
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Failed to start preview service');
+                        startPreviewBtn.disabled = false;
+                        startPreviewBtn.innerHTML = '<i class="fas fa-play me-1"></i> Start Preview Service';
+                    }
+                } catch (e) {
+                    alert('Connection error');
+                    startPreviewBtn.disabled = false;
+                    startPreviewBtn.innerHTML = '<i class="fas fa-play me-1"></i> Start Preview Service';
+                }
+            });
+        }
 
         async function controlStream(action) {
             try {
