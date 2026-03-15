@@ -1,14 +1,14 @@
 {
-  "Id": "2df2dae6-be5c-49d2-a750-d48d1573c679",
-  "Name": "Linux Mint Local File Stream_1",
-  "Description": "Linux Mint Local File Stream",
+  "Id": "bb8071d3-9195-47e0-b905-f0ec0e1968cd",
+  "Name": "Fedora Test Stream1",
+  "Description": "Fedora Test Stream1",
   "Enabled": true,
-  "InputDevice": "/mnt/JC_Data/Movies/GuruTrading3.mkv",
+  "InputDevice": "/home/siti/Videos/Videos/Coding_Music2.mp4",
   "InputFormat": "file",
   "PixelFormat": "yuv420p",
-  "VideoSize": "1280x720",
+  "VideoSize": "720x576",
   "FrameRate": 30,
-  "VideoCodec": "libx264",
+  "VideoCodec": "mpeg2video",
   "Preset": "veryfast",
   "Tune": "zerolatency",
   "Bitrate": "3000k",
@@ -24,6 +24,6 @@
   "Ttl": 64,
   "OutputFormat": "mpegts",
   "AdvancedOptions": {},
-  "CreatedAt": "2026-02-14T03:04:39.6859189Z",
-  "UpdatedAt": "2026-02-14T12:48:46.2263793Z"
+  "CreatedAt": "2026-02-15T13:47:05.4178584Z",
+  "UpdatedAt": "2026-02-15T14:00:47.9022785Z"
 }

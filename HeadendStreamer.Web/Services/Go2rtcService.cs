@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
+using Microsoft.AspNetCore.Hosting;
 
 namespace HeadendStreamer.Web.Services;
 
@@ -12,14 +13,22 @@ public class Go2rtcService
     private readonly string _configPath;
     private Process? _process;
 
-    public Go2rtcService(ILogger<Go2rtcService> logger, IConfiguration configuration)
+    public Go2rtcService(ILogger<Go2rtcService> logger, IConfiguration configuration, IWebHostEnvironment environment)
     {
         _logger = logger;
         
-        var rootDir = "/mnt/JC_Data/Simpfo/Src/Siti/HeadendStreamer";
-        _executablePath = Path.Combine(rootDir, "3p-tools", "go2rtc", "go2rtc_linux_amd64");
-        _workingDirectory = Path.Combine(rootDir, "3p-tools", "go2rtc");
+        var rootDir = configuration.GetValue<string>("HeadendStreamer:RootDir") ?? environment.ContentRootPath;
+        var go2rtcConfig = configuration.GetSection("HeadendStreamer:Go2rtc");
+        
+        var relativeExecPath = go2rtcConfig.GetValue<string>("ExecutablePath") ?? "3p-tools/go2rtc/go2rtc_linux_amd64";
+        _executablePath = Path.GetFullPath(Path.Combine(rootDir, relativeExecPath));
+        
+        var relativeWorkDir = go2rtcConfig.GetValue<string>("WorkingDirectory") ?? "3p-tools/go2rtc";
+        _workingDirectory = Path.GetFullPath(Path.Combine(rootDir, relativeWorkDir));
+        
         _configPath = Path.Combine(_workingDirectory, "go2rtc.yaml");
+        
+        _logger.LogInformation($"Go2rtcService initialized with Executable: {_executablePath}, WorkingDir: {_workingDirectory}");
     }
 
     public async Task<List<string>> GetStreamsAsync()
@@ -186,9 +195,17 @@ public class Go2rtcService
 
     public async Task<bool> IsRunningAsync()
     {
-        if (_process != null && !_process.HasExited)
+        try
         {
-            return true;
+            if (_process != null && !_process.HasExited)
+            {
+                return true;
+            }
+        }
+        catch (InvalidOperationException)
+        {
+            // Process object might not be associated with a process anymore
+            _process = null;
         }
 
         // Double check by process name in case it was started outside or lost reference
@@ -219,11 +236,19 @@ public class Go2rtcService
             };
 
             _process = new Process { StartInfo = startInfo };
+            _process.EnableRaisingEvents = true;
             
             _process.OutputDataReceived += (s, e) => { if (e.Data != null) _logger.LogInformation($"go2rtc: {e.Data}"); };
             _process.ErrorDataReceived += (s, e) => { if (e.Data != null) _logger.LogWarning($"go2rtc error: {e.Data}"); };
+            _process.Exited += (s, e) => { _logger.LogWarning("go2rtc process exited unexpectedly"); _process = null; };
 
-            _process.Start();
+            if (!_process.Start())
+            {
+                _logger.LogError("Process.Start() returned false for go2rtc");
+                _process = null;
+                return false;
+            }
+
             _process.BeginOutputReadLine();
             _process.BeginErrorReadLine();
 
@@ -232,6 +257,7 @@ public class Go2rtcService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to start go2rtc");
+            _process = null;
             return false;
         }
     }
