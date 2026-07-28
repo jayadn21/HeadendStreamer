@@ -35,6 +35,7 @@ builder.Services.AddSingleton<FfmpegService>();
 builder.Services.AddSingleton<ConfigService>();
 builder.Services.AddSingleton<IUserService, UserService>();
 builder.Services.AddSingleton<Go2rtcService>();
+builder.Services.AddSingleton<SchedulerService>();
 builder.Services.AddHostedService<BackgroundMonitorService>();
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -80,6 +81,10 @@ using (var scope = app.Services.CreateScope())
 {
     var userService = scope.ServiceProvider.GetRequiredService<IUserService>();
     await userService.InitializeAsync();
+    
+    // Start Scheduler Service
+    var schedulerService = scope.ServiceProvider.GetRequiredService<SchedulerService>();
+    schedulerService.Start();
 }
 
 app.Run();

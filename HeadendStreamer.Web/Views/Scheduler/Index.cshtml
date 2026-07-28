@@ -1,0 +1,585 @@
+@{
+    ViewData["Title"] = "Stream Scheduler";
+}
+
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2><i class="fas fa-calendar-alt me-2"></i>Stream Scheduler</h2>
+                <div>
+                    <button id="btnAddProgram" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#programModal">
+                        <i class="fas fa-plus me-2"></i>Add Program
+                    </button>
+                    <button id="btnSaveSchedule" class="btn btn-success">
+                        <i class="fas fa-save me-2"></i>Save Schedule
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Current Status Card -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-play me-2"></i>Currently Playing</h5>
+                </div>
+                <div class="card-body">
+                    <div id="currentProgramInfo">
+                        <p class="text-muted">No program currently scheduled</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card bg-info text-white h-100">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-clock me-2"></i>Next Up</h5>
+                </div>
+                <div class="card-body">
+                    <div id="nextProgramInfo">
+                        <p class="text-muted">No upcoming programs</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Schedule Calendar/Timeline -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-list me-2"></i>Scheduled Programs</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="scheduleTable">
+                            <thead>
+                                <tr>
+                                    <th style="width: 50px;"></th>
+                                    <th>Title</th>
+                                    <th>Config</th>
+                                    <th>Days</th>
+                                    <th>Start Time</th>
+                                    <th>End Time</th>
+                                    <th style="width: 100px;">Status</th>
+                                    <th style="width: 120px;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="scheduleTableBody">
+                                <!-- Populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Program Modal -->
+<div class="modal fade" id="programModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="programModalTitle">Add Program</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="programForm">
+                    <input type="hidden" id="programId" />
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            <label for="programTitle" class="form-label">Title *</label>
+                            <input type="text" class="form-control" id="programTitle" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="programEnabled" class="form-label">Enabled</label>
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" id="programEnabled" checked>
+                                <label class="form-check-label" for="programEnabled"></label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="programDescription" class="form-label">Description</label>
+                        <textarea class="form-control" id="programDescription" rows="2"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="programConfig" class="form-label">Stream Configuration *</label>
+                        <select class="form-select" id="programConfig" required>
+                            <option value="">Select a configuration...</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Schedule Type</label>
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="scheduleType" id="scheduleTypeRecurring" autocomplete="off" checked>
+                            <label class="btn btn-outline-primary" for="scheduleTypeRecurring">Recurring</label>
+
+                            <input type="radio" class="btn-check" name="scheduleType" id="scheduleTypeOnce" autocomplete="off">
+                            <label class="btn btn-outline-primary" for="scheduleTypeOnce">One-time</label>
+                        </div>
+                    </div>
+
+                    <div id="recurringOptions">
+                        <div class="mb-3">
+                            <label class="form-label">Days of Week</label>
+                            <div class="d-flex flex-wrap gap-2">
+                                <div class="form-check">
+                                    <input class="form-check-input day-checkbox" type="checkbox" value="MON" id="dayMon">
+                                    <label class="form-check-label" for="dayMon">Mon</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input day-checkbox" type="checkbox" value="TUE" id="dayTue">
+                                    <label class="form-check-label" for="dayTue">Tue</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input day-checkbox" type="checkbox" value="WED" id="dayWed">
+                                    <label class="form-check-label" for="dayWed">Wed</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input day-checkbox" type="checkbox" value="THU" id="dayThu">
+                                    <label class="form-check-label" for="dayThu">Thu</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input day-checkbox" type="checkbox" value="FRI" id="dayFri">
+                                    <label class="form-check-label" for="dayFri">Fri</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input day-checkbox" type="checkbox" value="SAT" id="daySat">
+                                    <label class="form-check-label" for="daySat">Sat</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input day-checkbox" type="checkbox" value="SUN" id="daySun">
+                                    <label class="form-check-label" for="daySun">Sun</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="recurStartDate" class="form-label">Start Date</label>
+                                <input type="date" class="form-control" id="recurStartDate">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="recurEndDate" class="form-label">End Date (optional)</label>
+                                <input type="date" class="form-control" id="recurEndDate">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="onceOptions" style="display: none;">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="onceStartDateTime" class="form-label">Start Date/Time</label>
+                                <input type="datetime-local" class="form-control" id="onceStartDateTime">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="onceEndDateTime" class="form-label">End Date/Time</label>
+                                <input type="datetime-local" class="form-control" id="onceEndDateTime">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="programStartTime" class="form-label">Start Time *</label>
+                            <input type="time" class="form-control" id="programStartTime" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="programEndTime" class="form-label">End Time *</label>
+                            <input type="time" class="form-control" id="programEndTime" required>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="textColor" class="form-label">Text Color</label>
+                            <input type="color" class="form-control form-control-color w-100" id="textColor" value="#ffffff">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="backgroundColor" class="form-label">Background Color</label>
+                            <input type="color" class="form-control form-control-color w-100" id="backgroundColor" value="#0d6e13">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="btnDeleteProgram" style="display: none;">Delete</button>
+                <button type="button" class="btn btn-primary" id="btnSaveProgram">Save Program</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let schedule = {
+        version: "1.0",
+        scheduleName: "Default Schedule",
+        programs: []
+    };
+
+    let configs = [];
+
+    // Initialize
+    $(document).ready(function() {
+        loadSchedule();
+        loadConfigs();
+        setupEventHandlers();
+        
+        // Set default dates
+        $('#recurStartDate').val(new Date().toISOString().split('T')[0]);
+    });
+
+    function setupEventHandlers() {
+        // Schedule type toggle
+        $('input[name="scheduleType"]').change(function() {
+            if ($('#scheduleTypeRecurring').is(':checked')) {
+                $('#recurringOptions').show();
+                $('#onceOptions').hide();
+            } else {
+                $('#recurringOptions').hide();
+                $('#onceOptions').show();
+            }
+        });
+
+        // Save schedule button
+        $('#btnSaveSchedule').click(function() {
+            saveSchedule();
+        });
+
+        // Add/Edit program buttons
+        $('#btnSaveProgram').click(function() {
+            saveProgram();
+        });
+
+        $('#btnDeleteProgram').click(function() {
+            deleteProgram();
+        });
+
+        // Modal cleanup
+        $('#programModal').on('hidden.bs.modal', function() {
+            resetForm();
+        });
+    }
+
+    function loadSchedule() {
+        $.get('/api/scheduler/schedule', function(data) {
+            schedule = data;
+            renderSchedule();
+            updateStatusDisplay();
+        }).fail(function(err) {
+            console.error('Failed to load schedule:', err);
+            showToast('Error loading schedule', 'danger');
+        });
+    }
+
+    function loadConfigs() {
+        $.get('/api/scheduler/configs', function(data) {
+            configs = data;
+            populateConfigDropdown();
+        }).fail(function(err) {
+            console.error('Failed to load configs:', err);
+        });
+    }
+
+    function populateConfigDropdown() {
+        const $select = $('#programConfig');
+        $select.empty().append('<option value="">Select a configuration...</option>');
+        
+        configs.forEach(function(config) {
+            $select.append(`<option value="${config.id}">${config.name}</option>`);
+        });
+    }
+
+    function renderSchedule() {
+        const $tbody = $('#scheduleTableBody');
+        $tbody.empty();
+
+        if (!schedule.programs || schedule.programs.length === 0) {
+            $tbody.append(`
+                <tr>
+                    <td colspan="8" class="text-center text-muted py-4">
+                        <i class="fas fa-calendar-times fa-3x mb-3"></i>
+                        <p>No programs scheduled. Click "Add Program" to create one.</p>
+                    </td>
+                </tr>
+            `);
+            return;
+        }
+
+        schedule.programs.forEach(function(program) {
+            const daysStr = program.timing.isRecurring 
+                ? program.timing.recurrence.daysOfWeek.join(', ') 
+                : 'One-time';
+            
+            const startTime = new Date(program.timing.start).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            const endTime = new Date(program.timing.end).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            
+            const config = configs.find(c => c.id === program.source.configId);
+            const configName = config ? config.name : 'Unknown';
+
+            const rowClass = !program.enabled ? 'table-secondary' : '';
+            
+            $tbody.append(`
+                <tr class="${rowClass}" data-program-id="${program.id}">
+                    <td>
+                        <div class="color-indicator" style="width: 20px; height: 20px; border-radius: 3px; background-color: ${program.general.backgroundColor};"></div>
+                    </td>
+                    <td>
+                        <strong>${escapeHtml(program.title)}</strong>
+                        ${!program.enabled ? '<span class="badge bg-secondary ms-2">Disabled</span>' : ''}
+                    </td>
+                    <td>${escapeHtml(configName)}</td>
+                    <td>${daysStr}</td>
+                    <td>${startTime}</td>
+                    <td>${endTime}</td>
+                    <td>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input program-toggle" type="checkbox" 
+                                   data-program-id="${program.id}" ${program.enabled ? 'checked' : ''}>
+                        </div>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary edit-program" data-program-id="${program.id}">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger delete-program" data-program-id="${program.id}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `);
+        });
+
+        // Attach event handlers
+        $('.program-toggle').change(function() {
+            const programId = $(this).data('program-id');
+            toggleProgramEnabled(programId, $(this).is(':checked'));
+        });
+
+        $('.edit-program').click(function() {
+            const programId = $(this).data('program-id');
+            editProgram(programId);
+        });
+
+        $('.delete-program').click(function() {
+            const programId = $(this).data('program-id');
+            deleteProgramById(programId);
+        });
+    }
+
+    function updateStatusDisplay() {
+        // This would be updated via SignalR in real-time
+        // For now, just show static info
+        $('#currentProgramInfo').html('<p class="text-muted">Checking schedule...</p>');
+        $('#nextProgramInfo').html('<p class="text-muted">Checking schedule...</p>');
+    }
+
+    function saveSchedule() {
+        $.ajax({
+            url: '/api/scheduler/schedule',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(schedule),
+            success: function(response) {
+                showToast('Schedule saved successfully!', 'success');
+                loadSchedule();
+            },
+            error: function(err) {
+                console.error('Failed to save schedule:', err);
+                showToast('Error saving schedule', 'danger');
+            }
+        });
+    }
+
+    function saveProgram() {
+        const programId = $('#programId').val();
+        const title = $('#programTitle').val().trim();
+        const configId = $('#programConfig').val();
+        const startTime = $('#programStartTime').val();
+        const endTime = $('#programEndTime').val();
+
+        if (!title || !configId || !startTime || !endTime) {
+            showToast('Please fill in all required fields', 'warning');
+            return;
+        }
+
+        const isRecurring = $('#scheduleTypeRecurring').is(':checked');
+        
+        // Build timing object
+        let timing = {
+            start: new Date(`1970-01-01T${startTime}:00`),
+            end: new Date(`1970-01-01T${endTime}:00`),
+            isRecurring: isRecurring,
+            recurrence: {
+                daysOfWeek: [],
+                startRecur: $('#recurStartDate').val().replace(/-/g, ''),
+                endRecur: $('#recurEndDate').val() ? $('#recurEndDate').val().replace(/-/g, '') : ''
+            }
+        };
+
+        if (isRecurring) {
+            $('.day-checkbox:checked').each(function() {
+                timing.recurrence.daysOfWeek.push($(this).val());
+            });
+            
+            if (timing.recurrence.daysOfWeek.length === 0) {
+                showToast('Please select at least one day', 'warning');
+                return;
+            }
+        }
+
+        const program = {
+            id: programId || 'evt-' + Math.random().toString(36).substr(2, 9),
+            title: title,
+            enabled: $('#programEnabled').is(':checked'),
+            general: {
+                description: $('#programDescription').val().trim(),
+                tags: [],
+                classNames: [],
+                textColor: $('#textColor').val(),
+                backgroundColor: $('#backgroundColor').val(),
+                borderColor: '#000000'
+            },
+            source: {
+                name: title.replace(/\s+/g, ''),
+                inputKind: 'stream_config',
+                configId: configId,
+                uri: '',
+                inputSettings: {},
+                transform: {}
+            },
+            timing: timing,
+            behavior: {
+                onEndAction: 'hide',
+                preloadSeconds: 0
+            }
+        };
+
+        if (programId) {
+            // Update existing
+            const index = schedule.programs.findIndex(p => p.id === programId);
+            if (index !== -1) {
+                schedule.programs[index] = program;
+            }
+        } else {
+            // Add new
+            schedule.programs.push(program);
+        }
+
+        $('#programModal').modal('hide');
+        renderSchedule();
+    }
+
+    function editProgram(programId) {
+        const program = schedule.programs.find(p => p.id === programId);
+        if (!program) return;
+
+        $('#programModalTitle').text('Edit Program');
+        $('#programId').val(program.id);
+        $('#programTitle').val(program.title);
+        $('#programEnabled').prop('checked', program.enabled);
+        $('#programDescription').val(program.general.description || '');
+        $('#programConfig').val(program.source.configId);
+        $('#programStartTime').val(formatTime(program.timing.start));
+        $('#programEndTime').val(formatTime(program.timing.end));
+        $('#textColor').val(program.general.textColor || '#ffffff');
+        $('#backgroundColor').val(program.general.backgroundColor || '#0d6e13');
+
+        // Set schedule type
+        if (program.timing.isRecurring) {
+            $('#scheduleTypeRecurring').prop('checked', true).trigger('change');
+            $('#recurStartDate').val(program.timing.recurrence.startRecur ? 
+                program.timing.recurrence.startRecur.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3') : 
+                new Date().toISOString().split('T')[0]);
+            $('#recurEndDate').val(program.timing.recurrence.endRecur ? 
+                program.timing.recurrence.endRecur.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3') : '');
+            
+            $('.day-checkbox').prop('checked', false);
+            program.timing.recurrence.daysOfWeek.forEach(function(day) {
+                $(`.day-checkbox[value="${day}"]`).prop('checked', true);
+            });
+        } else {
+            $('#scheduleTypeOnce').prop('checked', true).trigger('change');
+        }
+
+        $('#btnDeleteProgram').show();
+        $('#programModal').modal('show');
+    }
+
+    function deleteProgramById(programId) {
+        if (confirm('Are you sure you want to delete this program?')) {
+            schedule.programs = schedule.programs.filter(p => p.id !== programId);
+            renderSchedule();
+        }
+    }
+
+    function deleteProgram() {
+        const programId = $('#programId').val();
+        if (programId) {
+            deleteProgramById(programId);
+            $('#programModal').modal('hide');
+        }
+    }
+
+    function toggleProgramEnabled(programId, enabled) {
+        const program = schedule.programs.find(p => p.id === programId);
+        if (program) {
+            program.enabled = enabled;
+            renderSchedule();
+        }
+    }
+
+    function resetForm() {
+        $('#programForm')[0].reset();
+        $('#programId').val('');
+        $('#programModalTitle').text('Add Program');
+        $('#btnDeleteProgram').hide();
+        $('#scheduleTypeRecurring').prop('checked', true).trigger('change');
+        $('#recurStartDate').val(new Date().toISOString().split('T')[0]);
+    }
+
+    function formatTime(dateStr) {
+        if (!dateStr) return '';
+        const date = new Date(dateStr);
+        return date.toTimeString().substr(0, 5);
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function showToast(message, type = 'info') {
+        // Simple toast implementation
+        const toastHtml = `
+            <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+                <div class="toast show align-items-center text-white bg-${type}" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="d-flex">
+                        <div class="toast-body">${escapeHtml(message)}</div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>
+            </div>
+        `;
+        $('body').append(toastHtml);
+        setTimeout(function() {
+            $('.toast.show').fadeOut(300, function() { $(this).remove(); });
+        }, 3000);
+    }
+</script>
+}
