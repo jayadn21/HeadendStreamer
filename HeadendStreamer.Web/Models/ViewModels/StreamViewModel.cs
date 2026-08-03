@@ -12,10 +12,21 @@ public class StreamViewModel
     public bool CanStop => Status?.IsRunning ?? false;
 }
 
+public class ExternalServiceStatusViewModel
+{
+    public string ServiceName { get; set; } = string.Empty;
+    public bool IsRunning { get; set; }
+    public int? ProcessId { get; set; }
+    public string ServerURL { get; set; } = string.Empty;
+    public TimeSpan Uptime { get; set; }
+}
+
 public class DashboardViewModel
 {
     public List<StreamViewModel> Streams { get; set; } = new();
     public SystemInfo SystemInfo { get; set; } = new();
+    public ExternalServiceStatusViewModel ObsScheduler { get; set; } = new();
+    public ExternalServiceStatusViewModel SpxGraphics { get; set; } = new();
     public int TotalStreams => Streams.Count;
     public int ActiveStreams => Streams.Count(s => s.Status?.IsRunning ?? false);
     public long TotalBitrate => Streams.Where(s => s.Status?.IsRunning ?? false)

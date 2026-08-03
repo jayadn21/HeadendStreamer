@@ -333,10 +333,10 @@ public class SchedulerService : IDisposable
                     // Check if recurrence rule is active for this date
                     var checkDayStr = checkDay.ToString("yyyy-MM-dd");
                     if (!string.IsNullOrEmpty(program.Timing.Recurrence.StartRecur) && 
-                        checkDayStr < program.Timing.Recurrence.StartRecur)
+                        string.CompareOrdinal(checkDayStr, program.Timing.Recurrence.StartRecur) < 0)
                         continue;
                     if (!string.IsNullOrEmpty(program.Timing.Recurrence.EndRecur) && 
-                        checkDayStr > program.Timing.Recurrence.EndRecur)
+                        string.CompareOrdinal(checkDayStr, program.Timing.Recurrence.EndRecur) > 0)
                         continue;
                     
                     // Check if day of week matches
@@ -441,10 +441,10 @@ public class SchedulerService : IDisposable
             // Check if recurrence rule is active for this date
             var checkDayStr = checkDay.ToString("yyyy-MM-dd");
             if (!string.IsNullOrEmpty(program.Timing.Recurrence.StartRecur) && 
-                checkDayStr < program.Timing.Recurrence.StartRecur)
+                string.CompareOrdinal(checkDayStr, program.Timing.Recurrence.StartRecur) < 0)
                 continue;
             if (!string.IsNullOrEmpty(program.Timing.Recurrence.EndRecur) && 
-                checkDayStr > program.Timing.Recurrence.EndRecur)
+                string.CompareOrdinal(checkDayStr, program.Timing.Recurrence.EndRecur) > 0)
                 continue;
             
             // Check if this weekday is in the recurrence pattern

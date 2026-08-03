@@ -77,6 +77,12 @@ htmlcov/
 # Temporary files
 *.tmp
 *~
+
+# Project-specific ignored folders
+HeadendStreamer.Web/bin/
+HeadendStreamer.Web/obj/
+HeadendStreamer.Web/Logs
+
 ```
 
 Wait, I need to reconsider this. Looking at the file changes, these are all C#/.NET files (.cs, .cshtml) which are source code files, not build artifacts. Let me check again.

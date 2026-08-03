@@ -7,10 +7,10 @@ namespace HeadendStreamer.Web.Controllers;
 /// Controller for rendering the Scheduler view.
 /// </summary>
 [Authorize]
-public class SchedulerController : Controller
+public class SchedulerViewController : Controller
 {
     public IActionResult Index()
     {
-        return View();
+        return View("~/Views/Scheduler/Index.cshtml");
     }
 }

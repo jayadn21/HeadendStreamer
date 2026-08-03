@@ -240,6 +240,7 @@
         
         // Set default dates
         $('#recurStartDate').val(new Date().toISOString().split('T')[0]);
+        $('#onceStartDateTime').val(new Date().toISOString().slice(0, 16));
     });
 
     function setupEventHandlers() {
@@ -256,7 +257,7 @@
 
         // Save schedule button
         $('#btnSaveSchedule').click(function() {
-            saveSchedule();
+            saveSchedule(true);
         });
 
         // Add/Edit program buttons
@@ -276,7 +277,12 @@
 
     function loadSchedule() {
         $.get('/api/scheduler/schedule', function(data) {
-            schedule = data;
+            schedule = data || {};
+            // Handle C# backend property 'schedule' vs JS 'programs'
+            if (!schedule.programs) {
+                schedule.programs = schedule.schedule || [];
+            }
+            schedule.schedule = schedule.programs;
             renderSchedule();
             updateStatusDisplay();
         }).fail(function(err) {
@@ -307,7 +313,9 @@
         const $tbody = $('#scheduleTableBody');
         $tbody.empty();
 
-        if (!schedule.programs || schedule.programs.length === 0) {
+        const programs = schedule.programs || schedule.schedule || [];
+
+        if (!programs || programs.length === 0) {
             $tbody.append(`
                 <tr>
                     <td colspan="8" class="text-center text-muted py-4">
@@ -319,23 +327,28 @@
             return;
         }
 
-        schedule.programs.forEach(function(program) {
-            const daysStr = program.timing.isRecurring 
+        programs.forEach(function(program) {
+            const daysStr = (program.timing && program.timing.isRecurring && program.timing.recurrence && program.timing.recurrence.daysOfWeek)
                 ? program.timing.recurrence.daysOfWeek.join(', ') 
                 : 'One-time';
             
-            const startTime = new Date(program.timing.start).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            const endTime = new Date(program.timing.end).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            const startTime = program.timing && program.timing.start 
+                ? new Date(program.timing.start).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
+                : '--:--';
+            const endTime = program.timing && program.timing.end 
+                ? new Date(program.timing.end).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
+                : '--:--';
             
-            const config = configs.find(c => c.id === program.source.configId);
-            const configName = config ? config.name : 'Unknown';
+            const config = configs.find(c => c.id === (program.source ? program.source.configId : ''));
+            const configName = config ? config.name : (program.source ? program.source.configId : 'Unknown');
 
             const rowClass = !program.enabled ? 'table-secondary' : '';
+            const bgColor = (program.general && program.general.backgroundColor) ? program.general.backgroundColor : '#0d6e13';
             
             $tbody.append(`
                 <tr class="${rowClass}" data-program-id="${program.id}">
                     <td>
-                        <div class="color-indicator" style="width: 20px; height: 20px; border-radius: 3px; background-color: ${program.general.backgroundColor};"></div>
+                        <div class="color-indicator" style="width: 20px; height: 20px; border-radius: 3px; background-color: ${bgColor};"></div>
                     </td>
                     <td>
                         <strong>${escapeHtml(program.title)}</strong>
@@ -381,20 +394,28 @@
     }
 
     function updateStatusDisplay() {
-        // This would be updated via SignalR in real-time
-        // For now, just show static info
         $('#currentProgramInfo').html('<p class="text-muted">Checking schedule...</p>');
         $('#nextProgramInfo').html('<p class="text-muted">Checking schedule...</p>');
     }
 
-    function saveSchedule() {
+    function saveSchedule(showSuccessToast = true) {
+        const programList = schedule.programs || schedule.schedule || [];
+        const payload = {
+            version: schedule.version || "1.0",
+            scheduleName: schedule.scheduleName || "Default Schedule",
+            schedule: programList,
+            programs: programList
+        };
+
         $.ajax({
             url: '/api/scheduler/schedule',
             method: 'POST',
             contentType: 'application/json',
-            data: JSON.stringify(schedule),
+            data: JSON.stringify(payload),
             success: function(response) {
-                showToast('Schedule saved successfully!', 'success');
+                if (showSuccessToast) {
+                    showToast('Schedule saved successfully!', 'success');
+                }
                 loadSchedule();
             },
             error: function(err) {
@@ -408,38 +429,71 @@
         const programId = $('#programId').val();
         const title = $('#programTitle').val().trim();
         const configId = $('#programConfig').val();
-        const startTime = $('#programStartTime').val();
-        const endTime = $('#programEndTime').val();
+        let startTime = $('#programStartTime').val();
+        let endTime = $('#programEndTime').val();
+        const isRecurring = $('#scheduleTypeRecurring').is(':checked');
+
+        if (!isRecurring) {
+            const onceStart = $('#onceStartDateTime').val();
+            const onceEnd = $('#onceEndDateTime').val();
+            if (onceStart && !startTime) {
+                const parts = onceStart.split('T');
+                if (parts.length > 1) startTime = parts[1].substring(0, 5);
+            }
+            if (onceEnd && !endTime) {
+                const parts = onceEnd.split('T');
+                if (parts.length > 1) endTime = parts[1].substring(0, 5);
+            }
+        }
 
         if (!title || !configId || !startTime || !endTime) {
-            showToast('Please fill in all required fields', 'warning');
+            showToast('Please fill in all required fields (Title, Config, Start/End Time)', 'warning');
             return;
         }
 
-        const isRecurring = $('#scheduleTypeRecurring').is(':checked');
-        
-        // Build timing object
-        let timing = {
-            start: new Date(`1970-01-01T${startTime}:00`),
-            end: new Date(`1970-01-01T${endTime}:00`),
-            isRecurring: isRecurring,
-            recurrence: {
-                daysOfWeek: [],
-                startRecur: $('#recurStartDate').val().replace(/-/g, ''),
-                endRecur: $('#recurEndDate').val() ? $('#recurEndDate').val().replace(/-/g, '') : ''
+        let startISO, endISO;
+        if (isRecurring) {
+            const today = new Date().toISOString().split('T')[0];
+            startISO = new Date(`${today}T${startTime}:00`).toISOString();
+            endISO = new Date(`${today}T${endTime}:00`).toISOString();
+        } else {
+            const onceStart = $('#onceStartDateTime').val();
+            const onceEnd = $('#onceEndDateTime').val();
+            if (onceStart) {
+                startISO = new Date(onceStart).toISOString();
+                endISO = onceEnd ? new Date(onceEnd).toISOString() : new Date(`${onceStart.split('T')[0]}T${endTime}:00`).toISOString();
+            } else {
+                const today = new Date().toISOString().split('T')[0];
+                startISO = new Date(`${today}T${startTime}:00`).toISOString();
+                endISO = new Date(`${today}T${endTime}:00`).toISOString();
             }
-        };
+        }
 
+        const recurrenceDays = [];
         if (isRecurring) {
             $('.day-checkbox:checked').each(function() {
-                timing.recurrence.daysOfWeek.push($(this).val());
+                recurrenceDays.push($(this).val());
             });
             
-            if (timing.recurrence.daysOfWeek.length === 0) {
-                showToast('Please select at least one day', 'warning');
+            if (recurrenceDays.length === 0) {
+                showToast('Please select at least one day for recurring schedule', 'warning');
                 return;
             }
         }
+
+        const recurStart = $('#recurStartDate').val() || '';
+        const recurEnd = $('#recurEndDate').val() || '';
+
+        const timing = {
+            start: startISO,
+            end: endISO,
+            isRecurring: isRecurring,
+            recurrence: {
+                daysOfWeek: recurrenceDays,
+                startRecur: recurStart ? recurStart.replace(/-/g, '') : '',
+                endRecur: recurEnd ? recurEnd.replace(/-/g, '') : ''
+            }
+        };
 
         const program = {
             id: programId || 'evt-' + Math.random().toString(36).substr(2, 9),
@@ -449,8 +503,8 @@
                 description: $('#programDescription').val().trim(),
                 tags: [],
                 classNames: [],
-                textColor: $('#textColor').val(),
-                backgroundColor: $('#backgroundColor').val(),
+                textColor: $('#textColor').val() || '#ffffff',
+                backgroundColor: $('#backgroundColor').val() || '#0d6e13',
                 borderColor: '#000000'
             },
             source: {
@@ -468,51 +522,68 @@
             }
         };
 
+        if (!schedule.programs) {
+            schedule.programs = [];
+        }
+
         if (programId) {
-            // Update existing
             const index = schedule.programs.findIndex(p => p.id === programId);
             if (index !== -1) {
                 schedule.programs[index] = program;
+            } else {
+                schedule.programs.push(program);
             }
         } else {
-            // Add new
             schedule.programs.push(program);
         }
 
+        schedule.schedule = schedule.programs;
+
         $('#programModal').modal('hide');
         renderSchedule();
+        saveSchedule(true);
     }
 
     function editProgram(programId) {
-        const program = schedule.programs.find(p => p.id === programId);
+        const programs = schedule.programs || schedule.schedule || [];
+        const program = programs.find(p => p.id === programId);
         if (!program) return;
 
         $('#programModalTitle').text('Edit Program');
         $('#programId').val(program.id);
         $('#programTitle').val(program.title);
         $('#programEnabled').prop('checked', program.enabled);
-        $('#programDescription').val(program.general.description || '');
-        $('#programConfig').val(program.source.configId);
-        $('#programStartTime').val(formatTime(program.timing.start));
-        $('#programEndTime').val(formatTime(program.timing.end));
-        $('#textColor').val(program.general.textColor || '#ffffff');
-        $('#backgroundColor').val(program.general.backgroundColor || '#0d6e13');
+        $('#programDescription').val((program.general && program.general.description) || '');
+        $('#programConfig').val(program.source ? program.source.configId : '');
+        $('#programStartTime').val(formatTime(program.timing ? program.timing.start : ''));
+        $('#programEndTime').val(formatTime(program.timing ? program.timing.end : ''));
+        $('#textColor').val((program.general && program.general.textColor) || '#ffffff');
+        $('#backgroundColor').val((program.general && program.general.backgroundColor) || '#0d6e13');
 
-        // Set schedule type
-        if (program.timing.isRecurring) {
+        if (program.timing && program.timing.isRecurring) {
             $('#scheduleTypeRecurring').prop('checked', true).trigger('change');
-            $('#recurStartDate').val(program.timing.recurrence.startRecur ? 
+            $('#recurStartDate').val(program.timing.recurrence && program.timing.recurrence.startRecur ? 
                 program.timing.recurrence.startRecur.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3') : 
                 new Date().toISOString().split('T')[0]);
-            $('#recurEndDate').val(program.timing.recurrence.endRecur ? 
+            $('#recurEndDate').val(program.timing.recurrence && program.timing.recurrence.endRecur ? 
                 program.timing.recurrence.endRecur.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3') : '');
             
             $('.day-checkbox').prop('checked', false);
-            program.timing.recurrence.daysOfWeek.forEach(function(day) {
-                $(`.day-checkbox[value="${day}"]`).prop('checked', true);
-            });
+            if (program.timing.recurrence && program.timing.recurrence.daysOfWeek) {
+                program.timing.recurrence.daysOfWeek.forEach(function(day) {
+                    $(`.day-checkbox[value="${day}"]`).prop('checked', true);
+                });
+            }
         } else {
             $('#scheduleTypeOnce').prop('checked', true).trigger('change');
+            if (program.timing && program.timing.start) {
+                const sDate = new Date(program.timing.start);
+                $('#onceStartDateTime').val(sDate.toISOString().slice(0, 16));
+            }
+            if (program.timing && program.timing.end) {
+                const eDate = new Date(program.timing.end);
+                $('#onceEndDateTime').val(eDate.toISOString().slice(0, 16));
+            }
         }
 
         $('#btnDeleteProgram').show();
@@ -521,8 +592,11 @@
 
     function deleteProgramById(programId) {
         if (confirm('Are you sure you want to delete this program?')) {
-            schedule.programs = schedule.programs.filter(p => p.id !== programId);
+            const programs = schedule.programs || schedule.schedule || [];
+            schedule.programs = programs.filter(p => p.id !== programId);
+            schedule.schedule = schedule.programs;
             renderSchedule();
+            saveSchedule(true);
         }
     }
 
@@ -535,10 +609,12 @@
     }
 
     function toggleProgramEnabled(programId, enabled) {
-        const program = schedule.programs.find(p => p.id === programId);
+        const programs = schedule.programs || schedule.schedule || [];
+        const program = programs.find(p => p.id === programId);
         if (program) {
             program.enabled = enabled;
             renderSchedule();
+            saveSchedule(true);
         }
     }
 
@@ -549,11 +625,13 @@
         $('#btnDeleteProgram').hide();
         $('#scheduleTypeRecurring').prop('checked', true).trigger('change');
         $('#recurStartDate').val(new Date().toISOString().split('T')[0]);
+        $('#onceStartDateTime').val(new Date().toISOString().slice(0, 16));
     }
 
     function formatTime(dateStr) {
         if (!dateStr) return '';
         const date = new Date(dateStr);
+        if (isNaN(date.getTime())) return '';
         return date.toTimeString().substr(0, 5);
     }
 
@@ -565,7 +643,6 @@
     }
 
     function showToast(message, type = 'info') {
-        // Simple toast implementation
         const toastHtml = `
             <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
                 <div class="toast show align-items-center text-white bg-${type}" role="alert" aria-live="assertive" aria-atomic="true">

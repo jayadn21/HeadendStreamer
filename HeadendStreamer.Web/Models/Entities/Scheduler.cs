@@ -20,6 +20,19 @@ public class Schedule
     
     [JsonPropertyName("schedule")]
     public List<ScheduledProgram> Programs { get; set; } = new();
+
+    [JsonPropertyName("programs")]
+    public List<ScheduledProgram>? ProgramsAlias
+    {
+        get => Programs;
+        set
+        {
+            if (value != null && value.Count > 0)
+            {
+                Programs = value;
+            }
+        }
+    }
 }
 
 // ============================================================================

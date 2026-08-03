@@ -6,6 +6,15 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('refreshStreams')?.addEventListener('click', refreshStreams);
 
     document.addEventListener('click', function (e) {
+        const extTarget = e.target.closest('.start-ext-service, .stop-ext-service, .restart-ext-service');
+        if (extTarget) {
+            const serviceName = extTarget.dataset.service;
+            const action = extTarget.classList.contains('start-ext-service') ? 'start' :
+                extTarget.classList.contains('stop-ext-service') ? 'stop' : 'restart';
+            handleExternalServiceAction(serviceName, action);
+            return;
+        }
+
         const target = e.target.closest('.start-stream, .stop-stream, .restart-stream, .delete-stream');
         if (!target) return;
 
@@ -136,6 +145,112 @@ document.addEventListener('DOMContentLoaded', function () {
                 updateStreamCard(status.configId, status);
             });
         }
+
+        if (data.externalServices) {
+            if (data.externalServices.obsScheduler) {
+                updateExternalServiceUI("OBS_Scheduler", data.externalServices.obsScheduler);
+            }
+            if (data.externalServices.spxGraphics) {
+                updateExternalServiceUI("SPX_Graphics", data.externalServices.spxGraphics);
+            }
+        }
+    }
+
+    function updateExternalServiceUI(serviceName, status) {
+        const card = document.getElementById(`ext-card-${serviceName}`);
+        if (!card) return;
+
+        const badge = document.getElementById(`badge-${serviceName}`);
+        const statusContainer = document.getElementById(`status-container-${serviceName}`);
+        const startBtn = card.querySelector('.start-ext-service');
+        const stopBtn = card.querySelector('.stop-ext-service');
+        const restartBtn = card.querySelector('.restart-ext-service');
+
+        const isRunning = status && (status.isRunning || status.IsRunning);
+
+        if (isRunning) {
+            const innerCard = card.querySelector('.card');
+            if (innerCard) {
+                innerCard.classList.remove('border-secondary');
+                innerCard.classList.add('border-success');
+            }
+
+            if (badge) {
+                badge.className = 'badge bg-success me-1';
+                badge.innerHTML = '<i class="fas fa-circle"></i>';
+            }
+
+            const uptime = status.uptime !== undefined ? status.uptime : status.Uptime;
+            const pid = status.processId !== undefined ? status.processId : status.ProcessId;
+            const formattedUptime = formatUptime(uptime);
+
+            if (statusContainer) {
+                statusContainer.innerHTML = `
+                    <div class="alert alert-success py-2 mb-0">
+                        <div class="d-flex justify-content-between">
+                            <small id="uptime-${serviceName}"><i class="fas fa-clock me-1"></i> ${formattedUptime}</small>
+                            <small>PID: ${pid ?? 'N/A'}</small>
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (startBtn) startBtn.classList.add('d-none');
+            if (stopBtn) stopBtn.classList.remove('d-none');
+            if (restartBtn) restartBtn.classList.remove('d-none');
+        } else {
+            const innerCard = card.querySelector('.card');
+            if (innerCard) {
+                innerCard.classList.remove('border-success');
+                innerCard.classList.add('border-secondary');
+            }
+
+            if (badge) {
+                badge.className = 'badge bg-secondary me-1';
+                badge.innerHTML = '<i class="fas fa-circle"></i>';
+            }
+
+            if (statusContainer) {
+                statusContainer.innerHTML = `
+                    <div class="alert alert-secondary py-2 mb-0">
+                        <small><i class="fas fa-stop-circle me-1"></i> Stopped</small>
+                    </div>
+                `;
+            }
+
+            if (startBtn) startBtn.classList.remove('d-none');
+            if (stopBtn) stopBtn.classList.add('d-none');
+            if (restartBtn) restartBtn.classList.add('d-none');
+        }
+    }
+
+    function handleExternalServiceAction(serviceName, action) {
+        const endpoint = `/api/external-service/${serviceName}/${action}`;
+
+        if (action === 'start') {
+            updateExternalServiceUI(serviceName, { isRunning: true, uptime: 0, processId: '...' });
+        } else if (action === 'stop' || action === 'restart') {
+            updateExternalServiceUI(serviceName, { isRunning: false });
+        }
+
+        fetch(endpoint, { method: 'POST' })
+            .then(async response => {
+                if (response.ok) {
+                    return response.json();
+                }
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `${action} failed`);
+            })
+            .then(data => {
+                showToast(`${serviceName} ${action} successful`, 'success');
+                updateExternalServiceUI(serviceName, data);
+                setTimeout(fetchDashboardStats, 1000);
+            })
+            .catch(error => {
+                console.error(`Error during ${action} for ${serviceName}:`, error);
+                showToast(`Failed to ${action} ${serviceName}: ${error.message}`, 'danger');
+                fetchDashboardStats();
+            });
     }
 
     function updateSystemInfo(systemInfo) {
