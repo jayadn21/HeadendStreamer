@@ -150,6 +150,21 @@
                 <div class="card-header bg-light d-flex justify-content-between align-items-center">
                     <h5 class="card-title mb-0"><i class="fas fa-folder-open me-2 text-primary"></i>Folder Playback Details</h5>
                     <div>
+                        <button class="btn btn-sm btn-secondary me-1" onclick="seekStream(-30)">
+                            <i class="fas fa-fast-backward me-1"></i> Rewind 30s
+                        </button>
+                        <button class="btn btn-sm btn-secondary me-1" onclick="seekStream(-10)">
+                            <i class="fas fa-backward me-1"></i> Rewind 10s
+                        </button>
+                        <button class="btn btn-sm btn-primary me-1" id="playPauseBtn" onclick="togglePlayPause()">
+                            <i class="fas fa-pause me-1"></i> Pause
+                        </button>
+                        <button class="btn btn-sm btn-secondary me-1" onclick="seekStream(10)">
+                            <i class="fas fa-forward me-1"></i> Forward 10s
+                        </button>
+                        <button class="btn btn-sm btn-secondary me-1" onclick="seekStream(30)">
+                            <i class="fas fa-fast-forward me-1"></i> Forward 30s
+                        </button>
                         <button class="btn btn-sm btn-warning play-next-video me-2">
                             <i class="fas fa-step-forward me-1"></i> Play Next
                         </button>
@@ -234,6 +249,37 @@
     <script>
         const streamId = '@Model.Config.Id';
         const logContainer = document.getElementById('log-container');
+        let isStreamRunning = @(Model.Status?.IsRunning == true ? "true" : "false");
+
+        function updatePlayPauseButtonUI() {
+            const btn = document.getElementById('playPauseBtn');
+            if (!btn) return;
+            if (isStreamRunning) {
+                btn.className = "btn btn-sm btn-primary me-1";
+                btn.innerHTML = '<i class="fas fa-pause me-1"></i> Pause';
+            } else {
+                btn.className = "btn btn-sm btn-success me-1";
+                btn.innerHTML = '<i class="fas fa-play me-1"></i> Play';
+            }
+        }
+
+        async function togglePlayPause() {
+            const action = isStreamRunning ? 'stop' : 'start';
+            await controlStream(action);
+        }
+
+        async function seekStream(offset) {
+            try {
+                const response = await fetch(`/api/stream/${streamId}/seek?offsetSeconds=${offset}`, { method: 'POST' });
+                if (response.ok) {
+                    refreshData();
+                } else {
+                    alert('Seek failed');
+                }
+            } catch (e) {
+                alert('Connection error');
+            }
+        }
 
         // Control Actions
         document.querySelectorAll('.start-stream').forEach(btn => {
@@ -337,6 +383,8 @@
                             uptimeElement.textContent = `${hours}:${minutes}:${seconds.toString().padStart(2, '0')}`;
                         }
                     }
+                    isStreamRunning = stats.isRunning;
+                    updatePlayPauseButtonUI();
                 }
             } catch (e) {
                 console.error('Failed to fetch stats', e);
@@ -423,6 +471,7 @@
 
         // Initial fetch
         refreshData();
+        updatePlayPauseButtonUI();
         
         // Refresh button
         document.getElementById('refreshLogs').addEventListener('click', refreshData);

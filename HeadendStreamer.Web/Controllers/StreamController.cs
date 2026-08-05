@@ -194,4 +194,19 @@ public class StreamController : Controller
         await _streamManager.PlayNextVideoAsync(id);
         return Ok(new { success = true });
     }
+
+    [HttpPost("api/stream/{id}/seek")]
+    public async Task<IActionResult> SeekStream(string id, [FromQuery] double offsetSeconds)
+    {
+        try
+        {
+            await _streamManager.SeekStreamAsync(id, offsetSeconds);
+            return Ok(new { success = true });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Failed to seek stream {id} by {offsetSeconds}s");
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
 }

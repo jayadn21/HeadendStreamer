@@ -3,7 +3,11 @@
   "Name": "Siti OBS Stream",
   "Description": "Siti OBS Stream Local Channel",
   "Enabled": true,
-  "Shuffle": false,
+  "Shuffle": true,
+  "LogoPath": "C:\\jaya\\Logo1.jpg",
+  "LogoPosition": "Top Left",
+  "LogoWidth": 100,
+  "LogoHeight": 100,
   "InputDevice": "C:\\jaya",
   "InputFormat": "folder",
   "PixelFormat": "yuyv422",
@@ -26,5 +30,5 @@
   "OutputFormat": "mpegts",
   "AdvancedOptions": {},
   "CreatedAt": "2026-08-02T14:57:50.0163769Z",
-  "UpdatedAt": "2026-08-05T00:46:17.6856061Z"
+  "UpdatedAt": "2026-08-05T04:12:36.2730081Z"
 }

@@ -53,6 +53,48 @@
                             <label asp-for="Config.Description" class="form-label">Description</label>
                             <textarea asp-for="Config.Description" class="form-control" rows="2"></textarea>
                         </div>
+
+                        <!-- Logo Configuration Settings -->
+                        <div class="card bg-light mb-4 shadow-sm border-0">
+                            <div class="card-header bg-secondary text-white font-weight-bold d-flex align-items-center">
+                                <i class="fas fa-image me-2"></i> Logo Overlay Settings
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label asp-for="Config.LogoPath" class="form-label font-weight-bold">Logo File Path</label>
+                                    <div class="input-group">
+                                        <input asp-for="Config.LogoPath" id="LogoPath" class="form-control" placeholder="C:\images\logo.png" />
+                                        <button class="btn btn-outline-primary" type="button" id="browseLogoBtn">
+                                            <i class="fas fa-search me-1"></i> Browse Logo
+                                        </button>
+                                    </div>
+                                    <div class="form-text text-muted">Select an image (PNG, JPG) or video (MP4) to overlay as a watermark.</div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label asp-for="Config.LogoPosition" class="form-label font-weight-bold">Logo Display Position</label>
+                                        <select asp-for="Config.LogoPosition" id="LogoPosition" class="form-select">
+                                            <option value="Top Left">Top Left</option>
+                                            <option value="Top Right">Top Right</option>
+                                            <option value="Bottom Left">Bottom Left</option>
+                                            <option value="Bottom Right">Bottom Right</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label asp-for="Config.LogoWidth" class="form-label font-weight-bold">Logo Width (px)</label>
+                                        <input asp-for="Config.LogoWidth" id="LogoWidth" type="number" class="form-control" min="0" placeholder="Original" value="@(Model.Config.LogoWidth ?? 100)" />
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label asp-for="Config.LogoHeight" class="form-label font-weight-bold">Logo Height (px)</label>
+                                        <input asp-for="Config.LogoHeight" id="LogoHeight" type="number" class="form-control" min="0" placeholder="Original" value="@(Model.Config.LogoHeight ?? 100)" />
+                                    </div>
+                                </div>
+                                <div id="logoPreviewContainer" class="mt-2 text-center" style="display: none;">
+                                    <label class="form-label d-block text-start font-weight-bold">Logo Preview</label>
+                                    <img id="logoPreviewImg" src="" class="img-thumbnail img-fluid" style="max-height: 120px; background-color: #f0f0f0;" />
+                                </div>
+                            </div>
+                        </div>
                         
                         <div class="row">
                             <div class="col-md-6 mb-3">
@@ -776,6 +818,8 @@
                 browseIcon.className = 'fas fa-folder-open';
                 document.getElementById('verifyPathButton').style.display = 'inline-block';
                 if (shuffleRow) shuffleRow.style.display = 'block';
+                const shuffleCheckbox = document.getElementById('Shuffle');
+                if (shuffleCheckbox) shuffleCheckbox.checked = true;
             } else {
                 label.innerText = 'Input Device';
                 help.innerText = 'e.g. video=Integrated Camera or /dev/video0';
@@ -830,7 +874,10 @@
         const fileBrowserModal = new bootstrap.Modal(document.getElementById('fileBrowserModal'));
         let currentBrowsePath = '';
         
+        let activeBrowseTarget = 'device';
+
         document.getElementById('browseButton').addEventListener('click', function() {
+            activeBrowseTarget = 'device';
             const inputFormat = document.getElementById('InputFormat').value;
             if (inputFormat === 'file' || inputFormat === 'folder') {
                 const selectFolderBtn = document.getElementById('selectFolderBtn');
@@ -843,6 +890,16 @@
                 // Future: Add device discovery here if needed
                 alert('Device discovery not implemented yet. Please enter the device name.');
             }
+        });
+
+        document.getElementById('browseLogoBtn').addEventListener('click', function() {
+            activeBrowseTarget = 'logo';
+            const selectFolderBtn = document.getElementById('selectFolderBtn');
+            if (selectFolderBtn) {
+                selectFolderBtn.style.display = 'none';
+            }
+            browsePath('');
+            fileBrowserModal.show();
         });
 
         document.getElementById('selectFolderBtn').addEventListener('click', function() {
@@ -889,7 +946,7 @@
             }
             
             let itemsToRender = data.items;
-            if (isFolderMode) {
+            if (isFolderMode && activeBrowseTarget === 'device') {
                 itemsToRender = itemsToRender.filter(item => item.isDirectory);
             }
             
@@ -912,9 +969,14 @@
                     listItem.onclick = () => browsePath(item.path);
                 } else {
                     listItem.onclick = () => {
-                        document.getElementById('InputDevice').value = item.path;
+                        if (activeBrowseTarget === 'device') {
+                            document.getElementById('InputDevice').value = item.path;
+                            hidePathStatus();
+                        } else if (activeBrowseTarget === 'logo') {
+                            document.getElementById('LogoPath').value = item.path;
+                            updateLogoPreview();
+                        }
                         fileBrowserModal.hide();
-                        hidePathStatus();
                         updateCommandPreview();
                     };
                 }
@@ -1167,6 +1229,28 @@
             });
         });
 
+        // Logo preview logic
+        function updateLogoPreview() {
+            const logoPath = document.getElementById('LogoPath').value;
+            const container = document.getElementById('logoPreviewContainer');
+            const img = document.getElementById('logoPreviewImg');
+            
+            if (logoPath) {
+                const ext = logoPath.split('.').pop().toLowerCase();
+                const isImage = ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'svg'].includes(ext);
+                if (isImage) {
+                    img.src = `/api/config/logo-preview?path=${encodeURIComponent(logoPath)}`;
+                    container.style.display = 'block';
+                    return;
+                }
+            }
+            container.style.display = 'none';
+            img.src = '';
+        }
+
+        document.getElementById('LogoPath').addEventListener('input', updateLogoPreview);
+        document.getElementById('LogoPath').addEventListener('change', updateLogoPreview);
+
         // Explicitly listen to PixelFormat just in case
         document.getElementById('PixelFormat').addEventListener('change', updateCommandPreview);
 
@@ -1176,6 +1260,7 @@
             toggleDeviceDiscovery();
             toggleAudioDiscovery();
             toggleReStream();
+            updateLogoPreview();
             updateCommandPreview();
         });
 
@@ -1201,6 +1286,12 @@
             data.EnableAudio = document.getElementById('EnableAudio').checked;
             data.ReStream = document.getElementById('ReStream').checked;
             data.Shuffle = document.getElementById('Shuffle') ? document.getElementById('Shuffle').checked : false;
+            
+            // Logo overlay inputs conversion
+            data.LogoWidth = parseInt(data.LogoWidth) || null;
+            data.LogoHeight = parseInt(data.LogoHeight) || null;
+            data.LogoPath = data.LogoPath || null;
+            data.LogoPosition = data.LogoPosition || "Top Left";
             data.Id = id;
 
             try {

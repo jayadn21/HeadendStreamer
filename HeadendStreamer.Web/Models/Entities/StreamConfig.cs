@@ -8,6 +8,12 @@ public class StreamConfig
     public bool Enabled { get; set; } = true;
     public bool Shuffle { get; set; } = false;
     
+    // Logo Configuration
+    public string? LogoPath { get; set; }
+    public string? LogoPosition { get; set; } = "Top Left"; // "Top Left", "Top Right", "Bottom Left", "Bottom Right"
+    public int? LogoWidth { get; set; } = 100;
+    public int? LogoHeight { get; set; } = 100;
+    
     // Input Configuration
     public string InputDevice { get; set; } = "/dev/video0";
     public string InputFormat { get; set; } = "yuyv422"; // This is actually the input format/driver (e.g. dshow, v4l2) or pixel format depending on context. Refactoring to separate.

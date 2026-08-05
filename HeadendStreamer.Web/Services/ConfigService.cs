@@ -63,6 +63,11 @@ public class ConfigService
         existingConfig.Name = updates.Name ?? existingConfig.Name;
         existingConfig.Description = updates.Description ?? existingConfig.Description;
         existingConfig.Enabled = updates.Enabled;
+        existingConfig.Shuffle = updates.Shuffle;
+        existingConfig.LogoPath = updates.LogoPath;
+        existingConfig.LogoPosition = updates.LogoPosition;
+        existingConfig.LogoWidth = updates.LogoWidth;
+        existingConfig.LogoHeight = updates.LogoHeight;
         existingConfig.InputDevice = updates.InputDevice ?? existingConfig.InputDevice;
         existingConfig.InputFormat = updates.InputFormat ?? existingConfig.InputFormat;
         existingConfig.PixelFormat = updates.PixelFormat ?? existingConfig.PixelFormat;

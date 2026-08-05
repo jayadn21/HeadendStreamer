@@ -409,7 +409,9 @@ public class StreamManagerService
         
         _logger.LogInformation($"Building FFmpeg command. OS: {(isWindows ? "Windows" : "Linux/Other")}, Input Format: {inputFormat}");
         
-        if (config.ReStream && (inputFormat == "mpegts"))
+        var hasLogo = !string.IsNullOrEmpty(config.LogoPath) && File.Exists(config.LogoPath);
+
+        if (config.ReStream && (inputFormat == "mpegts") && !hasLogo)
         {
             // Re-stream mode: copy streams without transcoding
             args.AddRange(new[] { "-i", $"\"{config.InputDevice}\"" });
@@ -526,6 +528,56 @@ public class StreamManagerService
             }
         }
         
+        if (hasLogo)
+        {
+            var logoExt = Path.GetExtension(config.LogoPath).ToLowerInvariant();
+            var isImage = logoExt == ".png" || logoExt == ".jpg" || logoExt == ".jpeg" || logoExt == ".gif" || logoExt == ".bmp" || logoExt == ".svg";
+            
+            if (isImage)
+            {
+                args.AddRange(new[] { "-loop", "1" });
+            }
+            else
+            {
+                args.AddRange(new[] { "-stream_loop", "-1" });
+            }
+            args.AddRange(new[] { "-i", $"\"{config.LogoPath}\"" });
+        }
+        
+        if (hasLogo)
+        {
+            int logoInputIndex = (config.EnableAudio && !isLocalFile && !isMpegTs && !string.IsNullOrEmpty(config.AudioDevice)) ? 2 : 1;
+            
+            string overlayCoords = config.LogoPosition?.ToLowerInvariant() switch
+            {
+                "top right" => "main_w-overlay_w-10:10",
+                "bottom left" => "10:main_h-overlay_h-10",
+                "bottom right" => "main_w-overlay_w-10:main_h-overlay_h-10",
+                _ => "10:10"
+            };
+
+            string filterString;
+            if ((config.LogoWidth ?? 0) > 0 || (config.LogoHeight ?? 0) > 0)
+            {
+                var w = (config.LogoWidth ?? 0) > 0 ? config.LogoWidth.ToString() : "-1";
+                var h = (config.LogoHeight ?? 0) > 0 ? config.LogoHeight.ToString() : "-1";
+                filterString = $"\"[{logoInputIndex}:v]scale={w}:{h}[scaled_logo]; [0:v][scaled_logo]overlay={overlayCoords}[outv]\"";
+            }
+            else
+            {
+                filterString = $"\"[0:v][{logoInputIndex}:v]overlay={overlayCoords}[outv]\"";
+            }
+
+            args.AddRange(new[] { "-filter_complex", filterString });
+            args.AddRange(new[] { "-map", "[outv]" });
+
+            if (config.EnableAudio)
+            {
+                string audioMap = (config.EnableAudio && !isLocalFile && !isMpegTs && !string.IsNullOrEmpty(config.AudioDevice)) ? "1:a" : "0:a";
+                args.AddRange(new[] { "-map", audioMap });
+            }
+        }
+
         // Video encoding
         args.AddRange(new[] { "-c:v", config.VideoCodec });
         if (!string.IsNullOrEmpty(config.Preset))
@@ -587,16 +639,28 @@ public class StreamManagerService
             // Parse FFmpeg output for stats
             if (output.Contains("Duration: "))
             {
-                var match = System.Text.RegularExpressions.Regex.Match(output, @"Duration:\s*(\d{2}):(\d{2}):(\d{2})\.(\d{2})");
+                var match = System.Text.RegularExpressions.Regex.Match(output, @"Duration:\s*(\d+):(\d+):(\d+)(?:\.(\d+))?");
                 if (match.Success)
                 {
                     var hours = int.Parse(match.Groups[1].Value);
                     var minutes = int.Parse(match.Groups[2].Value);
                     var seconds = int.Parse(match.Groups[3].Value);
-                    var ms = int.Parse(match.Groups[4].Value) * 10;
+                    var ms = 0;
+                    if (match.Groups[4].Success)
+                    {
+                        var msStr = match.Groups[4].Value;
+                        if (msStr.Length == 1) ms = int.Parse(msStr) * 100;
+                        else if (msStr.Length == 2) ms = int.Parse(msStr) * 10;
+                        else if (msStr.Length >= 3) ms = int.Parse(msStr.Substring(0, 3));
+                    }
+                    
                     if (_processes.TryGetValue(configId, out var proc))
                     {
-                        proc.TotalDuration = new TimeSpan(0, hours, minutes, seconds, ms);
+                        // Only set if not already set, to prevent logo inputs (Input #1) from overwriting main video (Input #0) duration
+                        if (proc.TotalDuration == null || proc.TotalDuration == TimeSpan.Zero)
+                        {
+                            proc.TotalDuration = new TimeSpan(0, hours, minutes, seconds, ms);
+                        }
                     }
                 }
             }
@@ -1044,6 +1108,73 @@ public class StreamManagerService
                 return sp.TotalDuration;
         }
         return null;
+    }
+
+    public async Task SeekStreamAsync(string configId, double offsetSeconds)
+    {
+        var config = await _configService.GetConfigAsync(configId);
+        if (config == null) return;
+
+        var state = GetFolderPlaybackState(configId);
+        if (state == null) return;
+
+        double totalDurationSeconds = GetTotalDuration(configId)?.TotalSeconds ?? 0;
+        
+        // Find current position from active process if possible
+        double currentPosition = state.ResumePositionSeconds;
+        lock (_processLock)
+        {
+            if (_processes.TryGetValue(configId, out var sp))
+            {
+                if (sp.LastStats != null && sp.LastStats.TryGetValue("time", out var timeVal))
+                {
+                    if (TimeSpan.TryParse(timeVal.ToString(), out var parsedTime))
+                    {
+                        currentPosition = sp.StartSeekPositionSeconds + parsedTime.TotalSeconds;
+                    }
+                }
+            }
+        }
+
+        double newPosition = currentPosition + offsetSeconds;
+
+        if (totalDurationSeconds > 0)
+        {
+            if (newPosition >= totalDurationSeconds)
+            {
+                // Go to next video!
+                await PlayNextVideoAsync(configId);
+                return;
+            }
+        }
+
+        if (newPosition < 0)
+        {
+            newPosition = 0;
+        }
+
+        state.ResumePositionSeconds = newPosition;
+
+        // Save immediately
+        var dir = Path.Combine(AppContext.BaseDirectory, "logs", "playback_status");
+        if (!Directory.Exists(dir))
+        {
+            Directory.CreateDirectory(dir);
+        }
+        var filePath = Path.Combine(dir, $"{configId}.json");
+        var json = JsonSerializer.Serialize(state, new JsonSerializerOptions { WriteIndented = true });
+        await File.WriteAllTextAsync(filePath, json);
+
+        // Restart stream if running, otherwise just save state
+        bool isRunning;
+        lock (_processLock)
+        {
+            isRunning = _processes.ContainsKey(configId);
+        }
+        if (isRunning)
+        {
+            await RestartStreamAsync(configId);
+        }
     }
 
     public async Task PlayNextVideoAsync(string configId)
