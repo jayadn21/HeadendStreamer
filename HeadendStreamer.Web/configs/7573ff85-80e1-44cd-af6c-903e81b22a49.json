@@ -3,8 +3,9 @@
   "Name": "Siti OBS Stream",
   "Description": "Siti OBS Stream Local Channel",
   "Enabled": true,
-  "InputDevice": "srt://127.0.0.1:9999?mode=caller",
-  "InputFormat": "mpegts",
+  "Shuffle": false,
+  "InputDevice": "C:\\jaya",
+  "InputFormat": "folder",
   "PixelFormat": "yuyv422",
   "VideoSize": "1920x1080",
   "FrameRate": 30,
@@ -25,5 +26,5 @@
   "OutputFormat": "mpegts",
   "AdvancedOptions": {},
   "CreatedAt": "2026-08-02T14:57:50.0163769Z",
-  "UpdatedAt": "2026-08-02T14:59:15.6555816Z"
+  "UpdatedAt": "2026-08-05T00:46:17.6856061Z"
 }

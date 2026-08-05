@@ -18,6 +18,7 @@ public class StreamManagerService
     private readonly ConfigService _configService;
     private readonly IConfiguration _configuration;
     private readonly IHubContext<StreamHub> _hubContext; // Remove SystemMonitorService
+    private readonly System.Threading.Timer _saveStateTimer;
 
     public StreamManagerService(
         ILogger<StreamManagerService> logger,
@@ -29,6 +30,7 @@ public class StreamManagerService
         _configService = configService;
         _hubContext = hubContext;
         _configuration = configuration;
+        _saveStateTimer = new System.Threading.Timer(SavePlaybackStates, null, TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(3));
     }
     
     public async Task<StreamStatus> StartStreamAsync(string configId)
@@ -56,7 +58,56 @@ public class StreamManagerService
             }
             
             // Build FFmpeg command
-            var ffmpegCmd = BuildFfmpegCommand(config);
+            double ssPos = 0;
+            string? overrideInput = null;
+            FolderPlaybackState? folderState = null;
+            if (config.InputFormat?.ToLower() == "folder")
+            {
+                folderState = GetFolderPlaybackState(configId);
+                if (folderState != null && folderState.ProcessId.HasValue)
+                {
+                    try
+                    {
+                        var oldProcess = Process.GetProcessById(folderState.ProcessId.Value);
+                        if (oldProcess != null && !oldProcess.HasExited && oldProcess.ProcessName.ToLowerInvariant().Contains("ffmpeg"))
+                        {
+                            _logger.LogWarning($"Found orphaned FFmpeg process (PID {folderState.ProcessId.Value}) for folder stream {configId}. Killing it.");
+                            oldProcess.Kill(true);
+                            oldProcess.WaitForExit(2000);
+                        }
+                    }
+                    catch (ArgumentException)
+                    {
+                        // Process not running
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, $"Failed to kill orphaned FFmpeg process {folderState.ProcessId.Value}");
+                    }
+                }
+
+                if (folderState == null)
+                {
+                    folderState = new FolderPlaybackState { StreamId = configId };
+                }
+                
+                SetupNextVideoForFolder(configId, config, folderState);
+                
+                // Save immediately
+                var dir = Path.Combine(AppContext.BaseDirectory, "logs", "playback_status");
+                if (!Directory.Exists(dir))
+                {
+                    Directory.CreateDirectory(dir);
+                }
+                var filePath = Path.Combine(dir, $"{configId}.json");
+                var json = System.Text.Json.JsonSerializer.Serialize(folderState, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(filePath, json);
+
+                overrideInput = folderState.CurrentVideoPath;
+                ssPos = folderState.ResumePositionSeconds;
+            }
+
+            var ffmpegCmd = BuildFfmpegCommand(config, ssPos, overrideInput);
             _logger.LogInformation($"Starting stream {config.Name} with command: {ffmpegCmd}");
             
             // Create process
@@ -105,6 +156,22 @@ public class StreamManagerService
             if (!process.Start())
                 throw new Exception("Failed to start FFmpeg process");
             
+            if (config.InputFormat?.ToLower() == "folder" && folderState != null)
+            {
+                folderState.ProcessId = process.Id;
+                try
+                {
+                    var dir = Path.Combine(AppContext.BaseDirectory, "logs", "playback_status");
+                    var filePath = Path.Combine(dir, $"{configId}.json");
+                    var json = System.Text.Json.JsonSerializer.Serialize(folderState, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                    File.WriteAllText(filePath, json);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"Failed to save PID for stream {configId}");
+                }
+            }
+
             process.BeginErrorReadLine();
             process.BeginOutputReadLine();
             
@@ -114,7 +181,9 @@ public class StreamManagerService
                 Config = config,
                 Process = process,
                 StartTime = DateTime.UtcNow,
-                LogFile = $"logs/ffmpeg/{configId}_{DateTime.Now:yyyyMMdd_HHmmss}.log"
+                LogFile = $"logs/ffmpeg/{configId}_{DateTime.Now:yyyyMMdd_HHmmss}.log",
+                FolderState = folderState,
+                StartSeekPositionSeconds = ssPos
             };
             
             lock (_processLock)
@@ -161,6 +230,39 @@ public class StreamManagerService
             
             _logger.LogInformation($"Stopping stream {streamProcess.Config.Name} (ID: {configId})");
             
+            // Save state before stopping if folder playback
+            if (streamProcess.Config.InputFormat?.ToLower() == "folder" && streamProcess.FolderState != null)
+            {
+                double currentPosition = streamProcess.FolderState.ResumePositionSeconds;
+                if (streamProcess.LastStats != null && streamProcess.LastStats.TryGetValue("time", out var timeVal))
+                {
+                    if (TimeSpan.TryParse(timeVal.ToString(), out var parsedTime))
+                    {
+                        currentPosition = streamProcess.StartSeekPositionSeconds + parsedTime.TotalSeconds;
+                    }
+                }
+                streamProcess.FolderState.ResumePositionSeconds = currentPosition;
+                streamProcess.FolderState.ProcessId = null;
+                streamProcess.FolderState.LastSaved = DateTime.UtcNow;
+
+                try
+                {
+                    var dir = Path.Combine(AppContext.BaseDirectory, "logs", "playback_status");
+                    if (!Directory.Exists(dir))
+                    {
+                        Directory.CreateDirectory(dir);
+                    }
+                    var filePath = Path.Combine(dir, $"{configId}.json");
+                    var json = JsonSerializer.Serialize(streamProcess.FolderState, new JsonSerializerOptions { WriteIndented = true });
+                    File.WriteAllText(filePath, json);
+                    _logger.LogInformation($"Saved playback resume state for stopped stream {configId} at position {currentPosition}");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"Failed to save final state for stopped stream {configId}");
+                }
+            }
+
             // Mark as stopping to prevent auto-restart
             streamProcess.IsStopping = true;
             
@@ -297,12 +399,12 @@ public class StreamManagerService
         }
     }
     
-    private string BuildFfmpegCommand(StreamConfig config)
+    private string BuildFfmpegCommand(StreamConfig config, double ssPosition = 0, string? overrideInputDevice = null)
     {
         var args = new List<string>();
         var isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
         var inputFormat = config.InputFormat?.ToLower() ?? "auto";
-        var isLocalFile = inputFormat == "file" || inputFormat == "local file";
+        var isLocalFile = inputFormat == "file" || inputFormat == "local file" || inputFormat == "folder";
         var isMpegTs = inputFormat == "mpegts";
         
         _logger.LogInformation($"Building FFmpeg command. OS: {(isWindows ? "Windows" : "Linux/Other")}, Input Format: {inputFormat}");
@@ -378,7 +480,7 @@ public class StreamManagerService
             args.AddRange(new[] { "-framerate", config.FrameRate.ToString() });
         }
         
-        var inputDevice = config.InputDevice;
+        var inputDevice = overrideInputDevice ?? config.InputDevice;
         if (!isLocalFile && !isMpegTs)
         {
             if (isWindows && !args.Contains("gdigrab") && !inputDevice.StartsWith("video="))
@@ -391,6 +493,10 @@ public class StreamManagerService
             }
         }
         
+        if (ssPosition > 0)
+        {
+            args.AddRange(new[] { "-ss", ssPosition.ToString("F3", System.Globalization.CultureInfo.InvariantCulture) });
+        }
         // Always quote paths/devices
         args.AddRange(new[] { "-i", $"\"{inputDevice}\"" });
         
@@ -479,6 +585,21 @@ public class StreamManagerService
         try
         {
             // Parse FFmpeg output for stats
+            if (output.Contains("Duration: "))
+            {
+                var match = System.Text.RegularExpressions.Regex.Match(output, @"Duration:\s*(\d{2}):(\d{2}):(\d{2})\.(\d{2})");
+                if (match.Success)
+                {
+                    var hours = int.Parse(match.Groups[1].Value);
+                    var minutes = int.Parse(match.Groups[2].Value);
+                    var seconds = int.Parse(match.Groups[3].Value);
+                    var ms = int.Parse(match.Groups[4].Value) * 10;
+                    if (_processes.TryGetValue(configId, out var proc))
+                    {
+                        proc.TotalDuration = new TimeSpan(0, hours, minutes, seconds, ms);
+                    }
+                }
+            }
             if (output.Contains("frame=") && output.Contains("fps="))
             {
                 await UpdateStreamStats(configId, output);
@@ -516,8 +637,64 @@ public class StreamManagerService
 
                 _logger.LogWarning($"Stream process {configId} exited with code {process.ExitCode}");
                 
-                // Auto-restart logic
                 var config = streamProcess.Config;
+                if (config.InputFormat?.ToLower() == "folder")
+                {
+                    var state = streamProcess.FolderState;
+                    if (state != null)
+                    {
+                        if (config.Shuffle)
+                        {
+                            state.PlayedVideos.Add(new PlayedVideoInfo
+                            {
+                                VideoPath = state.CurrentVideoPath,
+                                VideoName = state.CurrentVideoName,
+                                PlayedAt = DateTime.UtcNow
+                            });
+                        }
+                        
+                        var nextVideo = state.UpcomingVideoPath;
+                        state.ResumePositionSeconds = 0;
+
+                        try
+                        {
+                            SetupNextVideoForFolder(configId, config, state, nextVideo);
+
+                            var dir = Path.Combine(AppContext.BaseDirectory, "logs", "playback_status");
+                            if (!Directory.Exists(dir))
+                            {
+                                Directory.CreateDirectory(dir);
+                            }
+                            var filePath = Path.Combine(dir, $"{configId}.json");
+                            var json = System.Text.Json.JsonSerializer.Serialize(state, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                            File.WriteAllText(filePath, json);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, $"Failed to setup next video for stream {configId}");
+                        }
+                    }
+
+                    _logger.LogInformation($"Transitioning to next video for stream {configId}");
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            lock (_processLock)
+                            {
+                                _processes.Remove(configId);
+                            }
+                            await StartStreamAsync(configId);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, $"Failed to auto-transition folder playback for stream {configId}");
+                        }
+                    });
+                    return;
+                }
+
+                // Auto-restart logic
                 if (config.Enabled && process.ExitCode != 0)
                 {
                     _logger.LogInformation($"Auto-restarting stream {configId}");
@@ -754,6 +931,239 @@ public class StreamManagerService
             _logger.LogWarning($"Could not write to log file {process.LogFile}: {ex.Message}");
         }
     }
+
+    private void SavePlaybackStates(object? state)
+    {
+        try
+        {
+            List<StreamProcess> activeFolderProcesses;
+            lock (_processLock)
+            {
+                activeFolderProcesses = _processes.Values
+                    .Where(p => p.Config.InputFormat?.ToLower() == "folder")
+                    .ToList();
+            }
+
+            foreach (var sp in activeFolderProcesses)
+            {
+                if (sp.FolderState == null) continue;
+
+                double currentPosition = sp.FolderState.ResumePositionSeconds;
+                if (sp.LastStats != null && sp.LastStats.TryGetValue("time", out var timeVal))
+                {
+                    if (TimeSpan.TryParse(timeVal.ToString(), out var parsedTime))
+                    {
+                        currentPosition = sp.StartSeekPositionSeconds + parsedTime.TotalSeconds;
+                    }
+                }
+
+                sp.FolderState.ResumePositionSeconds = currentPosition;
+                sp.FolderState.LastSaved = DateTime.UtcNow;
+
+                var dir = Path.Combine(AppContext.BaseDirectory, "logs", "playback_status");
+                if (!Directory.Exists(dir))
+                {
+                    Directory.CreateDirectory(dir);
+                }
+                var filePath = Path.Combine(dir, $"{sp.Config.Id}.json");
+                var json = JsonSerializer.Serialize(sp.FolderState, new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(filePath, json);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error saving playback states");
+        }
+    }
+
+    public FolderPlaybackState? GetFolderPlaybackState(string configId)
+    {
+        try
+        {
+            lock (_processLock)
+            {
+                if (_processes.TryGetValue(configId, out var sp) && sp.FolderState != null)
+                {
+                    if (sp.LastStats != null && sp.LastStats.TryGetValue("time", out var timeVal))
+                    {
+                        if (TimeSpan.TryParse(timeVal.ToString(), out var parsedTime))
+                        {
+                            sp.FolderState.ResumePositionSeconds = sp.StartSeekPositionSeconds + parsedTime.TotalSeconds;
+                        }
+                    }
+                    return sp.FolderState;
+                }
+            }
+
+            var dir = Path.Combine(AppContext.BaseDirectory, "logs", "playback_status");
+            var filePath = Path.Combine(dir, $"{configId}.json");
+            if (File.Exists(filePath))
+            {
+                var json = File.ReadAllText(filePath);
+                return JsonSerializer.Deserialize<FolderPlaybackState>(json);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error getting folder playback state for {configId}");
+        }
+        return null;
+    }
+
+    public async Task ClearFolderPlaybackHistoryAsync(string configId)
+    {
+        var state = GetFolderPlaybackState(configId);
+        if (state != null)
+        {
+            state.PlayedVideos.Clear();
+            
+            var dir = Path.Combine(AppContext.BaseDirectory, "logs", "playback_status");
+            if (!Directory.Exists(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+            var filePath = Path.Combine(dir, $"{configId}.json");
+            var json = JsonSerializer.Serialize(state, new JsonSerializerOptions { WriteIndented = true });
+            await File.WriteAllTextAsync(filePath, json);
+
+            lock (_processLock)
+            {
+                if (_processes.TryGetValue(configId, out var sp))
+                {
+                    sp.FolderState = state;
+                }
+            }
+        }
+    }
+
+    public TimeSpan? GetTotalDuration(string configId)
+    {
+        lock (_processLock)
+        {
+            if (_processes.TryGetValue(configId, out var sp))
+                return sp.TotalDuration;
+        }
+        return null;
+    }
+
+    public async Task PlayNextVideoAsync(string configId)
+    {
+        var config = await _configService.GetConfigAsync(configId);
+        if (config == null) return;
+
+        var state = GetFolderPlaybackState(configId);
+        if (state == null) return;
+
+        if (config.Shuffle)
+        {
+            state.PlayedVideos.Add(new PlayedVideoInfo
+            {
+                VideoPath = state.CurrentVideoPath,
+                VideoName = state.CurrentVideoName,
+                PlayedAt = DateTime.UtcNow
+            });
+        }
+
+        var nextVideo = state.UpcomingVideoPath;
+        state.ResumePositionSeconds = 0;
+
+        SetupNextVideoForFolder(configId, config, state, nextVideo);
+
+        var dir = Path.Combine(AppContext.BaseDirectory, "logs", "playback_status");
+        if (!Directory.Exists(dir))
+        {
+            Directory.CreateDirectory(dir);
+        }
+        var filePath = Path.Combine(dir, $"{configId}.json");
+        var json = JsonSerializer.Serialize(state, new JsonSerializerOptions { WriteIndented = true });
+        await File.WriteAllTextAsync(filePath, json);
+
+        await RestartStreamAsync(configId);
+    }
+
+    private void SetupNextVideoForFolder(string configId, StreamConfig config, FolderPlaybackState state, string? currentOverride = null)
+    {
+        var folderPath = config.InputDevice;
+        if (!Directory.Exists(folderPath))
+        {
+            throw new DirectoryNotFoundException($"Folder path not found: {folderPath}");
+        }
+
+        var videoExtensions = new[] { ".mp4", ".mkv", ".avi", ".mov", ".ts", ".m2ts", ".flv", ".webm" };
+        var videoFiles = Directory.GetFiles(folderPath)
+            .Where(f => videoExtensions.Contains(Path.GetExtension(f).ToLower()))
+            .OrderBy(f => f)
+            .ToList();
+
+        if (videoFiles.Count == 0)
+        {
+            throw new FileNotFoundException($"No video files found in folder: {folderPath}");
+        }
+
+        string currentVideo;
+        var normalizedCurrentPath = string.IsNullOrEmpty(state.CurrentVideoPath) ? "" : Path.GetFullPath(state.CurrentVideoPath).ToLowerInvariant();
+        var matchingFile = videoFiles.FirstOrDefault(f => Path.GetFullPath(f).ToLowerInvariant() == normalizedCurrentPath);
+
+        if (!string.IsNullOrEmpty(currentOverride))
+        {
+            var normalizedOverride = Path.GetFullPath(currentOverride).ToLowerInvariant();
+            currentVideo = videoFiles.FirstOrDefault(f => Path.GetFullPath(f).ToLowerInvariant() == normalizedOverride) ?? videoFiles[0];
+            state.ResumePositionSeconds = 0;
+        }
+        else if (matchingFile != null)
+        {
+            currentVideo = matchingFile;
+        }
+        else
+        {
+            state.ResumePositionSeconds = 0;
+            if (config.Shuffle)
+            {
+                var unplayed = videoFiles.Where(f => !state.PlayedVideos.Any(pv => Path.GetFullPath(pv.VideoPath).ToLowerInvariant() == Path.GetFullPath(f).ToLowerInvariant())).ToList();
+                if (unplayed.Count == 0)
+                {
+                    state.PlayedVideos.Clear();
+                    unplayed = videoFiles;
+                }
+                var rnd = new Random();
+                currentVideo = unplayed[rnd.Next(unplayed.Count)];
+            }
+            else
+            {
+                currentVideo = videoFiles[0];
+            }
+        }
+
+        state.CurrentVideoPath = currentVideo;
+        state.CurrentVideoName = Path.GetFileName(currentVideo);
+
+        string upcomingVideo;
+        if (config.Shuffle)
+        {
+            var unplayed = videoFiles
+                .Where(f => f != currentVideo && !state.PlayedVideos.Any(pv => Path.GetFullPath(pv.VideoPath).ToLowerInvariant() == Path.GetFullPath(f).ToLowerInvariant()))
+                .ToList();
+            if (unplayed.Count == 0)
+            {
+                unplayed = videoFiles.Where(f => f != currentVideo).ToList();
+                if (unplayed.Count == 0)
+                {
+                    unplayed = videoFiles;
+                }
+            }
+            var rnd = new Random();
+            upcomingVideo = unplayed[rnd.Next(unplayed.Count)];
+        }
+        else
+        {
+            var currentIndex = videoFiles.IndexOf(currentVideo);
+            var upcomingIndex = (currentIndex + 1) % videoFiles.Count;
+            upcomingVideo = videoFiles[upcomingIndex];
+        }
+
+        state.UpcomingVideoPath = upcomingVideo;
+        state.UpcomingVideoName = Path.GetFileName(upcomingVideo);
+    }
 }
 
 internal class StreamProcess : IDisposable
@@ -768,6 +1178,9 @@ internal class StreamProcess : IDisposable
     public DateTime? LastCpuUpdate { get; set; }
     public bool IsStopping { get; set; }
     public SemaphoreSlim LogLock { get; } = new(1, 1);
+    public TimeSpan? TotalDuration { get; set; }
+    public FolderPlaybackState? FolderState { get; set; }
+    public double StartSeekPositionSeconds { get; set; }
 
     public void Dispose()
     {

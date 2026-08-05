@@ -6,6 +6,7 @@ public class StreamConfig
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public bool Enabled { get; set; } = true;
+    public bool Shuffle { get; set; } = false;
     
     // Input Configuration
     public string InputDevice { get; set; } = "/dev/video0";
