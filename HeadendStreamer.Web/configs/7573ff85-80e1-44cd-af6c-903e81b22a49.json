@@ -12,8 +12,8 @@
   "LogoMarginTop": 10,
   "LogoMarginRight": 10,
   "LogoMarginBottom": 10,
-  "InputDevice": "C:\\jaya\\1clouds.mp4 (1080p).mp4",
-  "InputFormat": "file",
+  "InputDevice": "C:\\jaya",
+  "InputFormat": "folder",
   "PixelFormat": "yuyv422",
   "VideoSize": "720x576",
   "FrameRate": 30,
@@ -34,5 +34,5 @@
   "OutputFormat": "mpegts",
   "AdvancedOptions": {},
   "CreatedAt": "2026-08-02T14:57:50.0163769Z",
-  "UpdatedAt": "2026-08-08T14:15:51.4371312Z"
+  "UpdatedAt": "2026-08-08T14:21:55.651824Z"
 }

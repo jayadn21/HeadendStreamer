@@ -673,6 +673,10 @@ public class StreamManagerService
         // Output configuration
         args.AddRange(new[] { "-f", config.OutputFormat });
         args.AddRange(new[] { "-flags", "+global_header" });
+        if (hasLogo && isLocalFile)
+        {
+            args.Add("-shortest");
+        }
         
         // Advanced options
         if (config.AdvancedOptions != null)
