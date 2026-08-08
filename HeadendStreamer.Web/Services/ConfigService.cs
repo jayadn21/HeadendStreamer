@@ -68,6 +68,10 @@ public class ConfigService
         existingConfig.LogoPosition = updates.LogoPosition;
         existingConfig.LogoWidth = updates.LogoWidth;
         existingConfig.LogoHeight = updates.LogoHeight;
+        existingConfig.LogoMarginLeft = updates.LogoMarginLeft;
+        existingConfig.LogoMarginTop = updates.LogoMarginTop;
+        existingConfig.LogoMarginRight = updates.LogoMarginRight;
+        existingConfig.LogoMarginBottom = updates.LogoMarginBottom;
         existingConfig.InputDevice = updates.InputDevice ?? existingConfig.InputDevice;
         existingConfig.InputFormat = updates.InputFormat ?? existingConfig.InputFormat;
         existingConfig.PixelFormat = updates.PixelFormat ?? existingConfig.PixelFormat;

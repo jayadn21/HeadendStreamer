@@ -8,6 +8,10 @@
   "LogoPosition": "Top Left",
   "LogoWidth": 100,
   "LogoHeight": 100,
+  "LogoMarginLeft": 100,
+  "LogoMarginTop": 10,
+  "LogoMarginRight": 10,
+  "LogoMarginBottom": 10,
   "InputDevice": "C:\\jaya",
   "InputFormat": "folder",
   "PixelFormat": "yuyv422",
@@ -30,5 +34,5 @@
   "OutputFormat": "mpegts",
   "AdvancedOptions": {},
   "CreatedAt": "2026-08-02T14:57:50.0163769Z",
-  "UpdatedAt": "2026-08-05T04:12:36.2730081Z"
+  "UpdatedAt": "2026-08-05T16:34:41.4856408Z"
 }

@@ -544,38 +544,92 @@ public class StreamManagerService
             args.AddRange(new[] { "-i", $"\"{config.LogoPath}\"" });
         }
         
+        // Font setup for drawing date
+        string fontFile = null;
+        if (isWindows)
+        {
+            fontFile = "C\\:/Windows/Fonts/arial.ttf";
+        }
+        else
+        {
+            if (File.Exists("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"))
+            {
+                fontFile = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf";
+            }
+            else if (File.Exists("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"))
+            {
+                fontFile = "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf";
+            }
+        }
+
+        string dateText = DateTime.Now.ToString("dd/MM/yyyy");
+        string dateCoords;
+        if (hasLogo)
+        {
+            int ml = config.LogoMarginLeft ?? 10;
+            int mt = config.LogoMarginTop ?? 10;
+            int mr = config.LogoMarginRight ?? 10;
+            int mb = config.LogoMarginBottom ?? 10;
+            int lh = (config.LogoHeight ?? 0) > 0 ? config.LogoHeight.Value : 100;
+
+            dateCoords = config.LogoPosition?.ToLowerInvariant() switch
+            {
+                "top right" => $"x=main_w-tw-{mr}:y={mt + lh + 5}",
+                "bottom left" => $"x={ml}:y=main_h-{lh}-{mb}-th-5",
+                "bottom right" => $"x=main_w-tw-{mr}:y=main_h-{lh}-{mb}-th-5",
+                _ => $"x={ml}:y={mt + lh + 5}" // "top left"
+            };
+        }
+        else
+        {
+            dateCoords = "x=main_w-tw-20:y=20";
+        }
+
+        string dateFilter = string.IsNullOrEmpty(fontFile) 
+            ? $"drawtext=text='{dateText}':{dateCoords}:fontsize=24:fontcolor=white:box=1:boxcolor=black@0.4:boxborderw=5"
+            : $"drawtext=fontfile='{fontFile}':text='{dateText}':{dateCoords}:fontsize=24:fontcolor=white:box=1:boxcolor=black@0.4:boxborderw=5";
+
+        string filterString;
         if (hasLogo)
         {
             int logoInputIndex = (config.EnableAudio && !isLocalFile && !isMpegTs && !string.IsNullOrEmpty(config.AudioDevice)) ? 2 : 1;
             
+            int ml = config.LogoMarginLeft ?? 10;
+            int mt = config.LogoMarginTop ?? 10;
+            int mr = config.LogoMarginRight ?? 10;
+            int mb = config.LogoMarginBottom ?? 10;
+
             string overlayCoords = config.LogoPosition?.ToLowerInvariant() switch
             {
-                "top right" => "main_w-overlay_w-10:10",
-                "bottom left" => "10:main_h-overlay_h-10",
-                "bottom right" => "main_w-overlay_w-10:main_h-overlay_h-10",
-                _ => "10:10"
+                "top right" => $"main_w-overlay_w-{mr}:{mt}",
+                "bottom left" => $"{ml}:main_h-overlay_h-{mb}",
+                "bottom right" => $"main_w-overlay_w-{mr}:main_h-overlay_h-{mb}",
+                _ => $"{ml}:{mt}" // "top left"
             };
 
-            string filterString;
             if ((config.LogoWidth ?? 0) > 0 || (config.LogoHeight ?? 0) > 0)
             {
                 var w = (config.LogoWidth ?? 0) > 0 ? config.LogoWidth.ToString() : "-1";
                 var h = (config.LogoHeight ?? 0) > 0 ? config.LogoHeight.ToString() : "-1";
-                filterString = $"\"[{logoInputIndex}:v]scale={w}:{h}[scaled_logo]; [0:v][scaled_logo]overlay={overlayCoords}[outv]\"";
+                filterString = $"\"[{logoInputIndex}:v]scale={w}:{h}[scaled_logo]; [0:v][scaled_logo]overlay={overlayCoords}[temp_v]; [temp_v]{dateFilter}[outv]\"";
             }
             else
             {
-                filterString = $"\"[0:v][{logoInputIndex}:v]overlay={overlayCoords}[outv]\"";
+                filterString = $"\"[0:v][{logoInputIndex}:v]overlay={overlayCoords}[temp_v]; [temp_v]{dateFilter}[outv]\"";
             }
+        }
+        else
+        {
+            filterString = $"\"[0:v]{dateFilter}[outv]\"";
+        }
 
-            args.AddRange(new[] { "-filter_complex", filterString });
-            args.AddRange(new[] { "-map", "[outv]" });
+        args.AddRange(new[] { "-filter_complex", filterString });
+        args.AddRange(new[] { "-map", "[outv]" });
 
-            if (config.EnableAudio)
-            {
-                string audioMap = (config.EnableAudio && !isLocalFile && !isMpegTs && !string.IsNullOrEmpty(config.AudioDevice)) ? "1:a" : "0:a";
-                args.AddRange(new[] { "-map", audioMap });
-            }
+        if (config.EnableAudio)
+        {
+            string audioMap = (config.EnableAudio && !isLocalFile && !isMpegTs && !string.IsNullOrEmpty(config.AudioDevice)) ? "1:a" : "0:a";
+            args.AddRange(new[] { "-map", audioMap });
         }
 
         // Video encoding

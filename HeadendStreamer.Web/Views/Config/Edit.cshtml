@@ -89,6 +89,24 @@
                                         <input asp-for="Config.LogoHeight" id="LogoHeight" type="number" class="form-control" min="0" placeholder="Original" value="@(Model.Config.LogoHeight ?? 100)" />
                                     </div>
                                 </div>
+                                <div class="row">
+                                    <div class="col-md-3 mb-3">
+                                        <label asp-for="Config.LogoMarginLeft" class="form-label font-weight-bold">Margin Left (px)</label>
+                                        <input asp-for="Config.LogoMarginLeft" id="LogoMarginLeft" type="number" class="form-control" min="0" value="@(Model.Config.LogoMarginLeft ?? 10)" />
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label asp-for="Config.LogoMarginTop" class="form-label font-weight-bold">Margin Top (px)</label>
+                                        <input asp-for="Config.LogoMarginTop" id="LogoMarginTop" type="number" class="form-control" min="0" value="@(Model.Config.LogoMarginTop ?? 10)" />
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label asp-for="Config.LogoMarginRight" class="form-label font-weight-bold">Margin Right (px)</label>
+                                        <input asp-for="Config.LogoMarginRight" id="LogoMarginRight" type="number" class="form-control" min="0" value="@(Model.Config.LogoMarginRight ?? 10)" />
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label asp-for="Config.LogoMarginBottom" class="form-label font-weight-bold">Margin Bottom (px)</label>
+                                        <input asp-for="Config.LogoMarginBottom" id="LogoMarginBottom" type="number" class="form-control" min="0" value="@(Model.Config.LogoMarginBottom ?? 10)" />
+                                    </div>
+                                </div>
                                 <div id="logoPreviewContainer" class="mt-2 text-center" style="display: none;">
                                     <label class="form-label d-block text-start font-weight-bold">Logo Preview</label>
                                     <img id="logoPreviewImg" src="" class="img-thumbnail img-fluid" style="max-height: 120px; background-color: #f0f0f0;" />
@@ -1290,6 +1308,14 @@
             // Logo overlay inputs conversion
             data.LogoWidth = parseInt(data.LogoWidth) || null;
             data.LogoHeight = parseInt(data.LogoHeight) || null;
+            data.LogoMarginLeft = parseInt(data.LogoMarginLeft);
+            if (isNaN(data.LogoMarginLeft)) data.LogoMarginLeft = 10;
+            data.LogoMarginTop = parseInt(data.LogoMarginTop);
+            if (isNaN(data.LogoMarginTop)) data.LogoMarginTop = 10;
+            data.LogoMarginRight = parseInt(data.LogoMarginRight);
+            if (isNaN(data.LogoMarginRight)) data.LogoMarginRight = 10;
+            data.LogoMarginBottom = parseInt(data.LogoMarginBottom);
+            if (isNaN(data.LogoMarginBottom)) data.LogoMarginBottom = 10;
             data.LogoPath = data.LogoPath || null;
             data.LogoPosition = data.LogoPosition || "Top Left";
             data.Id = id;

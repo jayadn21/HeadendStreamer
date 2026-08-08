@@ -13,6 +13,10 @@ public class StreamConfig
     public string? LogoPosition { get; set; } = "Top Left"; // "Top Left", "Top Right", "Bottom Left", "Bottom Right"
     public int? LogoWidth { get; set; } = 100;
     public int? LogoHeight { get; set; } = 100;
+    public int? LogoMarginLeft { get; set; } = 10;
+    public int? LogoMarginTop { get; set; } = 10;
+    public int? LogoMarginRight { get; set; } = 10;
+    public int? LogoMarginBottom { get; set; } = 10;
     
     // Input Configuration
     public string InputDevice { get; set; } = "/dev/video0";
