@@ -634,6 +634,14 @@ public class StreamManagerService
 
         // Video encoding
         args.AddRange(new[] { "-c:v", config.VideoCodec });
+        if (isLocalFile)
+        {
+            if (!string.IsNullOrEmpty(config.VideoSize))
+            {
+                args.AddRange(new[] { "-s", config.VideoSize });
+            }
+            args.AddRange(new[] { "-r", config.FrameRate.ToString() });
+        }
         if (!string.IsNullOrEmpty(config.Preset))
             args.AddRange(new[] { "-preset", config.Preset });
         if (!string.IsNullOrEmpty(config.Tune))

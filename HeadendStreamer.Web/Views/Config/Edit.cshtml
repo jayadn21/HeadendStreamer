@@ -1109,14 +1109,23 @@
                 
                 // Video encoding
                 args.push('-c:v', videoCodec);
-                args.push('-preset', preset === 'veryfast' ? 'veryfast' : preset);
-                args.push('-tune', tune === 'zerolatency' ? 'zerolatency' : tune);
-                args.push('-b:v', '2000k');
-                args.push('-maxrate', '2000k');
-                args.push('-bufsize', '1000k');
+                if (videoSize) {
+                    args.push('-s', videoSize);
+                }
+                args.push('-r', frameRate);
+                args.push('-preset', preset);
+                args.push('-tune', tune);
+                args.push('-b:v', bitrate);
+                args.push('-maxrate', bitrate);
                 
-                args.push('-g', '60');
-                args.push('-keyint_min', '60');
+                // Parse bitrate for bufsize
+                let brNum = parseInt(bitrate) || 5000;
+                if (bitrate.includes('k')) brNum = parseInt(bitrate);
+                else if (bitrate.includes('m')) brNum = parseInt(bitrate) * 1000;
+                args.push('-bufsize', `${Math.floor(brNum / 2)}k`);
+                
+                args.push('-g', gopSize);
+                args.push('-keyint_min', gopSize);
                 args.push('-sc_threshold', '0');
 
                 // Audio encoding
