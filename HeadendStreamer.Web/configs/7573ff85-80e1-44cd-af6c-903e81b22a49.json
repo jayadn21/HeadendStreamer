@@ -25,8 +25,8 @@
   "EnableAudio": true,
   "ReStream": false,
   "AudioDevice": "hw:0,0",
-  "AudioCodec": "aac",
-  "AudioBitrate": "128k",
+  "AudioCodec": "mp2",
+  "AudioBitrate": "384k",
   "AudioVolume": 100,
   "MulticastIp": "224.2.2.2",
   "Port": 8010,
@@ -34,5 +34,5 @@
   "OutputFormat": "mpegts",
   "AdvancedOptions": {},
   "CreatedAt": "2026-08-02T14:57:50.0163769Z",
-  "UpdatedAt": "2026-08-08T14:21:55.651824Z"
+  "UpdatedAt": "2026-08-08T15:05:52.0842189Z"
 }
