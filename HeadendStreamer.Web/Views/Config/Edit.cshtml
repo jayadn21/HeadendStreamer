@@ -394,10 +394,21 @@
                             <div class="form-text">This command is generated dynamically based on your settings above.</div>
                         </div>
 
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-warning btn-lg">
-                                <i class="fas fa-save me-2"></i> Update Configuration
-                            </button>
+                        <div id="saveAlert" class="alert alert-success d-none mb-3" role="alert">
+                            <i class="fas fa-check-circle me-2"></i> <span id="saveAlertMessage">Saved Successfully</span>
+                        </div>
+
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <button type="submit" id="updateConfigBtn" class="btn btn-warning w-100 btn-lg">
+                                    <i class="fas fa-save me-2"></i> Update Configuration
+                                </button>
+                            </div>
+                            <div class="col-md-6">
+                                <button type="button" id="updateAndRestartBtn" class="btn btn-primary w-100 btn-lg">
+                                    <i class="fas fa-sync-alt me-2"></i> Update and Restart Stream
+                                </button>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -1294,11 +1305,15 @@
             updateCommandPreview();
         });
 
-        document.getElementById('editConfigForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
+        async function saveConfiguration() {
+            const form = document.getElementById('editConfigForm');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return false;
+            }
+
             const id = document.getElementById('ConfigId').value;
-            const formData = new FormData(this);
+            const formData = new FormData(form);
             const data = {};
             formData.forEach((value, key) => {
                 // Strip 'Config.' prefix if present
@@ -1342,13 +1357,51 @@
                 });
 
                 if (response.ok) {
-                    window.location.href = '/Config';
+                    return true;
                 } else {
                     const error = await response.json();
                     alert('Error updating config: ' + (error.error || 'Unknown error'));
+                    return false;
                 }
             } catch (err) {
                 alert('Failed to connect to server');
+                return false;
+            }
+        }
+
+        let alertTimeout;
+        function showSaveAlert(message, isSuccess = true) {
+            const alertEl = document.getElementById('saveAlert');
+            const messageEl = document.getElementById('saveAlertMessage');
+            
+            alertEl.className = `alert alert-${isSuccess ? 'success' : 'danger'} mb-3`;
+            alertEl.classList.remove('d-none');
+            messageEl.textContent = message;
+            
+            // Clear any existing timeout
+            if (alertTimeout) {
+                clearTimeout(alertTimeout);
+            }
+            
+            // Auto hide after 5 seconds
+            alertTimeout = setTimeout(() => {
+                alertEl.classList.add('d-none');
+            }, 5000);
+        }
+
+        document.getElementById('editConfigForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const success = await saveConfiguration();
+            if (success) {
+                showSaveAlert('Saved Successfully');
+            }
+        });
+
+        document.getElementById('updateAndRestartBtn').addEventListener('click', async function() {
+            const success = await saveConfiguration();
+            if (success) {
+                showSaveAlert('Saved and Stream Restarted Successfully');
+                await controlStream('restart');
             }
         });
     </script>
