@@ -255,21 +255,13 @@
                             <div class="col-md-4 mb-3">
                                 <label asp-for="Config.Preset" class="form-label">Preset</label>
                                 <select asp-for="Config.Preset" id="Preset" class="form-select">
-                                    <option value="ultrafast">ultrafast</option>
-                                    <option value="superfast">superfast</option>
-                                    <option value="veryfast">veryfast</option>
-                                    <option value="faster">faster</option>
-                                    <option value="fast">fast</option>
-                                    <option value="medium">medium</option>
+                                    <!-- Options populated dynamically based on Video Codec -->
                                 </select>
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label asp-for="Config.Tune" class="form-label">Tune</label>
                                 <select asp-for="Config.Tune" id="Tune" class="form-select">
-                                    <option value="none">none</option>
-                                    <option value="zerolatency">zerolatency</option>
-                                    <option value="film">film</option>
-                                    <option value="animation">animation</option>
+                                    <!-- Options populated dynamically based on Video Codec -->
                                 </select>
                             </div>
                         </div>
@@ -471,6 +463,83 @@
         const discoveryDeviceSelect = document.getElementById('DiscoveryDevice');
         const refreshDevicesBtn = document.getElementById('refreshDevicesBtn');
         const inputDeviceInput = document.getElementById('InputDevice');
+
+        // Codec options mapping (NVENC vs standard)
+        const initialPreset = "@Model.Config.Preset";
+        const initialTune = "@Model.Config.Tune";
+
+        const codecOptions = {
+            nvenc: {
+                presets: [
+                    { value: "p1", label: "p1: Fastest (lowest quality)" },
+                    { value: "p2", label: "p2: Faster" },
+                    { value: "p3", label: "p3: Fast" },
+                    { value: "p4", label: "p4: Medium (default)" },
+                    { value: "p5", label: "p5: Slow" },
+                    { value: "p6", label: "p6: Slower" },
+                    { value: "p7", label: "p7: Slowest (highest quality)" }
+                ],
+                tunes: [
+                    { value: "none", label: "none" },
+                    { value: "ull", label: "ull: Ultra-Low Latency" },
+                    { value: "ll", label: "ll: Low Latency" },
+                    { value: "hq", label: "hq: High Quality (default)" },
+                    { value: "lossless", label: "lossless: Lossless" }
+                ],
+                defaultPreset: "p3",
+                defaultTune: "ull"
+            },
+            standard: {
+                presets: [
+                    { value: "ultrafast", label: "ultrafast" },
+                    { value: "superfast", label: "superfast" },
+                    { value: "veryfast", label: "veryfast" },
+                    { value: "faster", label: "faster" },
+                    { value: "fast", label: "fast" },
+                    { value: "medium", label: "medium" }
+                ],
+                tunes: [
+                    { value: "none", label: "none" },
+                    { value: "zerolatency", label: "zerolatency" },
+                    { value: "film", label: "film" },
+                    { value: "animation", label: "animation" }
+                ],
+                defaultPreset: "veryfast",
+                defaultTune: "zerolatency"
+            }
+        };
+
+        function updateCodecOptions(targetPreset = null, targetTune = null) {
+            const codec = document.getElementById('VideoCodec').value;
+            const isNvenc = codec.includes('nvenc');
+            const options = isNvenc ? codecOptions.nvenc : codecOptions.standard;
+
+            const presetSelect = document.getElementById('Preset');
+            const tuneSelect = document.getElementById('Tune');
+
+            const currentPreset = targetPreset !== null ? targetPreset : presetSelect.value;
+            const currentTune = targetTune !== null ? targetTune : tuneSelect.value;
+
+            presetSelect.innerHTML = options.presets.map(p => 
+                `<option value="${p.value}">${p.label}</option>`
+            ).join('');
+
+            tuneSelect.innerHTML = options.tunes.map(t => 
+                `<option value="${t.value}">${t.label}</option>`
+            ).join('');
+
+            if (options.presets.some(p => p.value === currentPreset)) {
+                presetSelect.value = currentPreset;
+            } else {
+                presetSelect.value = options.defaultPreset;
+            }
+
+            if (options.tunes.some(t => t.value === currentTune)) {
+                tuneSelect.value = currentTune;
+            } else {
+                tuneSelect.value = options.defaultTune;
+            }
+        }
 
         // Audio discovery elements
         const audioDeviceInput = document.getElementById('AudioDevice');
@@ -1292,10 +1361,13 @@
         document.getElementById('LogoPath').addEventListener('input', updateLogoPreview);
         document.getElementById('LogoPath').addEventListener('change', updateLogoPreview);
 
-        // Explicitly listen to PixelFormat just in case
-        document.getElementById('PixelFormat').addEventListener('change', updateCommandPreview);
+        document.getElementById('VideoCodec').addEventListener('change', () => {
+            updateCodecOptions();
+            updateCommandPreview();
+        });
 
         window.addEventListener('DOMContentLoaded', () => {
+            updateCodecOptions(initialPreset, initialTune);
             // Trigger change event to set initial labels/icons
             document.getElementById('InputFormat').dispatchEvent(new Event('change'));
             toggleDeviceDiscovery();
