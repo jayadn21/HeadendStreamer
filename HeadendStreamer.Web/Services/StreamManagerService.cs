@@ -562,7 +562,13 @@ public class StreamManagerService
             }
         }
 
-        string dateText = DateTime.Now.ToString("dd/MM/yyyy");
+        // Cycle text between Date, Time, and Day of the Week every 5 seconds (15-second period total) using FFmpeg filter timeline expressions
+        // Note: %{localtime} splits arguments on unescaped colons in drawtext options list.
+        // Double-escape colons for drawtext option parser: %I\\\%M\\\%S %p
+        string dateTextExpr = "%{localtime\\:%d/%m/%Y}";
+        string timeTextExpr = "%{localtime\\:%I\\\\\\:%M\\\\\\:%S %p}";
+        string dayTextExpr = "%{localtime\\:%A}";
+
         string dateCoords;
         if (hasLogo)
         {
@@ -585,9 +591,12 @@ public class StreamManagerService
             dateCoords = "x=main_w-tw-20:y=20";
         }
 
-        string dateFilter = string.IsNullOrEmpty(fontFile) 
-            ? $"drawtext=text='{dateText}':{dateCoords}:fontsize=24:fontcolor=white:box=1:boxcolor=black@0.4:boxborderw=5"
-            : $"drawtext=fontfile='{fontFile}':text='{dateText}':{dateCoords}:fontsize=24:fontcolor=white:box=1:boxcolor=black@0.4:boxborderw=5";
+        string fontOpt = string.IsNullOrEmpty(fontFile) ? "" : $"fontfile='{fontFile}':";
+        string dateFilter = $"{fontOpt}text='{dateTextExpr}':{dateCoords}:fontsize=24:fontcolor=white:box=1:boxcolor=black@0.4:boxborderw=5:enable='eq(mod(floor(t/5)\\,3)\\,0)'";
+        string timeFilter = $"{fontOpt}text='{timeTextExpr}':{dateCoords}:fontsize=24:fontcolor=white:box=1:boxcolor=black@0.4:boxborderw=5:enable='eq(mod(floor(t/5)\\,3)\\,1)'";
+        string dayFilter  = $"{fontOpt}text='{dayTextExpr}':{dateCoords}:fontsize=24:fontcolor=white:box=1:boxcolor=black@0.4:boxborderw=5:enable='eq(mod(floor(t/5)\\,3)\\,2)'";
+
+        string overlayTextChain = $"drawtext={dateFilter},drawtext={timeFilter},drawtext={dayFilter}";
 
         string filterString;
         if (hasLogo)
@@ -611,16 +620,16 @@ public class StreamManagerService
             {
                 var w = (config.LogoWidth ?? 0) > 0 ? config.LogoWidth.ToString() : "-1";
                 var h = (config.LogoHeight ?? 0) > 0 ? config.LogoHeight.ToString() : "-1";
-                filterString = $"\"[{logoInputIndex}:v]scale={w}:{h}[scaled_logo]; [0:v][scaled_logo]overlay={overlayCoords}[temp_v]; [temp_v]{dateFilter}[outv]\"";
+                filterString = $"\"[{logoInputIndex}:v]scale={w}:{h}[scaled_logo]; [0:v][scaled_logo]overlay={overlayCoords}[temp_v]; [temp_v]{overlayTextChain}[outv]\"";
             }
             else
             {
-                filterString = $"\"[0:v][{logoInputIndex}:v]overlay={overlayCoords}[temp_v]; [temp_v]{dateFilter}[outv]\"";
+                filterString = $"\"[0:v][{logoInputIndex}:v]overlay={overlayCoords}[temp_v]; [temp_v]{overlayTextChain}[outv]\"";
             }
         }
         else
         {
-            filterString = $"\"[0:v]{dateFilter}[outv]\"";
+            filterString = $"\"[0:v]{overlayTextChain}[outv]\"";
         }
 
         args.AddRange(new[] { "-filter_complex", filterString });
