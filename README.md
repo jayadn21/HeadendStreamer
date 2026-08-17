@@ -23,7 +23,7 @@ OR
 dotnet HeadendStreamer.Web.dll --urls "http://0.0.0.0:5000"
 
 Windows Release build:
-indddotnet build --configuration Release HeadendStreamer.Web\HeadendStreamer.Web.csproj
+dotnet build --configuration Release HeadendStreamer.Web\HeadendStreamer.Web.csproj
 ========
 To list devices ffmpeg: 
 ffmpeg -f v4l2 -list_devices true -i "" (or ffmpeg -f v4l2 -devices true -i "") (or ffmpeg -list_devices true -f dshow -i dummy)
