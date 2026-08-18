@@ -1228,6 +1228,13 @@
                 const reStream = getVal('ReStream');
 
                 let args = ['ffmpeg'];
+                
+                const isNvidiaCodec = videoCodec === 'h264_nvenc' || videoCodec === 'hevc_nvenc';
+                const isCompressedInput = inputFormat === 'file' || inputFormat === 'folder' || inputFormat === 'mpegts';
+
+                if (isNvidiaCodec && isCompressedInput) {
+                    args.push('-hwaccel', 'cuda', '-hwaccel_output_format', 'cuda');
+                }
             
             if (reStream && (inputFormat === 'mpegts' || inputFormat === 'youtube')) {
                 args.push('-i', `"${inputDevice}"`);
@@ -1244,7 +1251,11 @@
                 
                 // Video encoding
                 args.push('-c:v', videoCodec);
-                if (videoSize) {
+                if (isNvidiaCodec && isCompressedInput) {
+                    const size = videoSize || '720x576';
+                    const scaleSize = size.includes('x') ? size.replace('x', ':') : size;
+                    args.push('-vf', `"scale_cuda=${scaleSize},hwdownload,format=nv12"`);
+                } else if (videoSize) {
                     args.push('-s', videoSize);
                 }
                 args.push('-r', frameRate);
@@ -1277,6 +1288,8 @@
                 // Pixel Format configuration (for local files)
                 if (pixelFormat && pixelFormat !== 'auto') {
                      args.push('-pix_fmt', pixelFormat);
+                } else if (isNvidiaCodec) {
+                     args.push('-pix_fmt', 'yuv420p');
                 }
 
                 // Output
@@ -1322,6 +1335,11 @@
 
                 // Video encoding
                 args.push('-c:v', videoCodec);
+                if (isNvidiaCodec && isCompressedInput) {
+                    const size = videoSize || '720x576';
+                    const scaleSize = size.includes('x') ? size.replace('x', ':') : size;
+                    args.push('-vf', `"scale_cuda=${scaleSize},hwdownload,format=nv12"`);
+                }
                 args.push('-preset', preset);
                 args.push('-tune', tune);
                 args.push('-b:v', bitrate);
@@ -1346,6 +1364,10 @@
                     if (audioVolume != 100) {
                         args.push('-filter:a', `"volume=${audioVolume/100}"`);
                     }
+                }
+
+                if (isNvidiaCodec) {
+                    args.push('-pix_fmt', 'yuv420p');
                 }
 
                 // Output

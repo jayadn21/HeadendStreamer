@@ -407,9 +407,17 @@ public class StreamManagerService
         var isLocalFile = inputFormat == "file" || inputFormat == "local file" || inputFormat == "folder";
         var isMpegTs = inputFormat == "mpegts";
         
-        _logger.LogInformation($"Building FFmpeg command. OS: {(isWindows ? "Windows" : "Linux/Other")}, Input Format: {inputFormat}");
+        var isNvidiaCodec = config.VideoCodec == "h264_nvenc" || config.VideoCodec == "hevc_nvenc";
+        var isCompressedInput = isLocalFile || isMpegTs;
+
+        _logger.LogInformation($"Building FFmpeg command. OS: {(isWindows ? "Windows" : "Linux/Other")}, Input Format: {inputFormat}, Nvidia Codec: {isNvidiaCodec}");
         
         var hasLogo = !string.IsNullOrEmpty(config.LogoPath) && File.Exists(config.LogoPath);
+
+        if (isNvidiaCodec && isCompressedInput)
+        {
+            args.AddRange(new[] { "-hwaccel", "cuda", "-hwaccel_output_format", "cuda" });
+        }
 
         if (config.ReStream && (inputFormat == "mpegts") && !hasLogo)
         {
@@ -623,13 +631,33 @@ public class StreamManagerService
 
         string videoInputNode = "[0:v]";
         string preScaleFilter = "";
-        if (!string.IsNullOrEmpty(config.VideoSize))
+        if (isNvidiaCodec && isCompressedInput)
         {
-            var sizeParts = config.VideoSize.Split('x');
-            if (sizeParts.Length == 2 && int.TryParse(sizeParts[0], out _) && int.TryParse(sizeParts[1], out _))
+            if (!string.IsNullOrEmpty(config.VideoSize))
             {
-                preScaleFilter = $"[0:v]scale={sizeParts[0]}:{sizeParts[1]}[scaled_in]; ";
-                videoInputNode = "[scaled_in]";
+                var sizeParts = config.VideoSize.Split('x');
+                if (sizeParts.Length == 2 && int.TryParse(sizeParts[0], out _) && int.TryParse(sizeParts[1], out _))
+                {
+                    preScaleFilter = $"[0:v]scale_cuda={sizeParts[0]}:{sizeParts[1]},hwdownload,format=nv12[scaled_in]; ";
+                    videoInputNode = "[scaled_in]";
+                }
+            }
+            else
+            {
+                preScaleFilter = "[0:v]hwdownload,format=nv12[downloaded_in]; ";
+                videoInputNode = "[downloaded_in]";
+            }
+        }
+        else
+        {
+            if (!string.IsNullOrEmpty(config.VideoSize))
+            {
+                var sizeParts = config.VideoSize.Split('x');
+                if (sizeParts.Length == 2 && int.TryParse(sizeParts[0], out _) && int.TryParse(sizeParts[1], out _))
+                {
+                    preScaleFilter = $"[0:v]scale={sizeParts[0]}:{sizeParts[1]}[scaled_in]; ";
+                    videoInputNode = "[scaled_in]";
+                }
             }
         }
 
@@ -680,7 +708,7 @@ public class StreamManagerService
         args.AddRange(new[] { "-c:v", config.VideoCodec });
         if (isLocalFile)
         {
-            if (!string.IsNullOrEmpty(config.VideoSize))
+            if (!string.IsNullOrEmpty(config.VideoSize) && !(isNvidiaCodec && isCompressedInput))
             {
                 args.AddRange(new[] { "-s", config.VideoSize });
             }
@@ -697,6 +725,11 @@ public class StreamManagerService
         args.AddRange(new[] { "-g", config.GopSize.ToString() });
         args.AddRange(new[] { "-keyint_min", config.GopSize.ToString() });
         args.AddRange(new[] { "-sc_threshold", "0" });
+        
+        if (isNvidiaCodec)
+        {
+            args.AddRange(new[] { "-pix_fmt", "yuv420p" });
+        }
         
         // Audio encoding if enabled
         if (config.EnableAudio)
