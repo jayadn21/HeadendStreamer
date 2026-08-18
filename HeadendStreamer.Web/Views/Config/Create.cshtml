@@ -129,6 +129,10 @@
                                             <option value="magenta">Magenta</option>
                                         </select>
                                     </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label asp-for="DateTimeFontSize" class="form-label font-weight-bold">Font Size (px)</label>
+                                        <input asp-for="DateTimeFontSize" id="DateTimeFontSize" type="number" class="form-control" min="8" max="72" value="24" />
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1397,6 +1401,8 @@
             data.DateTimeMarginBottom = parseInt(data.DateTimeMarginBottom);
             if (isNaN(data.DateTimeMarginBottom)) data.DateTimeMarginBottom = 10;
             data.DateTimeFontColor = data.DateTimeFontColor || "white";
+            data.DateTimeFontSize = parseInt(data.DateTimeFontSize);
+            if (isNaN(data.DateTimeFontSize)) data.DateTimeFontSize = 24;
 
             try {
                 const response = await fetch('/api/config', {

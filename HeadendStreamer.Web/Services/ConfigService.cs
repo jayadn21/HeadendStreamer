@@ -77,6 +77,7 @@ public class ConfigService
         existingConfig.DateTimeMarginRight = updates.DateTimeMarginRight;
         existingConfig.DateTimeMarginBottom = updates.DateTimeMarginBottom;
         existingConfig.DateTimeFontColor = updates.DateTimeFontColor;
+        existingConfig.DateTimeFontSize = updates.DateTimeFontSize;
         existingConfig.InputDevice = updates.InputDevice ?? existingConfig.InputDevice;
         existingConfig.InputFormat = updates.InputFormat ?? existingConfig.InputFormat;
         existingConfig.PixelFormat = updates.PixelFormat ?? existingConfig.PixelFormat;

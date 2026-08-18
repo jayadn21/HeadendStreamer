@@ -576,8 +576,9 @@ public class StreamManagerService
 
         _logger.LogInformation($"DateTime margins for stream {config.Name}: Left={dml}, Top={dmt}, Right={dmr}, Bottom={dmb}");
 
-        int boxW = 180;
-        int boxH = 40;
+        int fontSize = config.DateTimeFontSize ?? 24;
+        int boxW = (int)(fontSize * 7.5);
+        int boxH = (int)(fontSize * 1.66);
         string bx, by;
 
         if (hasLogo)
@@ -614,9 +615,9 @@ public class StreamManagerService
 
         string fontColor = config.DateTimeFontColor ?? "white";
         string fontOpt = string.IsNullOrEmpty(fontFile) ? "" : $"fontfile='{fontFile}':";
-        string dateFilter = $"{fontOpt}text='{dateTextExpr}':x='{bx}+({boxW}-tw)/2':y='{by}+({boxH}-th)/2':fontsize=24:fontcolor={fontColor}:enable='eq(mod(floor(t/5)\\,3)\\,0)'";
-        string timeFilter = $"{fontOpt}text='{timeTextExpr}':x='{bx}+({boxW}-tw)/2':y='{by}+({boxH}-th)/2':fontsize=24:fontcolor={fontColor}:enable='eq(mod(floor(t/5)\\,3)\\,1)'";
-        string dayFilter  = $"{fontOpt}text='{dayTextExpr}':x='{bx}+({boxW}-tw)/2':y='{by}+({boxH}-th)/2':fontsize=24:fontcolor={fontColor}:enable='eq(mod(floor(t/5)\\,3)\\,2)'";
+        string dateFilter = $"{fontOpt}text='{dateTextExpr}':x='{bx}+({boxW}-tw)/2':y='{by}+({boxH}-th)/2':fontsize={fontSize}:fontcolor={fontColor}:enable='eq(mod(floor(t/5)\\,3)\\,0)'";
+        string timeFilter = $"{fontOpt}text='{timeTextExpr}':x='{bx}+({boxW}-tw)/2':y='{by}+({boxH}-th)/2':fontsize={fontSize}:fontcolor={fontColor}:enable='eq(mod(floor(t/5)\\,3)\\,1)'";
+        string dayFilter  = $"{fontOpt}text='{dayTextExpr}':x='{bx}+({boxW}-tw)/2':y='{by}+({boxH}-th)/2':fontsize={fontSize}:fontcolor={fontColor}:enable='eq(mod(floor(t/5)\\,3)\\,2)'";
 
         string overlayTextChain = $"drawbox=x='{bx}':y='{by}':w={boxW}:h={boxH}:color=black@0.0:t=fill,drawtext={dateFilter},drawtext={timeFilter},drawtext={dayFilter}";
 

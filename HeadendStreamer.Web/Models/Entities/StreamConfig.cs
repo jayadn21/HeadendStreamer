@@ -24,6 +24,7 @@ public class StreamConfig
     public int? DateTimeMarginRight { get; set; } = 10;
     public int? DateTimeMarginBottom { get; set; } = 10;
     public string? DateTimeFontColor { get; set; } = "white";
+    public int? DateTimeFontSize { get; set; } = 24;
     
     // Input Configuration
     public string InputDevice { get; set; } = "/dev/video0";
