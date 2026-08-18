@@ -18,6 +18,13 @@ public class StreamConfig
     public int? LogoMarginRight { get; set; } = 10;
     public int? LogoMarginBottom { get; set; } = 10;
     
+    // DateTime Configuration
+    public int? DateTimeMarginLeft { get; set; } = 10;
+    public int? DateTimeMarginTop { get; set; } = 10;
+    public int? DateTimeMarginRight { get; set; } = 10;
+    public int? DateTimeMarginBottom { get; set; } = 10;
+    public string? DateTimeFontColor { get; set; } = "white";
+    
     // Input Configuration
     public string InputDevice { get; set; } = "/dev/video0";
     public string InputFormat { get; set; } = "yuyv422"; // This is actually the input format/driver (e.g. dshow, v4l2) or pixel format depending on context. Refactoring to separate.

@@ -569,34 +569,56 @@ public class StreamManagerService
         string timeTextExpr = "%{localtime\\:%I\\\\\\:%M\\\\\\:%S %p}";
         string dayTextExpr = "%{localtime\\:%A}";
 
-        string dateCoords;
+        int dml = config.DateTimeMarginLeft ?? 10;
+        int dmt = config.DateTimeMarginTop ?? 10;
+        int dmr = config.DateTimeMarginRight ?? 10;
+        int dmb = config.DateTimeMarginBottom ?? 10;
+
+        _logger.LogInformation($"DateTime margins for stream {config.Name}: Left={dml}, Top={dmt}, Right={dmr}, Bottom={dmb}");
+
+        int boxW = 180;
+        int boxH = 40;
+        string bx, by;
+
         if (hasLogo)
         {
-            int ml = config.LogoMarginLeft ?? 10;
             int mt = config.LogoMarginTop ?? 10;
-            int mr = config.LogoMarginRight ?? 10;
             int mb = config.LogoMarginBottom ?? 10;
+            int ml = config.LogoMarginLeft ?? 10;
+            int mr = config.LogoMarginRight ?? 10;
+            int lw = (config.LogoWidth ?? 0) > 0 ? config.LogoWidth.Value : 100;
             int lh = (config.LogoHeight ?? 0) > 0 ? config.LogoHeight.Value : 100;
 
-            dateCoords = config.LogoPosition?.ToLowerInvariant() switch
+            string logoCenter = config.LogoPosition?.ToLowerInvariant() switch
             {
-                "top right" => $"x=main_w-tw-{mr}:y={mt + lh + 5}",
-                "bottom left" => $"x={ml}:y=main_h-{lh}-{mb}-th-5",
-                "bottom right" => $"x=main_w-tw-{mr}:y=main_h-{lh}-{mb}-th-5",
-                _ => $"x={ml}:y={mt + lh + 5}" // "top left"
+                "top right" => $"main_w-{mr}-{lw}/2",
+                "bottom left" => $"{ml}+{lw}/2",
+                "bottom right" => $"main_w-{mr}-{lw}/2",
+                _ => $"{ml}+{lw}/2" // "top left"
+            };
+
+            bx = $"({logoCenter})-{boxW}/2";
+
+            by = config.LogoPosition?.ToLowerInvariant() switch
+            {
+                "bottom left" => $"main_h-{lh}-{mb}-{boxH}-{dmb}",
+                "bottom right" => $"main_h-{lh}-{mb}-{boxH}-{dmb}",
+                _ => $"{mt + lh + dmt}"
             };
         }
         else
         {
-            dateCoords = "x=main_w-tw-20:y=20";
+            bx = $"main_w-{boxW}-{dmr}";
+            by = $"{dmt}";
         }
 
+        string fontColor = config.DateTimeFontColor ?? "white";
         string fontOpt = string.IsNullOrEmpty(fontFile) ? "" : $"fontfile='{fontFile}':";
-        string dateFilter = $"{fontOpt}text='{dateTextExpr}':{dateCoords}:fontsize=24:fontcolor=white:box=1:boxcolor=black@0.4:boxborderw=5:enable='eq(mod(floor(t/5)\\,3)\\,0)'";
-        string timeFilter = $"{fontOpt}text='{timeTextExpr}':{dateCoords}:fontsize=24:fontcolor=white:box=1:boxcolor=black@0.4:boxborderw=5:enable='eq(mod(floor(t/5)\\,3)\\,1)'";
-        string dayFilter  = $"{fontOpt}text='{dayTextExpr}':{dateCoords}:fontsize=24:fontcolor=white:box=1:boxcolor=black@0.4:boxborderw=5:enable='eq(mod(floor(t/5)\\,3)\\,2)'";
+        string dateFilter = $"{fontOpt}text='{dateTextExpr}':x='{bx}+({boxW}-tw)/2':y='{by}+({boxH}-th)/2':fontsize=24:fontcolor={fontColor}:enable='eq(mod(floor(t/5)\\,3)\\,0)'";
+        string timeFilter = $"{fontOpt}text='{timeTextExpr}':x='{bx}+({boxW}-tw)/2':y='{by}+({boxH}-th)/2':fontsize=24:fontcolor={fontColor}:enable='eq(mod(floor(t/5)\\,3)\\,1)'";
+        string dayFilter  = $"{fontOpt}text='{dayTextExpr}':x='{bx}+({boxW}-tw)/2':y='{by}+({boxH}-th)/2':fontsize=24:fontcolor={fontColor}:enable='eq(mod(floor(t/5)\\,3)\\,2)'";
 
-        string overlayTextChain = $"drawtext={dateFilter},drawtext={timeFilter},drawtext={dayFilter}";
+        string overlayTextChain = $"drawbox=x='{bx}':y='{by}':w={boxW}:h={boxH}:color=black@0.0:t=fill,drawtext={dateFilter},drawtext={timeFilter},drawtext={dayFilter}";
 
         string filterString;
         if (hasLogo)

@@ -113,6 +113,48 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- DateTime Configuration Settings -->
+                        <div class="card bg-light mb-4 shadow-sm border-0">
+                            <div class="card-header bg-secondary text-white font-weight-bold d-flex align-items-center">
+                                <i class="fas fa-clock me-2"></i> DateTime Overlay Settings
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-3 mb-3">
+                                        <label asp-for="Config.DateTimeMarginLeft" class="form-label font-weight-bold">Margin Left (px)</label>
+                                        <input asp-for="Config.DateTimeMarginLeft" id="DateTimeMarginLeft" type="number" class="form-control" min="0" value="@(Model.Config.DateTimeMarginLeft ?? 10)" />
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label asp-for="Config.DateTimeMarginTop" class="form-label font-weight-bold">Margin Top (px)</label>
+                                        <input asp-for="Config.DateTimeMarginTop" id="DateTimeMarginTop" type="number" class="form-control" min="0" value="@(Model.Config.DateTimeMarginTop ?? 10)" />
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label asp-for="Config.DateTimeMarginRight" class="form-label font-weight-bold">Margin Right (px)</label>
+                                        <input asp-for="Config.DateTimeMarginRight" id="DateTimeMarginRight" type="number" class="form-control" min="0" value="@(Model.Config.DateTimeMarginRight ?? 10)" />
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label asp-for="Config.DateTimeMarginBottom" class="form-label font-weight-bold">Margin Bottom (px)</label>
+                                        <input asp-for="Config.DateTimeMarginBottom" id="DateTimeMarginBottom" type="number" class="form-control" min="0" value="@(Model.Config.DateTimeMarginBottom ?? 10)" />
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label asp-for="Config.DateTimeFontColor" class="form-label font-weight-bold">Font Color</label>
+                                        <select asp-for="Config.DateTimeFontColor" id="DateTimeFontColor" class="form-select">
+                                            <option value="white">White</option>
+                                            <option value="black">Black</option>
+                                            <option value="yellow">Yellow</option>
+                                            <option value="red">Red</option>
+                                            <option value="green">Green</option>
+                                            <option value="blue">Blue</option>
+                                            <option value="cyan">Cyan</option>
+                                            <option value="magenta">Magenta</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         
                         <div class="row">
                             <div class="col-md-6 mb-3">
@@ -1417,6 +1459,17 @@
             if (isNaN(data.LogoMarginBottom)) data.LogoMarginBottom = 10;
             data.LogoPath = data.LogoPath || null;
             data.LogoPosition = data.LogoPosition || "Top Left";
+
+            // DateTime overlay inputs conversion
+            data.DateTimeMarginLeft = parseInt(data.DateTimeMarginLeft);
+            if (isNaN(data.DateTimeMarginLeft)) data.DateTimeMarginLeft = 10;
+            data.DateTimeMarginTop = parseInt(data.DateTimeMarginTop);
+            if (isNaN(data.DateTimeMarginTop)) data.DateTimeMarginTop = 10;
+            data.DateTimeMarginRight = parseInt(data.DateTimeMarginRight);
+            if (isNaN(data.DateTimeMarginRight)) data.DateTimeMarginRight = 10;
+            data.DateTimeMarginBottom = parseInt(data.DateTimeMarginBottom);
+            if (isNaN(data.DateTimeMarginBottom)) data.DateTimeMarginBottom = 10;
+            data.DateTimeFontColor = data.DateTimeFontColor || "white";
             data.Id = id;
 
             try {
