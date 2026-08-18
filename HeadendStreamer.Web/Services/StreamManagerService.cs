@@ -591,9 +591,9 @@ public class StreamManagerService
 
             string logoCenter = config.LogoPosition?.ToLowerInvariant() switch
             {
-                "top right" => $"main_w-{mr}-{lw}/2",
+                "top right" => $"w-{mr}-{lw}/2",
                 "bottom left" => $"{ml}+{lw}/2",
-                "bottom right" => $"main_w-{mr}-{lw}/2",
+                "bottom right" => $"w-{mr}-{lw}/2",
                 _ => $"{ml}+{lw}/2" // "top left"
             };
 
@@ -601,14 +601,14 @@ public class StreamManagerService
 
             by = config.LogoPosition?.ToLowerInvariant() switch
             {
-                "bottom left" => $"main_h-{lh}-{mb}-{boxH}-{dmb}",
-                "bottom right" => $"main_h-{lh}-{mb}-{boxH}-{dmb}",
+                "bottom left" => $"h-{lh}-{mb}-{boxH}-{dmb}",
+                "bottom right" => $"h-{lh}-{mb}-{boxH}-{dmb}",
                 _ => $"{mt + lh + dmt}"
             };
         }
         else
         {
-            bx = $"main_w-{boxW}-{dmr}";
+            bx = $"w-{boxW}-{dmr}";
             by = $"{dmt}";
         }
 
@@ -619,6 +619,18 @@ public class StreamManagerService
         string dayFilter  = $"{fontOpt}text='{dayTextExpr}':x='{bx}+({boxW}-tw)/2':y='{by}+({boxH}-th)/2':fontsize=24:fontcolor={fontColor}:enable='eq(mod(floor(t/5)\\,3)\\,2)'";
 
         string overlayTextChain = $"drawbox=x='{bx}':y='{by}':w={boxW}:h={boxH}:color=black@0.0:t=fill,drawtext={dateFilter},drawtext={timeFilter},drawtext={dayFilter}";
+
+        string videoInputNode = "[0:v]";
+        string preScaleFilter = "";
+        if (!string.IsNullOrEmpty(config.VideoSize))
+        {
+            var sizeParts = config.VideoSize.Split('x');
+            if (sizeParts.Length == 2 && int.TryParse(sizeParts[0], out _) && int.TryParse(sizeParts[1], out _))
+            {
+                preScaleFilter = $"[0:v]scale={sizeParts[0]}:{sizeParts[1]}[scaled_in]; ";
+                videoInputNode = "[scaled_in]";
+            }
+        }
 
         string filterString;
         if (hasLogo)
@@ -642,16 +654,16 @@ public class StreamManagerService
             {
                 var w = (config.LogoWidth ?? 0) > 0 ? config.LogoWidth.ToString() : "-1";
                 var h = (config.LogoHeight ?? 0) > 0 ? config.LogoHeight.ToString() : "-1";
-                filterString = $"\"[{logoInputIndex}:v]scale={w}:{h}[scaled_logo]; [0:v][scaled_logo]overlay={overlayCoords}[temp_v]; [temp_v]{overlayTextChain}[outv]\"";
+                filterString = $"\"{preScaleFilter}[{logoInputIndex}:v]scale={w}:{h}[scaled_logo]; {videoInputNode}[scaled_logo]overlay={overlayCoords}[temp_v]; [temp_v]{overlayTextChain}[outv]\"";
             }
             else
             {
-                filterString = $"\"[0:v][{logoInputIndex}:v]overlay={overlayCoords}[temp_v]; [temp_v]{overlayTextChain}[outv]\"";
+                filterString = $"\"{preScaleFilter}{videoInputNode}[{logoInputIndex}:v]overlay={overlayCoords}[temp_v]; [temp_v]{overlayTextChain}[outv]\"";
             }
         }
         else
         {
-            filterString = $"\"[0:v]{overlayTextChain}[outv]\"";
+            filterString = $"\"{preScaleFilter}{videoInputNode}{overlayTextChain}[outv]\"";
         }
 
         args.AddRange(new[] { "-filter_complex", filterString });
