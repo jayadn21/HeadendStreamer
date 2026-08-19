@@ -543,7 +543,7 @@ public class StreamManagerService
             
             if (isImage)
             {
-                args.AddRange(new[] { "-loop", "1" });
+                // Removed -loop 1 option to reduce CPU utilization
             }
             else
             {
