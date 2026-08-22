@@ -5,6 +5,47 @@ document.addEventListener('DOMContentLoaded', function () {
     // 1. Register Button Event Listeners FIRST
     document.getElementById('refreshStreams')?.addEventListener('click', refreshStreams);
 
+    // Event listener for Auto Start on Start Up toggle
+    document.getElementById('autoStartSettingsToggle')?.addEventListener('change', async function () {
+        const enabled = this.checked;
+        try {
+            const response = await fetch(`/api/settings/autostart?autoStart=${enabled}`, {
+                method: 'POST'
+            });
+            if (!response.ok) {
+                alert('Failed to update Auto Start setting');
+                this.checked = !enabled;
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Failed to update Auto Start setting');
+            this.checked = !enabled;
+        }
+    });
+
+    // Event listener for Stream Enabled switches
+    document.addEventListener('change', async function (e) {
+        const target = e.target.closest('.toggle-stream-enabled');
+        if (!target) return;
+
+        const streamId = target.dataset.id;
+        const enabled = target.checked;
+
+        try {
+            const response = await fetch(`/api/config/${streamId}/toggle-enabled?enabled=${enabled}`, {
+                method: 'POST'
+            });
+            if (!response.ok) {
+                alert('Failed to update stream enabled state');
+                target.checked = !enabled;
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Failed to update stream enabled state');
+            target.checked = !enabled;
+        }
+    });
+
     document.addEventListener('click', function (e) {
         const extTarget = e.target.closest('.start-ext-service, .stop-ext-service, .restart-ext-service');
         if (extTarget) {

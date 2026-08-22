@@ -41,6 +41,7 @@ public class HomeController : Controller
         var viewModel = new DashboardViewModel
         {
             SystemInfo = systemInfo,
+            AutoStartOnStartup = _configService.AutoStartOnStartup,
             Streams = configs.Select(c => new StreamViewModel
             {
                 Config = c,
@@ -158,6 +159,19 @@ public class HomeController : Controller
         }
         var status = await _externalProcessService.GetStatusAsync(serviceName);
         return Ok(status);
+    }
+
+    [HttpGet("api/settings/autostart")]
+    public IActionResult GetAutoStart()
+    {
+        return Ok(new { autoStart = _configService.AutoStartOnStartup });
+    }
+
+    [HttpPost("api/settings/autostart")]
+    public IActionResult SetAutoStart([FromQuery] bool autoStart)
+    {
+        _configService.AutoStartOnStartup = autoStart;
+        return Ok(new { autoStart = _configService.AutoStartOnStartup });
     }
 
     [AllowAnonymous]

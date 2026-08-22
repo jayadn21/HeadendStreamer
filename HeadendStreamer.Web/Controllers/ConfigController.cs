@@ -132,6 +132,26 @@ public class ConfigController : Controller
             return StatusCode(500, new { error = ex.Message });
         }
     }
+
+    [HttpPost("api/config/{id}/toggle-enabled")]
+    public async Task<IActionResult> ToggleEnabled(string id, [FromQuery] bool enabled)
+    {
+        try
+        {
+            var config = await _configService.GetConfigAsync(id);
+            if (config == null)
+                return NotFound();
+            
+            config.Enabled = enabled;
+            await _configService.UpdateConfigAsync(id, config);
+            return Ok(new { success = true, enabled = config.Enabled });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Failed to toggle enabled for config {id}");
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
     
     [HttpPost]
     [ValidateAntiForgeryToken]

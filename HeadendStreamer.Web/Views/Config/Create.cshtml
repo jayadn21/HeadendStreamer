@@ -30,6 +30,12 @@
                             <label asp-for="Description" class="form-label">Description</label>
                             <textarea asp-for="Description" class="form-control" rows="2"></textarea>
                         </div>
+                        
+                        <div class="mb-3 form-check form-switch">
+                            <input asp-for="Enabled" id="Enabled" class="form-check-input" type="checkbox" checked />
+                            <label asp-for="Enabled" class="form-check-label font-weight-bold">Enabled</label>
+                            <div class="form-text text-muted">If disabled, this stream will not start automatically or when toggled as part of start-all actions.</div>
+                        </div>
 
                         <!-- Logo Configuration Settings -->
                         <div class="card bg-light mb-4 shadow-sm border-0">
