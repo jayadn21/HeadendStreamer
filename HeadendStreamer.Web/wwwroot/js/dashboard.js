@@ -329,16 +329,39 @@ document.addEventListener('DOMContentLoaded', function () {
         const uptimeElement = document.getElementById('system-uptime');
         if (uptimeElement) {
             let uptime = systemInfo.uptime !== undefined ? systemInfo.uptime : systemInfo.Uptime;
+            let seconds = 0;
+            let isValid = false;
+
             if (typeof uptime === 'number' && !isNaN(uptime)) {
-                const days = Math.floor(uptime / 86400);
-                const hours = Math.floor((uptime % 86400) / 3600);
-                const minutes = Math.floor((uptime % 3600) / 60);
-                const seconds = Math.floor(uptime % 60);
-                uptimeElement.innerHTML = `<i class="fas fa-clock me-1"></i> Uptime: ${days}d ${hours}h ${minutes}m ${seconds}s`;
+                seconds = uptime;
+                isValid = true;
             } else if (typeof uptime === 'string' && !uptime.includes('NaN')) {
-                uptimeElement.innerHTML = `<i class="fas fa-clock me-1"></i> Uptime: ${uptime}`;
+                const parts = uptime.split(':');
+                if (parts.length === 3) {
+                    let h = parts[0];
+                    let d = 0;
+                    if (h.includes('.')) {
+                        const hParts = h.split('.');
+                        d = parseInt(hParts[0]) || 0;
+                        h = hParts[1];
+                    }
+                    seconds = (d * 86400) + (parseInt(h) * 3600) + (parseInt(parts[1]) * 60) + parseFloat(parts[2]);
+                    isValid = true;
+                }
+            }
+
+            if (isValid) {
+                const days = Math.floor(seconds / 86400);
+                const hours = Math.floor((seconds % 86400) / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                const secs = Math.floor(seconds % 60);
+                const timeStr = [
+                    hours.toString().padStart(2, '0'),
+                    minutes.toString().padStart(2, '0'),
+                    secs.toString().padStart(2, '0')
+                ].join(':');
+                uptimeElement.innerHTML = `<i class="fas fa-clock me-1"></i> Uptime: ${days > 0 ? days + 'd ' : ''}${timeStr}`;
             } else {
-                // Fallback if NaN
                 uptimeElement.innerHTML = `<i class="fas fa-clock me-1"></i> Uptime: 00:00:00`;
             }
         }
