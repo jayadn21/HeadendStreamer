@@ -105,16 +105,144 @@
                         </div>
                     </div>
                     
-                    <div class="row mt-3">
-                        <div class="col-md-6">
-                            <small class="text-muted">
+                    <hr class="my-3" />
+                    <div class="row align-items-center">
+                        <div class="col-md-6 col-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="autoStartSettingsToggle" @(Model.AutoStartOnStartup ? "checked" : "") />
+                                <label class="form-check-label fw-bold" for="autoStartSettingsToggle">
+                                    <i class="fas fa-power-off me-1 text-primary"></i> Auto Start on Start Up
+                                </label>
+                                <span class="ms-2 text-muted small">(Starts all enabled streams on app launch)</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-12 text-md-end text-start mt-2 mt-md-0">
+                            <small class="text-muted me-3">
                                 <i class="fas fa-desktop me-1"></i> @Model.SystemInfo.Hostname
                             </small>
-                        </div>
-                        <div class="col-md-6 text-end">
                             <small id="system-uptime" class="text-muted">
                                 <i class="fas fa-clock me-1"></i> Uptime: @Model.SystemInfo.Uptime.ToString(@"dd\.hh\:mm\:ss")
                             </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- External Auxiliary Services Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-cogs me-2"></i>External Auxiliary Services
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- OBS Scheduler Panel -->
+                        <div class="col-md-6 mb-3 mb-md-0" id="ext-card-OBS_Scheduler">
+                            <div class="card h-100 border-@(Model.ObsScheduler.IsRunning ? "success" : "secondary")">
+                                <div class="card-header d-flex justify-content-between align-items-center bg-transparent">
+                                    <h6 class="mb-0 fw-bold">
+                                        <span class="badge bg-@(Model.ObsScheduler.IsRunning ? "success" : "secondary") me-1" id="badge-OBS_Scheduler">
+                                            <i class="fas fa-circle"></i>
+                                        </span>
+                                        OBS Scheduler
+                                    </h6>
+                                    @if (!string.IsNullOrEmpty(Model.ObsScheduler.ServerURL))
+                                    {
+                                        <a href="@Model.ObsScheduler.ServerURL" target="_blank" class="btn btn-sm btn-outline-primary" title="Open Server URL">
+                                            <i class="fas fa-external-link-alt me-1"></i> Open Web UI
+                                        </a>
+                                    }
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <div class="btn-group w-100">
+                                            <button class="btn btn-sm btn-success start-ext-service @(Model.ObsScheduler.IsRunning ? "d-none" : "")" data-service="OBS_Scheduler">
+                                                <i class="fas fa-play me-1"></i> Start
+                                            </button>
+                                            <button class="btn btn-sm btn-danger stop-ext-service @(Model.ObsScheduler.IsRunning ? "" : "d-none")" data-service="OBS_Scheduler">
+                                                <i class="fas fa-stop me-1"></i> Stop
+                                            </button>
+                                            <button class="btn btn-sm btn-warning restart-ext-service @(Model.ObsScheduler.IsRunning ? "" : "d-none")" data-service="OBS_Scheduler">
+                                                <i class="fas fa-redo me-1"></i> Restart
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div id="status-container-OBS_Scheduler">
+                                        @if (Model.ObsScheduler.IsRunning)
+                                        {
+                                            <div class="alert alert-success py-2 mb-0">
+                                                <div class="d-flex justify-content-between">
+                                                    <small id="uptime-OBS_Scheduler"><i class="fas fa-clock me-1"></i> @Model.ObsScheduler.Uptime.ToString(@"hh\:mm\:ss")</small>
+                                                    <small>PID: @(Model.ObsScheduler.ProcessId?.ToString() ?? "N/A")</small>
+                                                </div>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="alert alert-secondary py-2 mb-0">
+                                                <small><i class="fas fa-stop-circle me-1"></i> Stopped</small>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SPX Graphics Panel -->
+                        <div class="col-md-6" id="ext-card-SPX_Graphics">
+                            <div class="card h-100 border-@(Model.SpxGraphics.IsRunning ? "success" : "secondary")">
+                                <div class="card-header d-flex justify-content-between align-items-center bg-transparent">
+                                    <h6 class="mb-0 fw-bold">
+                                        <span class="badge bg-@(Model.SpxGraphics.IsRunning ? "success" : "secondary") me-1" id="badge-SPX_Graphics">
+                                            <i class="fas fa-circle"></i>
+                                        </span>
+                                        SPX Graphics
+                                    </h6>
+                                    @if (!string.IsNullOrEmpty(Model.SpxGraphics.ServerURL))
+                                    {
+                                        <a href="@Model.SpxGraphics.ServerURL" target="_blank" class="btn btn-sm btn-outline-primary" title="Open Server URL">
+                                            <i class="fas fa-external-link-alt me-1"></i> Open Web UI
+                                        </a>
+                                    }
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <div class="btn-group w-100">
+                                            <button class="btn btn-sm btn-success start-ext-service @(Model.SpxGraphics.IsRunning ? "d-none" : "")" data-service="SPX_Graphics">
+                                                <i class="fas fa-play me-1"></i> Start
+                                            </button>
+                                            <button class="btn btn-sm btn-danger stop-ext-service @(Model.SpxGraphics.IsRunning ? "" : "d-none")" data-service="SPX_Graphics">
+                                                <i class="fas fa-stop me-1"></i> Stop
+                                            </button>
+                                            <button class="btn btn-sm btn-warning restart-ext-service @(Model.SpxGraphics.IsRunning ? "" : "d-none")" data-service="SPX_Graphics">
+                                                <i class="fas fa-redo me-1"></i> Restart
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div id="status-container-SPX_Graphics">
+                                        @if (Model.SpxGraphics.IsRunning)
+                                        {
+                                            <div class="alert alert-success py-2 mb-0">
+                                                <div class="d-flex justify-content-between">
+                                                    <small id="uptime-SPX_Graphics"><i class="fas fa-clock me-1"></i> @Model.SpxGraphics.Uptime.ToString(@"hh\:mm\:ss")</small>
+                                                    <small>PID: @(Model.SpxGraphics.ProcessId?.ToString() ?? "N/A")</small>
+                                                </div>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="alert alert-secondary py-2 mb-0">
+                                                <small><i class="fas fa-stop-circle me-1"></i> Stopped</small>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -159,7 +287,11 @@
                                                 }
                                                 @stream.Config.Name
                                             </h6>
-                                            <div class="dropdown">
+                                            <div class="d-flex align-items-center">
+                                                <div class="form-check form-switch me-2" title="Enable/Disable Stream">
+                                                    <input class="form-check-input toggle-stream-enabled" type="checkbox" data-id="@stream.Config.Id" @(stream.Config.Enabled ? "checked" : "") />
+                                                </div>
+                                                <div class="dropdown">
                                                 <button class="btn btn-sm btn-outline-secondary dropdown-toggle" 
                                                         type="button" data-bs-toggle="dropdown">
                                                     <i class="fas fa-ellipsis-v"></i>
@@ -192,6 +324,7 @@
                                                         </button>
                                                     </li>
                                                 </ul>
+                                            </div>
                                             </div>
                                         </div>
                                         <div class="card-body">

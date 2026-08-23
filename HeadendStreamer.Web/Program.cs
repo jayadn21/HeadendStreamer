@@ -4,6 +4,16 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.SignalR;
 using Serilog;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using System.Threading;
+
+const string MutexName = "HeadendStreamer-UniqueMutex-5f3b7c89";
+using var mutex = new Mutex(true, MutexName, out bool createdNew);
+
+if (!createdNew)
+{
+    Console.WriteLine("Another instance of HeadendStreamer is already running. Exiting...");
+    return;
+}
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,6 +45,8 @@ builder.Services.AddSingleton<FfmpegService>();
 builder.Services.AddSingleton<ConfigService>();
 builder.Services.AddSingleton<IUserService, UserService>();
 builder.Services.AddSingleton<Go2rtcService>();
+builder.Services.AddSingleton<SchedulerService>();
+builder.Services.AddSingleton<ExternalProcessService>();
 builder.Services.AddHostedService<BackgroundMonitorService>();
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -80,6 +92,10 @@ using (var scope = app.Services.CreateScope())
 {
     var userService = scope.ServiceProvider.GetRequiredService<IUserService>();
     await userService.InitializeAsync();
+    
+    // Start Scheduler Service
+    var schedulerService = scope.ServiceProvider.GetRequiredService<SchedulerService>();
+    schedulerService.Start();
 }
 
 app.Run();

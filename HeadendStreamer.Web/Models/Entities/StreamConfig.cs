@@ -6,6 +6,25 @@ public class StreamConfig
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public bool Enabled { get; set; } = true;
+    public bool Shuffle { get; set; } = false;
+    
+    // Logo Configuration
+    public string? LogoPath { get; set; }
+    public string? LogoPosition { get; set; } = "Top Left"; // "Top Left", "Top Right", "Bottom Left", "Bottom Right"
+    public int? LogoWidth { get; set; } = 100;
+    public int? LogoHeight { get; set; } = 100;
+    public int? LogoMarginLeft { get; set; } = 10;
+    public int? LogoMarginTop { get; set; } = 10;
+    public int? LogoMarginRight { get; set; } = 10;
+    public int? LogoMarginBottom { get; set; } = 10;
+    
+    // DateTime Configuration
+    public int? DateTimeMarginLeft { get; set; } = 10;
+    public int? DateTimeMarginTop { get; set; } = 10;
+    public int? DateTimeMarginRight { get; set; } = 10;
+    public int? DateTimeMarginBottom { get; set; } = 10;
+    public string? DateTimeFontColor { get; set; } = "white";
+    public int? DateTimeFontSize { get; set; } = 24;
     
     // Input Configuration
     public string InputDevice { get; set; } = "/dev/video0";

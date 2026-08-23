@@ -1,10 +1,10 @@
 {
   "Id": "bb8071d3-9195-47e0-b905-f0ec0e1968cd",
-  "Name": "Fedora Test Stream1",
-  "Description": "Fedora Test Stream1",
+  "Name": "Kubuntu Test Stream1",
+  "Description": "Kubuntu Test Stream1",
   "Enabled": true,
-  "InputDevice": "/home/siti/Videos/Videos/Coding_Music2.mp4",
-  "InputFormat": "file",
+  "InputDevice": "srt://127.0.0.1:9999?mode=caller",
+  "InputFormat": "mpegts",
   "PixelFormat": "yuv420p",
   "VideoSize": "720x576",
   "FrameRate": 30,
@@ -19,11 +19,11 @@
   "AudioCodec": "libmp3lame",
   "AudioBitrate": "128k",
   "AudioVolume": 100,
-  "MulticastIp": "239.255.255.250",
-  "Port": 1234,
+  "MulticastIp": "224.2.2.2",
+  "Port": 8009,
   "Ttl": 64,
   "OutputFormat": "mpegts",
   "AdvancedOptions": {},
   "CreatedAt": "2026-02-15T13:47:05.4178584Z",
-  "UpdatedAt": "2026-02-15T14:00:47.9022785Z"
+  "UpdatedAt": "2026-08-01T11:37:40.1863653Z"
 }

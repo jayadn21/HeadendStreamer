@@ -142,10 +142,144 @@
     </div>
 </div>
 
+@if (Model.Config.InputFormat?.ToLower() == "folder")
+{
+    <div class="row mt-4" id="folderPlaybackSection">
+        <div class="col-12">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0"><i class="fas fa-folder-open me-2 text-primary"></i>Folder Playback Details</h5>
+                    <div>
+                        <button class="btn btn-sm btn-secondary me-1" onclick="seekStream(-30)">
+                            <i class="fas fa-fast-backward me-1"></i> Rewind 30s
+                        </button>
+                        <button class="btn btn-sm btn-secondary me-1" onclick="seekStream(-10)">
+                            <i class="fas fa-backward me-1"></i> Rewind 10s
+                        </button>
+                        <button class="btn btn-sm btn-primary me-1" id="playPauseBtn" onclick="togglePlayPause()">
+                            <i class="fas fa-pause me-1"></i> Pause
+                        </button>
+                        <button class="btn btn-sm btn-secondary me-1" onclick="seekStream(10)">
+                            <i class="fas fa-forward me-1"></i> Forward 10s
+                        </button>
+                        <button class="btn btn-sm btn-secondary me-1" onclick="seekStream(30)">
+                            <i class="fas fa-fast-forward me-1"></i> Forward 30s
+                        </button>
+                        <button class="btn btn-sm btn-warning play-next-video me-2">
+                            <i class="fas fa-step-forward me-1"></i> Play Next
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Current Playing Video info -->
+                        <div class="col-md-6 mb-3">
+                            <h6>Current Video</h6>
+                            <table class="table table-bordered table-sm">
+                                <tr>
+                                    <th style="width: 30%;">Name</th>
+                                    <td id="folder-current-name">Loading...</td>
+                                </tr>
+                                <tr>
+                                    <th>Path</th>
+                                    <td id="folder-current-path" style="word-break: break-all;">Loading...</td>
+                                </tr>
+                                <tr>
+                                    <th>Current Time</th>
+                                    <td id="folder-current-time">00:00:00</td>
+                                </tr>
+                                <tr>
+                                    <th>Total Duration</th>
+                                    <td id="folder-total-duration">00:00:00</td>
+                                </tr>
+                                <tr>
+                                    <th>Time Remaining</th>
+                                    <td id="folder-time-remaining">00:00:00</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <!-- Upcoming Video info -->
+                        <div class="col-md-6 mb-3">
+                            <h6>Upcoming Video</h6>
+                            <table class="table table-bordered table-sm">
+                                <tr>
+                                    <th style="width: 30%;">Name</th>
+                                    <td id="folder-upcoming-name">Loading...</td>
+                                </tr>
+                                <tr>
+                                    <th>Path</th>
+                                    <td id="folder-upcoming-path" style="word-break: break-all;">Loading...</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Played History -->
+                    <div class="mt-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6>Played History (Shuffle mode)</h6>
+                            <button class="btn btn-sm btn-outline-danger clear-playback-history">
+                                <i class="fas fa-trash me-1"></i> Clear History
+                            </button>
+                        </div>
+                        <div class="table-responsive" style="max-height: 250px;">
+                            <table class="table table-striped table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Video Name</th>
+                                        <th>Full Path</th>
+                                        <th>Played Date & Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="folder-history-body">
+                                    <tr>
+                                        <td colspan="3" class="text-center text-muted">No history recorded yet</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @section Scripts {
     <script>
         const streamId = '@Model.Config.Id';
         const logContainer = document.getElementById('log-container');
+        let isStreamRunning = @(Model.Status?.IsRunning == true ? "true" : "false");
+
+        function updatePlayPauseButtonUI() {
+            const btn = document.getElementById('playPauseBtn');
+            if (!btn) return;
+            if (isStreamRunning) {
+                btn.className = "btn btn-sm btn-primary me-1";
+                btn.innerHTML = '<i class="fas fa-pause me-1"></i> Pause';
+            } else {
+                btn.className = "btn btn-sm btn-success me-1";
+                btn.innerHTML = '<i class="fas fa-play me-1"></i> Play';
+            }
+        }
+
+        async function togglePlayPause() {
+            const action = isStreamRunning ? 'stop' : 'start';
+            await controlStream(action);
+        }
+
+        async function seekStream(offset) {
+            try {
+                const response = await fetch(`/api/stream/${streamId}/seek?offsetSeconds=${offset}`, { method: 'POST' });
+                if (response.ok) {
+                    refreshData();
+                } else {
+                    alert('Seek failed');
+                }
+            } catch (e) {
+                alert('Connection error');
+            }
+        }
 
         // Control Actions
         document.querySelectorAll('.start-stream').forEach(btn => {
@@ -249,27 +383,104 @@
                             uptimeElement.textContent = `${hours}:${minutes}:${seconds.toString().padStart(2, '0')}`;
                         }
                     }
+                    isStreamRunning = stats.isRunning;
+                    updatePlayPauseButtonUI();
                 }
             } catch (e) {
                 console.error('Failed to fetch stats', e);
             }
         }
 
+        const isFolder = @(Model.Config.InputFormat?.ToLower() == "folder" ? "true" : "false");
+        
+        async function fetchFolderPlayback() {
+            if (!isFolder) return;
+            try {
+                const response = await fetch(`/api/stream/${streamId}/folder-playback`);
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('folder-current-name').textContent = data.currentVideoName || 'N/A';
+                    document.getElementById('folder-current-path').textContent = data.currentVideoPath || 'N/A';
+                    document.getElementById('folder-current-time').textContent = formatSecondsToHms(data.currentPlayTime);
+                    document.getElementById('folder-total-duration').textContent = formatSecondsToHms(data.totalTime);
+                    document.getElementById('folder-time-remaining').textContent = formatSecondsToHms(data.timeRemaining);
+                    document.getElementById('folder-upcoming-name').textContent = data.upcomingVideoName || 'N/A';
+                    document.getElementById('folder-upcoming-path').textContent = data.upcomingVideoPath || 'N/A';
+
+                    const tbody = document.getElementById('folder-history-body');
+                    if (data.playedVideos && data.playedVideos.length > 0) {
+                        tbody.innerHTML = data.playedVideos.map(pv => `
+                            <tr>
+                                <td>${pv.videoName}</td>
+                                <td style="word-break: break-all;">${pv.videoPath}</td>
+                                <td>${new Date(pv.playedAt).toLocaleString()}</td>
+                            </tr>
+                        `).join('');
+                    } else {
+                        tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">No history recorded yet</td></tr>';
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to fetch folder playback details', e);
+            }
+        }
+
+        function formatSecondsToHms(seconds) {
+            if (isNaN(seconds) || seconds <= 0) return '00:00:00';
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = Math.floor(seconds % 60);
+            return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
+        if (isFolder) {
+            document.querySelector('.play-next-video')?.addEventListener('click', async () => {
+                if (confirm('Are you sure you want to skip and play the next video?')) {
+                    try {
+                        const response = await fetch(`/api/stream/${streamId}/play-next`, { method: 'POST' });
+                        if (response.ok) {
+                            refreshData();
+                        } else {
+                            alert('Failed to play next video');
+                        }
+                    } catch (e) {
+                        alert('Connection error');
+                    }
+                }
+            });
+
+            document.querySelector('.clear-playback-history')?.addEventListener('click', async () => {
+                if (confirm('Are you sure you want to clear the playback history?')) {
+                    try {
+                        const response = await fetch(`/api/stream/${streamId}/clear-history`, { method: 'POST' });
+                        if (response.ok) {
+                            refreshData();
+                        } else {
+                            alert('Failed to clear history');
+                        }
+                    } catch (e) {
+                        alert('Connection error');
+                    }
+                }
+            });
+        }
+
         async function refreshData() {
-            await Promise.all([fetchLogs(), fetchStats()]);
+            await Promise.all([fetchLogs(), fetchStats(), fetchFolderPlayback()]);
         }
 
         // Initial fetch
         refreshData();
+        updatePlayPauseButtonUI();
         
         // Refresh button
         document.getElementById('refreshLogs').addEventListener('click', refreshData);
 
-        // Auto-refresh every 5s if running
+        // Auto-refresh every 3s if running
         @if (Model.Status?.IsRunning == true)
         {
             <text>
-            setInterval(refreshData, 5000);
+            setInterval(refreshData, 3000);
             </text>
         }
     </script>

@@ -132,6 +132,26 @@ public class ConfigController : Controller
             return StatusCode(500, new { error = ex.Message });
         }
     }
+
+    [HttpPost("api/config/{id}/toggle-enabled")]
+    public async Task<IActionResult> ToggleEnabled(string id, [FromQuery] bool enabled)
+    {
+        try
+        {
+            var config = await _configService.GetConfigAsync(id);
+            if (config == null)
+                return NotFound();
+            
+            config.Enabled = enabled;
+            await _configService.UpdateConfigAsync(id, config);
+            return Ok(new { success = true, enabled = config.Enabled });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Failed to toggle enabled for config {id}");
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
     
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -296,12 +316,12 @@ public class ConfigController : Controller
                 });
             }
 
-            // Add files (videos focused)
-            var videoExtensions = new[] { ".mp4", ".mkv", ".avi", ".mov", ".ts", ".m2ts", ".flv", ".webm" };
+            // Add files (videos and images)
+            var allowedExtensions = new[] { ".mp4", ".mkv", ".avi", ".mov", ".ts", ".m2ts", ".flv", ".webm", ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".svg" };
             foreach (var file in di.GetFiles())
             {
                 if ((file.Attributes & FileAttributes.Hidden) != 0) continue;
-                if (!videoExtensions.Contains(file.Extension.ToLower())) continue;
+                if (!allowedExtensions.Contains(file.Extension.ToLower())) continue;
 
                 items.Add(new FileItem
                 {
@@ -334,6 +354,51 @@ public class ConfigController : Controller
         {
             _logger.LogError(ex, "Failed to verify path");
             return StatusCode(500, new { error = ex.Message });
+        }
+    }
+
+    [HttpGet("api/config/logo-preview")]
+    public IActionResult GetLogoPreview([FromQuery] string path)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(path) || !System.IO.File.Exists(path))
+            {
+                return NotFound("Logo file not found.");
+            }
+
+            var ext = System.IO.Path.GetExtension(path).ToLowerInvariant();
+            string contentType;
+            switch (ext)
+            {
+                case ".png":
+                    contentType = "image/png";
+                    break;
+                case ".jpg":
+                case ".jpeg":
+                    contentType = "image/jpeg";
+                    break;
+                case ".gif":
+                    contentType = "image/gif";
+                    break;
+                case ".bmp":
+                    contentType = "image/bmp";
+                    break;
+                case ".svg":
+                    contentType = "image/svg+xml";
+                    break;
+                default:
+                    contentType = "application/octet-stream";
+                    break;
+            }
+
+            var bytes = System.IO.File.ReadAllBytes(path);
+            return File(bytes, contentType);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Failed to read logo preview for path {path}");
+            return StatusCode(500, ex.Message);
         }
     }
 

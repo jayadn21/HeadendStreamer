@@ -26,10 +26,121 @@
                             <input asp-for="Name" id="Name" class="form-control" required />
                             <div class="form-text">A descriptive name for this stream.</div>
                         </div>
-
                         <div class="mb-3">
                             <label asp-for="Description" class="form-label">Description</label>
                             <textarea asp-for="Description" class="form-control" rows="2"></textarea>
+                        </div>
+                        
+                        <div class="mb-3 form-check form-switch">
+                            <input asp-for="Enabled" id="Enabled" class="form-check-input" type="checkbox" checked />
+                            <label asp-for="Enabled" class="form-check-label font-weight-bold">Enabled</label>
+                            <div class="form-text text-muted">If disabled, this stream will not start automatically or when toggled as part of start-all actions.</div>
+                        </div>
+
+                        <!-- Logo Configuration Settings -->
+                        <div class="card bg-light mb-4 shadow-sm border-0">
+                            <div class="card-header bg-secondary text-white font-weight-bold d-flex align-items-center">
+                                <i class="fas fa-image me-2"></i> Logo Overlay Settings
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label asp-for="LogoPath" class="form-label font-weight-bold">Logo File Path</label>
+                                    <div class="input-group">
+                                        <input asp-for="LogoPath" id="LogoPath" class="form-control" placeholder="C:\images\logo.png" />
+                                        <button class="btn btn-outline-primary" type="button" id="browseLogoBtn">
+                                            <i class="fas fa-search me-1"></i> Browse Logo
+                                        </button>
+                                    </div>
+                                    <div class="form-text text-muted">Select an image (PNG, JPG) or video (MP4) to overlay as a watermark.</div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label asp-for="LogoPosition" class="form-label font-weight-bold">Logo Display Position</label>
+                                        <select asp-for="LogoPosition" id="LogoPosition" class="form-select">
+                                            <option value="Top Left">Top Left</option>
+                                            <option value="Top Right">Top Right</option>
+                                            <option value="Bottom Left">Bottom Left</option>
+                                            <option value="Bottom Right">Bottom Right</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label asp-for="LogoWidth" class="form-label font-weight-bold">Logo Width (px)</label>
+                                        <input asp-for="LogoWidth" id="LogoWidth" type="number" class="form-control" min="0" placeholder="Original" value="100" />
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label asp-for="LogoHeight" class="form-label font-weight-bold">Logo Height (px)</label>
+                                        <input asp-for="LogoHeight" id="LogoHeight" type="number" class="form-control" min="0" placeholder="Original" value="100" />
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-3 mb-3">
+                                        <label asp-for="LogoMarginLeft" class="form-label font-weight-bold">Margin Left (px)</label>
+                                        <input asp-for="LogoMarginLeft" id="LogoMarginLeft" type="number" class="form-control" min="0" value="10" />
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label asp-for="LogoMarginTop" class="form-label font-weight-bold">Margin Top (px)</label>
+                                        <input asp-for="LogoMarginTop" id="LogoMarginTop" type="number" class="form-control" min="0" value="10" />
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label asp-for="LogoMarginRight" class="form-label font-weight-bold">Margin Right (px)</label>
+                                        <input asp-for="LogoMarginRight" id="LogoMarginRight" type="number" class="form-control" min="0" value="10" />
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label asp-for="LogoMarginBottom" class="form-label font-weight-bold">Margin Bottom (px)</label>
+                                        <input asp-for="LogoMarginBottom" id="LogoMarginBottom" type="number" class="form-control" min="0" value="10" />
+                                    </div>
+                                </div>
+                                <div id="logoPreviewContainer" class="mt-2 text-center" style="display: none;">
+                                    <label class="form-label d-block text-start font-weight-bold">Logo Preview</label>
+                                    <img id="logoPreviewImg" src="" class="img-thumbnail img-fluid" style="max-height: 120px; background-color: #f0f0f0;" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- DateTime Configuration Settings -->
+                        <div class="card bg-light mb-4 shadow-sm border-0">
+                            <div class="card-header bg-secondary text-white font-weight-bold d-flex align-items-center">
+                                <i class="fas fa-clock me-2"></i> DateTime Overlay Settings
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-3 mb-3">
+                                        <label asp-for="DateTimeMarginLeft" class="form-label font-weight-bold">Margin Left (px)</label>
+                                        <input asp-for="DateTimeMarginLeft" id="DateTimeMarginLeft" type="number" class="form-control" min="0" value="10" />
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label asp-for="DateTimeMarginTop" class="form-label font-weight-bold">Margin Top (px)</label>
+                                        <input asp-for="DateTimeMarginTop" id="DateTimeMarginTop" type="number" class="form-control" min="0" value="10" />
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label asp-for="DateTimeMarginRight" class="form-label font-weight-bold">Margin Right (px)</label>
+                                        <input asp-for="DateTimeMarginRight" id="DateTimeMarginRight" type="number" class="form-control" min="0" value="10" />
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label asp-for="DateTimeMarginBottom" class="form-label font-weight-bold">Margin Bottom (px)</label>
+                                        <input asp-for="DateTimeMarginBottom" id="DateTimeMarginBottom" type="number" class="form-control" min="0" value="10" />
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label asp-for="DateTimeFontColor" class="form-label font-weight-bold">Font Color</label>
+                                        <select asp-for="DateTimeFontColor" id="DateTimeFontColor" class="form-select">
+                                            <option value="white">White</option>
+                                            <option value="black">Black</option>
+                                            <option value="yellow">Yellow</option>
+                                            <option value="red">Red</option>
+                                            <option value="green">Green</option>
+                                            <option value="blue">Blue</option>
+                                            <option value="cyan">Cyan</option>
+                                            <option value="magenta">Magenta</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label asp-for="DateTimeFontSize" class="form-label font-weight-bold">Font Size (px)</label>
+                                        <input asp-for="DateTimeFontSize" id="DateTimeFontSize" type="number" class="form-control" min="8" max="72" value="24" />
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         
                         <div class="row">
@@ -41,7 +152,7 @@
                                     <option value="decklink">DeckLink</option>
                                     <option value="mpegts">MPEG-TS (UDP/RTP)</option>
                                     <option value="file">Local File</option>
-
+                                    <option value="folder">Local Folder</option>
                                 </select>
                                 <div id="deviceDiscoveryGroup" class="mt-2" style="display: none;">
                                     <div class="input-group">
@@ -95,6 +206,15 @@
                                 </div>
                             </div>
 
+                        </div>
+
+                        <div class="row" id="shuffleRow" style="display: none;">
+                            <div class="col-md-6 mb-3">
+                                <div class="form-check mt-2">
+                                    <input asp-for="Shuffle" id="Shuffle" class="form-check-input" type="checkbox" />
+                                    <label asp-for="Shuffle" class="form-check-label font-weight-bold">Shuffle</label>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="row" id="pixelFormatRow">
@@ -164,21 +284,13 @@
                             <div class="col-md-4 mb-3">
                                 <label asp-for="Preset" class="form-label">Preset</label>
                                 <select asp-for="Preset" id="Preset" class="form-select">
-                                    <option value="ultrafast">ultrafast</option>
-                                    <option value="superfast">superfast</option>
-                                    <option value="veryfast" selected>veryfast</option>
-                                    <option value="faster">faster</option>
-                                    <option value="fast">fast</option>
-                                    <option value="medium">medium</option>
+                                    <!-- Options populated dynamically based on Video Codec -->
                                 </select>
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label asp-for="Tune" class="form-label">Tune</label>
                                 <select asp-for="Tune" id="Tune" class="form-select">
-                                    <option value="none">none</option>
-                                    <option value="zerolatency" selected>zerolatency</option>
-                                    <option value="film">film</option>
-                                    <option value="animation">animation</option>
+                                    <!-- Options populated dynamically based on Video Codec -->
                                 </select>
                             </div>
                         </div>
@@ -233,6 +345,8 @@
                                     <select asp-for="AudioCodec" id="AudioCodec" class="form-select">
                                         <option value="aac">AAC</option>
                                         <option value="libmp3lame">MP3</option>
+                                        <option value="mp1">MP1</option>
+                                        <option value="mp2">MP2</option>
                                         <option value="opus">Opus</option>
                                         <option value="copy">Copy</option>
                                     </select>
@@ -244,6 +358,7 @@
                                         <option value="128k">128k</option>
                                         <option value="192k">192k</option>
                                         <option value="256k">256k</option>
+                                        <option value="384k">384k</option>
                                     </select>
                                 </div>
                             </div>
@@ -336,6 +451,7 @@
                 </div>
             </div>
             <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="selectFolderBtn" style="display: none;">Select Current Folder</button>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
             </div>
         </div>
@@ -365,6 +481,83 @@
         const discoveryDeviceSelect = document.getElementById('DiscoveryDevice');
         const refreshDevicesBtn = document.getElementById('refreshDevicesBtn');
         const inputDeviceInput = document.getElementById('InputDevice');
+
+        // Codec options mapping (NVENC vs standard)
+        const initialPreset = "@(Model?.Preset ?? "veryfast")";
+        const initialTune = "@(Model?.Tune ?? "zerolatency")";
+
+        const codecOptions = {
+            nvenc: {
+                presets: [
+                    { value: "p1", label: "p1: Fastest (lowest quality)" },
+                    { value: "p2", label: "p2: Faster" },
+                    { value: "p3", label: "p3: Fast" },
+                    { value: "p4", label: "p4: Medium (default)" },
+                    { value: "p5", label: "p5: Slow" },
+                    { value: "p6", label: "p6: Slower" },
+                    { value: "p7", label: "p7: Slowest (highest quality)" }
+                ],
+                tunes: [
+                    { value: "none", label: "none" },
+                    { value: "ull", label: "ull: Ultra-Low Latency" },
+                    { value: "ll", label: "ll: Low Latency" },
+                    { value: "hq", label: "hq: High Quality (default)" },
+                    { value: "lossless", label: "lossless: Lossless" }
+                ],
+                defaultPreset: "p3",
+                defaultTune: "ull"
+            },
+            standard: {
+                presets: [
+                    { value: "ultrafast", label: "ultrafast" },
+                    { value: "superfast", label: "superfast" },
+                    { value: "veryfast", label: "veryfast" },
+                    { value: "faster", label: "faster" },
+                    { value: "fast", label: "fast" },
+                    { value: "medium", label: "medium" }
+                ],
+                tunes: [
+                    { value: "none", label: "none" },
+                    { value: "zerolatency", label: "zerolatency" },
+                    { value: "film", label: "film" },
+                    { value: "animation", label: "animation" }
+                ],
+                defaultPreset: "veryfast",
+                defaultTune: "zerolatency"
+            }
+        };
+
+        function updateCodecOptions(targetPreset = null, targetTune = null) {
+            const codec = document.getElementById('VideoCodec').value;
+            const isNvenc = codec.includes('nvenc');
+            const options = isNvenc ? codecOptions.nvenc : codecOptions.standard;
+
+            const presetSelect = document.getElementById('Preset');
+            const tuneSelect = document.getElementById('Tune');
+
+            const currentPreset = targetPreset !== null ? targetPreset : presetSelect.value;
+            const currentTune = targetTune !== null ? targetTune : tuneSelect.value;
+
+            presetSelect.innerHTML = options.presets.map(p => 
+                `<option value="${p.value}">${p.label}</option>`
+            ).join('');
+
+            tuneSelect.innerHTML = options.tunes.map(t => 
+                `<option value="${t.value}">${t.label}</option>`
+            ).join('');
+
+            if (options.presets.some(p => p.value === currentPreset)) {
+                presetSelect.value = currentPreset;
+            } else {
+                presetSelect.value = options.defaultPreset;
+            }
+
+            if (options.tunes.some(t => t.value === currentTune)) {
+                tuneSelect.value = currentTune;
+            } else {
+                tuneSelect.value = options.defaultTune;
+            }
+        }
 
         // Audio discovery elements
         const audioDeviceInput = document.getElementById('AudioDevice');
@@ -699,18 +892,29 @@
             const label = document.getElementById('inputDeviceLabel');
             const help = document.getElementById('inputDeviceHelp');
             const browseIcon = document.getElementById('browseIcon');
+            const shuffleRow = document.getElementById('shuffleRow');
             
             if (this.value === 'file') {
                 label.innerText = 'Full Video Path';
                 help.innerHTML = 'Provide full absolute path. <br/><small class="text-muted">Tip: Shift + Right Click file in Explorer -> "Copy as path"</small>';
                 browseIcon.className = 'fas fa-folder-open';
                 document.getElementById('verifyPathButton').style.display = 'inline-block';
+                if (shuffleRow) shuffleRow.style.display = 'none';
+            } else if (this.value === 'folder') {
+                label.innerText = 'Full Folder Path';
+                help.innerHTML = 'Provide full absolute directory path on the server.';
+                browseIcon.className = 'fas fa-folder-open';
+                document.getElementById('verifyPathButton').style.display = 'inline-block';
+                if (shuffleRow) shuffleRow.style.display = 'block';
+                const shuffleCheckbox = document.getElementById('Shuffle');
+                if (shuffleCheckbox) shuffleCheckbox.checked = true;
             } else {
                 label.innerText = 'Input Device';
                 help.innerText = 'e.g. video=Integrated Camera or /dev/video0';
                 browseIcon.className = 'fas fa-search';
                 document.getElementById('verifyPathButton').style.display = 'none';
                 hidePathStatus();
+                if (shuffleRow) shuffleRow.style.display = 'none';
             }
             updateCommandPreview();
         });
@@ -756,16 +960,41 @@
 
         // Browse button/file input logic
         const fileBrowserModal = new bootstrap.Modal(document.getElementById('fileBrowserModal'));
+        let currentBrowsePath = '';
         
+        let activeBrowseTarget = 'device';
+
         document.getElementById('browseButton').addEventListener('click', function() {
+            activeBrowseTarget = 'device';
             const inputFormat = document.getElementById('InputFormat').value;
-            if (inputFormat === 'file') {
+            if (inputFormat === 'file' || inputFormat === 'folder') {
+                const selectFolderBtn = document.getElementById('selectFolderBtn');
+                if (selectFolderBtn) {
+                    selectFolderBtn.style.display = inputFormat === 'folder' ? 'inline-block' : 'none';
+                }
                 browsePath('');
                 fileBrowserModal.show();
             } else {
                 // Future: Add device discovery here if needed
                 alert('Device discovery not implemented yet. Please enter the device name.');
             }
+        });
+
+        document.getElementById('browseLogoBtn').addEventListener('click', function() {
+            activeBrowseTarget = 'logo';
+            const selectFolderBtn = document.getElementById('selectFolderBtn');
+            if (selectFolderBtn) {
+                selectFolderBtn.style.display = 'none';
+            }
+            browsePath('');
+            fileBrowserModal.show();
+        });
+
+        document.getElementById('selectFolderBtn').addEventListener('click', function() {
+            document.getElementById('InputDevice').value = currentBrowsePath;
+            fileBrowserModal.hide();
+            hidePathStatus();
+            updateCommandPreview();
         });
 
         async function browsePath(path) {
@@ -778,6 +1007,7 @@
                 const data = await response.json();
                 
                 if (response.ok) {
+                    currentBrowsePath = data.currentPath || '';
                     renderFileList(data);
                     renderBreadcrumbs(data.currentPath);
                 } else {
@@ -792,6 +1022,9 @@
             const fileList = document.getElementById('fileList');
             fileList.innerHTML = '';
             
+            const inputFormat = document.getElementById('InputFormat').value;
+            const isFolderMode = inputFormat === 'folder';
+            
             if (data.parentPath || (data.currentPath && data.currentPath !== "")) {
                 const upItem = document.createElement('a');
                 upItem.className = 'list-group-item list-group-item-action d-flex align-items-center';
@@ -800,12 +1033,18 @@
                 fileList.appendChild(upItem);
             }
             
-            if (data.items.length === 0) {
-                fileList.innerHTML += '<div class="text-center p-4 text-muted">No video files found in this directory</div>';
+            let itemsToRender = data.items;
+            if (isFolderMode && activeBrowseTarget === 'device') {
+                itemsToRender = itemsToRender.filter(item => item.isDirectory);
+            }
+            
+            if (itemsToRender.length === 0) {
+                const msg = isFolderMode ? 'No directories found' : 'No video files found in this directory';
+                fileList.innerHTML += `<div class="text-center p-4 text-muted">${msg}</div>`;
                 return;
             }
             
-            data.items.forEach(item => {
+            itemsToRender.forEach(item => {
                 const listItem = document.createElement('a');
                 listItem.className = 'list-group-item list-group-item-action d-flex align-items-center';
                 
@@ -818,9 +1057,14 @@
                     listItem.onclick = () => browsePath(item.path);
                 } else {
                     listItem.onclick = () => {
-                        document.getElementById('InputDevice').value = item.path;
+                        if (activeBrowseTarget === 'device') {
+                            document.getElementById('InputDevice').value = item.path;
+                            hidePathStatus();
+                        } else if (activeBrowseTarget === 'logo') {
+                            document.getElementById('LogoPath').value = item.path;
+                            updateLogoPreview();
+                        }
                         fileBrowserModal.hide();
-                        hidePathStatus();
                         updateCommandPreview();
                     };
                 }
@@ -919,6 +1163,13 @@
                 const reStream = getVal('ReStream');
 
                 let args = ['ffmpeg'];
+                
+                const isNvidiaCodec = videoCodec === 'h264_nvenc' || videoCodec === 'hevc_nvenc';
+                const isCompressedInput = inputFormat === 'file' || inputFormat === 'folder' || inputFormat === 'mpegts';
+
+                if (isNvidiaCodec && isCompressedInput) {
+                    args.push('-hwaccel', 'cuda', '-hwaccel_output_format', 'cuda');
+                }
             
             if (reStream && (inputFormat === 'mpegts' || inputFormat === 'youtube')) {
                 args.push('-i', `"${inputDevice}"`);
@@ -926,22 +1177,36 @@
                 args.push('-c:a', 'copy');
                 args.push('-f', 'mpegts');
                 args.push('-flags', '+global_header');
-            } else if (inputFormat === 'file') {
-                // Special requirements for local file playback
+            } else if (inputFormat === 'file' || inputFormat === 'folder') {
+                // Special requirements for local file/folder playback
                 args.push('-re');
                 args.push('-thread_queue_size', '1024');
-                args.push('-i', `"${inputDevice}"`);
+                const pathPlaceholder = inputFormat === 'folder' ? (inputDevice + '/[video_file.mp4]') : inputDevice;
+                args.push('-i', `"${pathPlaceholder}"`);
                 
                 // Video encoding
                 args.push('-c:v', videoCodec);
-                args.push('-preset', preset === 'veryfast' ? 'veryfast' : preset);
-                args.push('-tune', tune === 'zerolatency' ? 'zerolatency' : tune);
-                args.push('-b:v', '2000k');
-                args.push('-maxrate', '2000k');
-                args.push('-bufsize', '1000k');
+                if (isNvidiaCodec && isCompressedInput) {
+                    const size = videoSize || '720x576';
+                    const scaleSize = size.includes('x') ? size.replace('x', ':') : size;
+                    args.push('-vf', `"scale_cuda=${scaleSize},hwdownload,format=nv12"`);
+                } else if (videoSize) {
+                    args.push('-s', videoSize);
+                }
+                args.push('-r', frameRate);
+                args.push('-preset', preset);
+                args.push('-tune', tune);
+                args.push('-b:v', bitrate);
+                args.push('-maxrate', bitrate);
                 
-                args.push('-g', '60');
-                args.push('-keyint_min', '60');
+                // Parse bitrate for bufsize
+                let brNum = parseInt(bitrate) || 5000;
+                if (bitrate.includes('k')) brNum = parseInt(bitrate);
+                else if (bitrate.includes('m')) brNum = parseInt(bitrate) * 1000;
+                args.push('-bufsize', `${Math.floor(brNum / 2)}k`);
+                
+                args.push('-g', gopSize);
+                args.push('-keyint_min', gopSize);
                 args.push('-sc_threshold', '0');
 
                 // Audio encoding
@@ -958,6 +1223,8 @@
                 // Pixel Format configuration (for local files)
                 if (pixelFormat && pixelFormat !== 'auto') {
                      args.push('-pix_fmt', pixelFormat);
+                } else if (isNvidiaCodec) {
+                     args.push('-pix_fmt', 'yuv420p');
                 }
 
                 // Output
@@ -1003,6 +1270,11 @@
 
                 // Video encoding
                 args.push('-c:v', videoCodec);
+                if (isNvidiaCodec && isCompressedInput) {
+                    const size = videoSize || '720x576';
+                    const scaleSize = size.includes('x') ? size.replace('x', ':') : size;
+                    args.push('-vf', `"scale_cuda=${scaleSize},hwdownload,format=nv12"`);
+                }
                 args.push('-preset', preset);
                 args.push('-tune', tune);
                 args.push('-b:v', bitrate);
@@ -1027,6 +1299,10 @@
                     if (audioVolume != 100) {
                         args.push('-filter:a', `"volume=${audioVolume/100}"`);
                     }
+                }
+
+                if (isNvidiaCodec) {
+                    args.push('-pix_fmt', 'yuv420p');
                 }
 
                 // Output
@@ -1072,16 +1348,42 @@
             });
         });
 
-        // Explicitly listen to PixelFormat just in case
-        document.getElementById('PixelFormat').addEventListener('change', updateCommandPreview);
+        // Logo preview logic
+        function updateLogoPreview() {
+            const logoPath = document.getElementById('LogoPath').value;
+            const container = document.getElementById('logoPreviewContainer');
+            const img = document.getElementById('logoPreviewImg');
+            
+            if (logoPath) {
+                const ext = logoPath.split('.').pop().toLowerCase();
+                const isImage = ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'svg'].includes(ext);
+                if (isImage) {
+                    img.src = `/api/config/logo-preview?path=${encodeURIComponent(logoPath)}`;
+                    container.style.display = 'block';
+                    return;
+                }
+            }
+            container.style.display = 'none';
+            img.src = '';
+        }
+
+        document.getElementById('LogoPath').addEventListener('input', updateLogoPreview);
+        document.getElementById('LogoPath').addEventListener('change', updateLogoPreview);
+
+        document.getElementById('VideoCodec').addEventListener('change', () => {
+            updateCodecOptions();
+            updateCommandPreview();
+        });
 
         // Initial preview update
         window.addEventListener('DOMContentLoaded', () => {
+            updateCodecOptions(initialPreset, initialTune);
             // Trigger change event to set initial labels/icons
             document.getElementById('InputFormat').dispatchEvent(new Event('change'));
             toggleDeviceDiscovery();
             toggleAudioDiscovery();
             toggleReStream();
+            updateLogoPreview();
             updateCommandPreview();
         });
 
@@ -1101,6 +1403,34 @@
             data.Enabled = document.getElementById('Enabled').checked;
             data.EnableAudio = document.getElementById('EnableAudio').checked;
             data.ReStream = document.getElementById('ReStream').checked;
+            data.Shuffle = document.getElementById('Shuffle') ? document.getElementById('Shuffle').checked : false;
+            
+            // Logo overlay inputs conversion
+            data.LogoWidth = parseInt(data.LogoWidth) || null;
+            data.LogoHeight = parseInt(data.LogoHeight) || null;
+            data.LogoMarginLeft = parseInt(data.LogoMarginLeft);
+            if (isNaN(data.LogoMarginLeft)) data.LogoMarginLeft = 10;
+            data.LogoMarginTop = parseInt(data.LogoMarginTop);
+            if (isNaN(data.LogoMarginTop)) data.LogoMarginTop = 10;
+            data.LogoMarginRight = parseInt(data.LogoMarginRight);
+            if (isNaN(data.LogoMarginRight)) data.LogoMarginRight = 10;
+            data.LogoMarginBottom = parseInt(data.LogoMarginBottom);
+            if (isNaN(data.LogoMarginBottom)) data.LogoMarginBottom = 10;
+            data.LogoPath = data.LogoPath || null;
+            data.LogoPosition = data.LogoPosition || "Top Left";
+
+            // DateTime overlay inputs conversion
+            data.DateTimeMarginLeft = parseInt(data.DateTimeMarginLeft);
+            if (isNaN(data.DateTimeMarginLeft)) data.DateTimeMarginLeft = 10;
+            data.DateTimeMarginTop = parseInt(data.DateTimeMarginTop);
+            if (isNaN(data.DateTimeMarginTop)) data.DateTimeMarginTop = 10;
+            data.DateTimeMarginRight = parseInt(data.DateTimeMarginRight);
+            if (isNaN(data.DateTimeMarginRight)) data.DateTimeMarginRight = 10;
+            data.DateTimeMarginBottom = parseInt(data.DateTimeMarginBottom);
+            if (isNaN(data.DateTimeMarginBottom)) data.DateTimeMarginBottom = 10;
+            data.DateTimeFontColor = data.DateTimeFontColor || "white";
+            data.DateTimeFontSize = parseInt(data.DateTimeFontSize);
+            if (isNaN(data.DateTimeFontSize)) data.DateTimeFontSize = 24;
 
             try {
                 const response = await fetch('/api/config', {

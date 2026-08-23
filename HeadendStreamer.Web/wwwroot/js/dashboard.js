@@ -5,7 +5,57 @@ document.addEventListener('DOMContentLoaded', function () {
     // 1. Register Button Event Listeners FIRST
     document.getElementById('refreshStreams')?.addEventListener('click', refreshStreams);
 
+    // Event listener for Auto Start on Start Up toggle
+    document.getElementById('autoStartSettingsToggle')?.addEventListener('change', async function () {
+        const enabled = this.checked;
+        try {
+            const response = await fetch(`/api/settings/autostart?autoStart=${enabled}`, {
+                method: 'POST'
+            });
+            if (!response.ok) {
+                alert('Failed to update Auto Start setting');
+                this.checked = !enabled;
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Failed to update Auto Start setting');
+            this.checked = !enabled;
+        }
+    });
+
+    // Event listener for Stream Enabled switches
+    document.addEventListener('change', async function (e) {
+        const target = e.target.closest('.toggle-stream-enabled');
+        if (!target) return;
+
+        const streamId = target.dataset.id;
+        const enabled = target.checked;
+
+        try {
+            const response = await fetch(`/api/config/${streamId}/toggle-enabled?enabled=${enabled}`, {
+                method: 'POST'
+            });
+            if (!response.ok) {
+                alert('Failed to update stream enabled state');
+                target.checked = !enabled;
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Failed to update stream enabled state');
+            target.checked = !enabled;
+        }
+    });
+
     document.addEventListener('click', function (e) {
+        const extTarget = e.target.closest('.start-ext-service, .stop-ext-service, .restart-ext-service');
+        if (extTarget) {
+            const serviceName = extTarget.dataset.service;
+            const action = extTarget.classList.contains('start-ext-service') ? 'start' :
+                extTarget.classList.contains('stop-ext-service') ? 'stop' : 'restart';
+            handleExternalServiceAction(serviceName, action);
+            return;
+        }
+
         const target = e.target.closest('.start-stream, .stop-stream, .restart-stream, .delete-stream');
         if (!target) return;
 
@@ -136,6 +186,112 @@ document.addEventListener('DOMContentLoaded', function () {
                 updateStreamCard(status.configId, status);
             });
         }
+
+        if (data.externalServices) {
+            if (data.externalServices.obsScheduler) {
+                updateExternalServiceUI("OBS_Scheduler", data.externalServices.obsScheduler);
+            }
+            if (data.externalServices.spxGraphics) {
+                updateExternalServiceUI("SPX_Graphics", data.externalServices.spxGraphics);
+            }
+        }
+    }
+
+    function updateExternalServiceUI(serviceName, status) {
+        const card = document.getElementById(`ext-card-${serviceName}`);
+        if (!card) return;
+
+        const badge = document.getElementById(`badge-${serviceName}`);
+        const statusContainer = document.getElementById(`status-container-${serviceName}`);
+        const startBtn = card.querySelector('.start-ext-service');
+        const stopBtn = card.querySelector('.stop-ext-service');
+        const restartBtn = card.querySelector('.restart-ext-service');
+
+        const isRunning = status && (status.isRunning || status.IsRunning);
+
+        if (isRunning) {
+            const innerCard = card.querySelector('.card');
+            if (innerCard) {
+                innerCard.classList.remove('border-secondary');
+                innerCard.classList.add('border-success');
+            }
+
+            if (badge) {
+                badge.className = 'badge bg-success me-1';
+                badge.innerHTML = '<i class="fas fa-circle"></i>';
+            }
+
+            const uptime = status.uptime !== undefined ? status.uptime : status.Uptime;
+            const pid = status.processId !== undefined ? status.processId : status.ProcessId;
+            const formattedUptime = formatUptime(uptime);
+
+            if (statusContainer) {
+                statusContainer.innerHTML = `
+                    <div class="alert alert-success py-2 mb-0">
+                        <div class="d-flex justify-content-between">
+                            <small id="uptime-${serviceName}"><i class="fas fa-clock me-1"></i> ${formattedUptime}</small>
+                            <small>PID: ${pid ?? 'N/A'}</small>
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (startBtn) startBtn.classList.add('d-none');
+            if (stopBtn) stopBtn.classList.remove('d-none');
+            if (restartBtn) restartBtn.classList.remove('d-none');
+        } else {
+            const innerCard = card.querySelector('.card');
+            if (innerCard) {
+                innerCard.classList.remove('border-success');
+                innerCard.classList.add('border-secondary');
+            }
+
+            if (badge) {
+                badge.className = 'badge bg-secondary me-1';
+                badge.innerHTML = '<i class="fas fa-circle"></i>';
+            }
+
+            if (statusContainer) {
+                statusContainer.innerHTML = `
+                    <div class="alert alert-secondary py-2 mb-0">
+                        <small><i class="fas fa-stop-circle me-1"></i> Stopped</small>
+                    </div>
+                `;
+            }
+
+            if (startBtn) startBtn.classList.remove('d-none');
+            if (stopBtn) stopBtn.classList.add('d-none');
+            if (restartBtn) restartBtn.classList.add('d-none');
+        }
+    }
+
+    function handleExternalServiceAction(serviceName, action) {
+        const endpoint = `/api/external-service/${serviceName}/${action}`;
+
+        if (action === 'start') {
+            updateExternalServiceUI(serviceName, { isRunning: true, uptime: 0, processId: '...' });
+        } else if (action === 'stop' || action === 'restart') {
+            updateExternalServiceUI(serviceName, { isRunning: false });
+        }
+
+        fetch(endpoint, { method: 'POST' })
+            .then(async response => {
+                if (response.ok) {
+                    return response.json();
+                }
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `${action} failed`);
+            })
+            .then(data => {
+                showToast(`${serviceName} ${action} successful`, 'success');
+                updateExternalServiceUI(serviceName, data);
+                setTimeout(fetchDashboardStats, 1000);
+            })
+            .catch(error => {
+                console.error(`Error during ${action} for ${serviceName}:`, error);
+                showToast(`Failed to ${action} ${serviceName}: ${error.message}`, 'danger');
+                fetchDashboardStats();
+            });
     }
 
     function updateSystemInfo(systemInfo) {
@@ -173,16 +329,39 @@ document.addEventListener('DOMContentLoaded', function () {
         const uptimeElement = document.getElementById('system-uptime');
         if (uptimeElement) {
             let uptime = systemInfo.uptime !== undefined ? systemInfo.uptime : systemInfo.Uptime;
+            let seconds = 0;
+            let isValid = false;
+
             if (typeof uptime === 'number' && !isNaN(uptime)) {
-                const days = Math.floor(uptime / 86400);
-                const hours = Math.floor((uptime % 86400) / 3600);
-                const minutes = Math.floor((uptime % 3600) / 60);
-                const seconds = Math.floor(uptime % 60);
-                uptimeElement.innerHTML = `<i class="fas fa-clock me-1"></i> Uptime: ${days}d ${hours}h ${minutes}m ${seconds}s`;
+                seconds = uptime;
+                isValid = true;
             } else if (typeof uptime === 'string' && !uptime.includes('NaN')) {
-                uptimeElement.innerHTML = `<i class="fas fa-clock me-1"></i> Uptime: ${uptime}`;
+                const parts = uptime.split(':');
+                if (parts.length === 3) {
+                    let h = parts[0];
+                    let d = 0;
+                    if (h.includes('.')) {
+                        const hParts = h.split('.');
+                        d = parseInt(hParts[0]) || 0;
+                        h = hParts[1];
+                    }
+                    seconds = (d * 86400) + (parseInt(h) * 3600) + (parseInt(parts[1]) * 60) + parseFloat(parts[2]);
+                    isValid = true;
+                }
+            }
+
+            if (isValid) {
+                const days = Math.floor(seconds / 86400);
+                const hours = Math.floor((seconds % 86400) / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                const secs = Math.floor(seconds % 60);
+                const timeStr = [
+                    hours.toString().padStart(2, '0'),
+                    minutes.toString().padStart(2, '0'),
+                    secs.toString().padStart(2, '0')
+                ].join(':');
+                uptimeElement.innerHTML = `<i class="fas fa-clock me-1"></i> Uptime: ${days > 0 ? days + 'd ' : ''}${timeStr}`;
             } else {
-                // Fallback if NaN
                 uptimeElement.innerHTML = `<i class="fas fa-clock me-1"></i> Uptime: 00:00:00`;
             }
         }

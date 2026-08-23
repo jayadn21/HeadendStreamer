@@ -10,11 +10,23 @@ public class ConfigService
     private Dictionary<string, StreamConfig> _configs = new();
     private readonly object _lock = new();
     
+    private bool _autoStartOnStartup;
+    public bool AutoStartOnStartup
+    {
+        get => _autoStartOnStartup;
+        set
+        {
+            _autoStartOnStartup = value;
+            SaveSystemSettings();
+        }
+    }
+    
     public ConfigService(ILogger<ConfigService> logger, IWebHostEnvironment env)
     {
         _logger = logger;
         _configDirectory = Path.Combine(env.ContentRootPath, "configs");
         Directory.CreateDirectory(_configDirectory);
+        LoadSystemSettings();
         LoadConfigs();
     }
     
@@ -63,6 +75,21 @@ public class ConfigService
         existingConfig.Name = updates.Name ?? existingConfig.Name;
         existingConfig.Description = updates.Description ?? existingConfig.Description;
         existingConfig.Enabled = updates.Enabled;
+        existingConfig.Shuffle = updates.Shuffle;
+        existingConfig.LogoPath = updates.LogoPath;
+        existingConfig.LogoPosition = updates.LogoPosition;
+        existingConfig.LogoWidth = updates.LogoWidth;
+        existingConfig.LogoHeight = updates.LogoHeight;
+        existingConfig.LogoMarginLeft = updates.LogoMarginLeft;
+        existingConfig.LogoMarginTop = updates.LogoMarginTop;
+        existingConfig.LogoMarginRight = updates.LogoMarginRight;
+        existingConfig.LogoMarginBottom = updates.LogoMarginBottom;
+        existingConfig.DateTimeMarginLeft = updates.DateTimeMarginLeft;
+        existingConfig.DateTimeMarginTop = updates.DateTimeMarginTop;
+        existingConfig.DateTimeMarginRight = updates.DateTimeMarginRight;
+        existingConfig.DateTimeMarginBottom = updates.DateTimeMarginBottom;
+        existingConfig.DateTimeFontColor = updates.DateTimeFontColor;
+        existingConfig.DateTimeFontSize = updates.DateTimeFontSize;
         existingConfig.InputDevice = updates.InputDevice ?? existingConfig.InputDevice;
         existingConfig.InputFormat = updates.InputFormat ?? existingConfig.InputFormat;
         existingConfig.PixelFormat = updates.PixelFormat ?? existingConfig.PixelFormat;
@@ -264,7 +291,7 @@ public class ConfigService
         try
         {
             var configFiles = Directory.GetFiles(_configDirectory, "*.json")
-                .Where(f => !f.Contains("backup"))
+                .Where(f => !f.Contains("backup") && !f.Contains("system_settings"))
                 .ToArray();
             
             foreach (var file in configFiles)
@@ -296,6 +323,41 @@ public class ConfigService
         }
     }
     
+    private void LoadSystemSettings()
+    {
+        try
+        {
+            var settingsPath = Path.Combine(_configDirectory, "system_settings.json");
+            if (File.Exists(settingsPath))
+            {
+                var json = File.ReadAllText(settingsPath);
+                var settings = JsonSerializer.Deserialize<SystemSettings>(json);
+                if (settings != null)
+                {
+                    _autoStartOnStartup = settings.AutoStartOnStartup;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to load system settings");
+        }
+    }
+
+    private void SaveSystemSettings()
+    {
+        try
+        {
+            var settingsPath = Path.Combine(_configDirectory, "system_settings.json");
+            var json = JsonSerializer.Serialize(new SystemSettings { AutoStartOnStartup = _autoStartOnStartup }, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(settingsPath, json);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to save system settings");
+        }
+    }
+    
     private string GetConfigFilePath(string id)
     {
         return Path.Combine(_configDirectory, $"{id}.json");
@@ -305,5 +367,10 @@ public class ConfigService
     {
         public DateTime Timestamp { get; set; }
         public List<StreamConfig>? Configs { get; set; }
+    }
+
+    private class SystemSettings
+    {
+        public bool AutoStartOnStartup { get; set; }
     }
 }
