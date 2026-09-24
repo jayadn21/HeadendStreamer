@@ -26,6 +26,7 @@ public class DashboardViewModel
     public List<StreamViewModel> Streams { get; set; } = new();
     public SystemInfo SystemInfo { get; set; } = new();
     public ExternalServiceStatusViewModel ObsScheduler { get; set; } = new();
+    public ExternalServiceStatusViewModel ScrollAds { get; set; } = new();
     public ExternalServiceStatusViewModel SpxGraphics { get; set; } = new();
     public bool AutoStartOnStartup { get; set; }
     public int TotalStreams => Streams.Count;

@@ -140,9 +140,9 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    <div class="row">
+                    <div class="row g-3">
                         <!-- OBS Scheduler Panel -->
-                        <div class="col-md-6 mb-3 mb-md-0" id="ext-card-OBS_Scheduler">
+                        <div class="col-md-4" id="ext-card-OBS_Scheduler">
                             <div class="card h-100 border-@(Model.ObsScheduler.IsRunning ? "success" : "secondary")">
                                 <div class="card-header d-flex justify-content-between align-items-center bg-transparent">
                                     <h6 class="mb-0 fw-bold">
@@ -193,8 +193,60 @@
                             </div>
                         </div>
 
+                        <!-- Scroll Ads Panel -->
+                        <div class="col-md-4" id="ext-card-Scroll_Ads">
+                            <div class="card h-100 border-@(Model.ScrollAds.IsRunning ? "success" : "secondary")">
+                                <div class="card-header d-flex justify-content-between align-items-center bg-transparent">
+                                    <h6 class="mb-0 fw-bold">
+                                        <span class="badge bg-@(Model.ScrollAds.IsRunning ? "success" : "secondary") me-1" id="badge-Scroll_Ads">
+                                            <i class="fas fa-circle"></i>
+                                        </span>
+                                        Scroll Ads
+                                    </h6>
+                                    @if (!string.IsNullOrEmpty(Model.ScrollAds.ServerURL))
+                                    {
+                                        <a href="@Model.ScrollAds.ServerURL" target="_blank" class="btn btn-sm btn-outline-primary" title="Open Server URL">
+                                            <i class="fas fa-external-link-alt me-1"></i> Open Web UI
+                                        </a>
+                                    }
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <div class="btn-group w-100">
+                                            <button class="btn btn-sm btn-success start-ext-service @(Model.ScrollAds.IsRunning ? "d-none" : "")" data-service="Scroll_Ads">
+                                                <i class="fas fa-play me-1"></i> Start
+                                            </button>
+                                            <button class="btn btn-sm btn-danger stop-ext-service @(Model.ScrollAds.IsRunning ? "" : "d-none")" data-service="Scroll_Ads">
+                                                <i class="fas fa-stop me-1"></i> Stop
+                                            </button>
+                                            <button class="btn btn-sm btn-warning restart-ext-service @(Model.ScrollAds.IsRunning ? "" : "d-none")" data-service="Scroll_Ads">
+                                                <i class="fas fa-redo me-1"></i> Restart
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div id="status-container-Scroll_Ads">
+                                        @if (Model.ScrollAds.IsRunning)
+                                        {
+                                            <div class="alert alert-success py-2 mb-0">
+                                                <div class="d-flex justify-content-between">
+                                                    <small id="uptime-Scroll_Ads"><i class="fas fa-clock me-1"></i> @Model.ScrollAds.Uptime.ToString(@"hh\:mm\:ss")</small>
+                                                    <small>PID: @(Model.ScrollAds.ProcessId?.ToString() ?? "N/A")</small>
+                                                </div>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="alert alert-secondary py-2 mb-0">
+                                                <small><i class="fas fa-stop-circle me-1"></i> Stopped</small>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- SPX Graphics Panel -->
-                        <div class="col-md-6" id="ext-card-SPX_Graphics">
+                        <div class="col-md-4" id="ext-card-SPX_Graphics">
                             <div class="card h-100 border-@(Model.SpxGraphics.IsRunning ? "success" : "secondary")">
                                 <div class="card-header d-flex justify-content-between align-items-center bg-transparent">
                                     <h6 class="mb-0 fw-bold">

@@ -54,3 +54,10 @@ I have replaced PublishAot with PublishSingleFile in your project file. This all
 1. https://github.com/AlexxIT/go2rtc?tab=readme-ov-file#go2rtc-binary
 
 To Preview:http://localhost:1984/
+
+==============OBS Scheduler==============
+1. OBS -> Settings -> Stream -> Custom -> srt://127.0.0.1:9999?mode=listener -> Start Streaming
+
+2. In HeadendStreamer -> Configure RTMP streaming for -> srt://127.0.0.1:9999?mode=caller
+
+======================================

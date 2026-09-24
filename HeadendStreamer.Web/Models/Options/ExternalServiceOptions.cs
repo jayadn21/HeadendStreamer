@@ -10,5 +10,6 @@ public class ExternalServiceConfig
 public class ExternalServiceOptions
 {
     public ExternalServiceConfig OBS_Scheduler { get; set; } = new();
+    public ExternalServiceConfig Scroll_Ads { get; set; } = new();
     public ExternalServiceConfig SPX_Graphics { get; set; } = new();
 }

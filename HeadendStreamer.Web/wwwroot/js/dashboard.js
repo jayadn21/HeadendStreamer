@@ -191,6 +191,9 @@ document.addEventListener('DOMContentLoaded', function () {
             if (data.externalServices.obsScheduler) {
                 updateExternalServiceUI("OBS_Scheduler", data.externalServices.obsScheduler);
             }
+            if (data.externalServices.scrollAds) {
+                updateExternalServiceUI("Scroll_Ads", data.externalServices.scrollAds);
+            }
             if (data.externalServices.spxGraphics) {
                 updateExternalServiceUI("SPX_Graphics", data.externalServices.spxGraphics);
             }

@@ -35,6 +35,7 @@ public class HomeController : Controller
         var configs = _configService.GetAllConfigs();
         
         var obsStatus = await _externalProcessService.GetStatusAsync("OBS_Scheduler");
+        var scrollAdsStatus = await _externalProcessService.GetStatusAsync("Scroll_Ads");
         var spxStatus = await _externalProcessService.GetStatusAsync("SPX_Graphics");
 
         // Build view model
@@ -54,6 +55,14 @@ public class HomeController : Controller
                 ProcessId = obsStatus.ProcessId,
                 ServerURL = obsStatus.ServerURL,
                 Uptime = obsStatus.Uptime
+            },
+            ScrollAds = new ExternalServiceStatusViewModel
+            {
+                ServiceName = "Scroll_Ads",
+                IsRunning = scrollAdsStatus.IsRunning,
+                ProcessId = scrollAdsStatus.ProcessId,
+                ServerURL = scrollAdsStatus.ServerURL,
+                Uptime = scrollAdsStatus.Uptime
             },
             SpxGraphics = new ExternalServiceStatusViewModel
             {
@@ -77,6 +86,7 @@ public class HomeController : Controller
         var streamStatuses = _streamManager.GetAllStreamStatus();
         
         var obsStatus = await _externalProcessService.GetStatusAsync("OBS_Scheduler");
+        var scrollAdsStatus = await _externalProcessService.GetStatusAsync("Scroll_Ads");
         var spxStatus = await _externalProcessService.GetStatusAsync("SPX_Graphics");
 
         return Ok(new
@@ -112,6 +122,14 @@ public class HomeController : Controller
                     processId = obsStatus.ProcessId,
                     serverURL = obsStatus.ServerURL,
                     uptime = obsStatus.Uptime.TotalSeconds
+                },
+                scrollAds = new
+                {
+                    serviceName = "Scroll_Ads",
+                    isRunning = scrollAdsStatus.IsRunning,
+                    processId = scrollAdsStatus.ProcessId,
+                    serverURL = scrollAdsStatus.ServerURL,
+                    uptime = scrollAdsStatus.Uptime.TotalSeconds
                 },
                 spxGraphics = new
                 {
