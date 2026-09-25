@@ -54,7 +54,8 @@ public class HomeController : Controller
                 IsRunning = obsStatus.IsRunning,
                 ProcessId = obsStatus.ProcessId,
                 ServerURL = obsStatus.ServerURL,
-                Uptime = obsStatus.Uptime
+                Uptime = obsStatus.Uptime,
+                Enabled = obsStatus.Enabled
             },
             ScrollAds = new ExternalServiceStatusViewModel
             {
@@ -62,7 +63,8 @@ public class HomeController : Controller
                 IsRunning = scrollAdsStatus.IsRunning,
                 ProcessId = scrollAdsStatus.ProcessId,
                 ServerURL = scrollAdsStatus.ServerURL,
-                Uptime = scrollAdsStatus.Uptime
+                Uptime = scrollAdsStatus.Uptime,
+                Enabled = scrollAdsStatus.Enabled
             },
             SpxGraphics = new ExternalServiceStatusViewModel
             {
@@ -70,7 +72,8 @@ public class HomeController : Controller
                 IsRunning = spxStatus.IsRunning,
                 ProcessId = spxStatus.ProcessId,
                 ServerURL = spxStatus.ServerURL,
-                Uptime = spxStatus.Uptime
+                Uptime = spxStatus.Uptime,
+                Enabled = spxStatus.Enabled
             }
         };
 
@@ -121,7 +124,8 @@ public class HomeController : Controller
                     isRunning = obsStatus.IsRunning,
                     processId = obsStatus.ProcessId,
                     serverURL = obsStatus.ServerURL,
-                    uptime = obsStatus.Uptime.TotalSeconds
+                    uptime = obsStatus.Uptime.TotalSeconds,
+                    enabled = obsStatus.Enabled
                 },
                 scrollAds = new
                 {
@@ -129,7 +133,8 @@ public class HomeController : Controller
                     isRunning = scrollAdsStatus.IsRunning,
                     processId = scrollAdsStatus.ProcessId,
                     serverURL = scrollAdsStatus.ServerURL,
-                    uptime = scrollAdsStatus.Uptime.TotalSeconds
+                    uptime = scrollAdsStatus.Uptime.TotalSeconds,
+                    enabled = scrollAdsStatus.Enabled
                 },
                 spxGraphics = new
                 {
@@ -137,7 +142,8 @@ public class HomeController : Controller
                     isRunning = spxStatus.IsRunning,
                     processId = spxStatus.ProcessId,
                     serverURL = spxStatus.ServerURL,
-                    uptime = spxStatus.Uptime.TotalSeconds
+                    uptime = spxStatus.Uptime.TotalSeconds,
+                    enabled = spxStatus.Enabled
                 }
             }
         });
@@ -177,6 +183,13 @@ public class HomeController : Controller
         }
         var status = await _externalProcessService.GetStatusAsync(serviceName);
         return Ok(status);
+    }
+
+    [HttpPost("api/external-service/{serviceName}/toggle-enabled")]
+    public IActionResult ToggleExternalServiceEnabled(string serviceName, [FromQuery] bool enabled)
+    {
+        _configService.SetExternalServiceEnabled(serviceName, enabled);
+        return Ok(new { success = true, serviceName = serviceName, enabled = enabled });
     }
 
     [HttpGet("api/settings/autostart")]

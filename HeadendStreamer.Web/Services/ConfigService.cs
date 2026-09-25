@@ -1,13 +1,16 @@
 using HeadendStreamer.Web.Models.Entities;
 using System.Text.Json;
+using Microsoft.Extensions.Configuration;
 
 namespace HeadendStreamer.Web.Services;
 
 public class ConfigService
 {
     private readonly ILogger<ConfigService> _logger;
+    private readonly IConfiguration _configuration;
     private readonly string _configDirectory;
     private Dictionary<string, StreamConfig> _configs = new();
+    private readonly Dictionary<string, bool> _externalServicesEnabled = new(StringComparer.OrdinalIgnoreCase);
     private readonly object _lock = new();
     
     private bool _autoStartOnStartup;
@@ -21,13 +24,43 @@ public class ConfigService
         }
     }
     
-    public ConfigService(ILogger<ConfigService> logger, IWebHostEnvironment env)
+    public ConfigService(ILogger<ConfigService> logger, IWebHostEnvironment env, IConfiguration configuration)
     {
         _logger = logger;
+        _configuration = configuration;
         _configDirectory = Path.Combine(env.ContentRootPath, "configs");
         Directory.CreateDirectory(_configDirectory);
         LoadSystemSettings();
         LoadConfigs();
+    }
+
+    public bool IsExternalServiceEnabled(string serviceName)
+    {
+        lock (_lock)
+        {
+            if (_externalServicesEnabled.TryGetValue(serviceName, out var enabled))
+            {
+                return enabled;
+            }
+            return _configuration.GetSection($"HeadendStreamer:{serviceName}").GetValue<bool>("Enabled");
+        }
+    }
+
+    public void SetExternalServiceEnabled(string serviceName, bool enabled)
+    {
+        lock (_lock)
+        {
+            _externalServicesEnabled[serviceName] = enabled;
+            SaveSystemSettings();
+        }
+    }
+
+    public Dictionary<string, bool> GetAllExternalServicesEnabled()
+    {
+        lock (_lock)
+        {
+            return new Dictionary<string, bool>(_externalServicesEnabled, StringComparer.OrdinalIgnoreCase);
+        }
     }
     
     public async Task<StreamConfig?> GetConfigAsync(string id)
@@ -335,6 +368,13 @@ public class ConfigService
                 if (settings != null)
                 {
                     _autoStartOnStartup = settings.AutoStartOnStartup;
+                    if (settings.ExternalServicesEnabled != null)
+                    {
+                        foreach (var kvp in settings.ExternalServicesEnabled)
+                        {
+                            _externalServicesEnabled[kvp.Key] = kvp.Value;
+                        }
+                    }
                 }
             }
         }
@@ -349,7 +389,12 @@ public class ConfigService
         try
         {
             var settingsPath = Path.Combine(_configDirectory, "system_settings.json");
-            var json = JsonSerializer.Serialize(new SystemSettings { AutoStartOnStartup = _autoStartOnStartup }, new JsonSerializerOptions { WriteIndented = true });
+            var settings = new SystemSettings
+            {
+                AutoStartOnStartup = _autoStartOnStartup,
+                ExternalServicesEnabled = new Dictionary<string, bool>(_externalServicesEnabled, StringComparer.OrdinalIgnoreCase)
+            };
+            var json = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(settingsPath, json);
         }
         catch (Exception ex)
@@ -372,5 +417,6 @@ public class ConfigService
     private class SystemSettings
     {
         public bool AutoStartOnStartup { get; set; }
+        public Dictionary<string, bool>? ExternalServicesEnabled { get; set; }
     }
 }

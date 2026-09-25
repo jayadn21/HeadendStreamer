@@ -12,19 +12,22 @@ public class BackgroundMonitorService : BackgroundService
     private readonly IHubContext<StreamHub> _hubContext;
     private readonly ConfigService _configService;
     private readonly StreamManagerService _streamManager;
+    private readonly ExternalProcessService _externalProcessService;
 
     public BackgroundMonitorService(
         ILogger<BackgroundMonitorService> logger,
         SystemMonitorService systemMonitor,
         IHubContext<StreamHub> hubContext,
         ConfigService configService,
-        StreamManagerService streamManager)
+        StreamManagerService streamManager,
+        ExternalProcessService externalProcessService)
     {
         _logger = logger;
         _systemMonitor = systemMonitor;
         _hubContext = hubContext;
         _configService = configService;
         _streamManager = streamManager;
+        _externalProcessService = externalProcessService;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -34,9 +37,30 @@ public class BackgroundMonitorService : BackgroundService
         // Initial delay to allow other services to start
         await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);
 
-        // Auto Start streams if enabled
+        // Auto Start streams & external auxiliary services if enabled
         if (_configService.AutoStartOnStartup)
         {
+            _logger.LogInformation("Auto-starting enabled external auxiliary services on startup...");
+            foreach (var serviceName in ExternalProcessService.SupportedServices)
+            {
+                try
+                {
+                    if (_configService.IsExternalServiceEnabled(serviceName))
+                    {
+                        var status = await _externalProcessService.GetStatusAsync(serviceName);
+                        if (!status.IsRunning)
+                        {
+                            _logger.LogInformation($"Auto-starting external service: {serviceName}");
+                            await _externalProcessService.StartAsync(serviceName);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"Failed to auto-start external service {serviceName}");
+                }
+            }
+
             _logger.LogInformation("Auto-starting enabled streams on startup...");
             var configs = _configService.GetAllConfigs().Where(c => c.Enabled);
             foreach (var config in configs)

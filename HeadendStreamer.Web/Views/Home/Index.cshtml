@@ -113,7 +113,7 @@
                                 <label class="form-check-label fw-bold" for="autoStartSettingsToggle">
                                     <i class="fas fa-power-off me-1 text-primary"></i> Auto Start on Start Up
                                 </label>
-                                <span class="ms-2 text-muted small">(Starts all enabled streams on app launch)</span>
+                                <span class="ms-2 text-muted small">(Starts all enabled streams & external services on app launch)</span>
                             </div>
                         </div>
                         <div class="col-md-6 col-12 text-md-end text-start mt-2 mt-md-0">
@@ -151,12 +151,17 @@
                                         </span>
                                         OBS Scheduler
                                     </h6>
-                                    @if (!string.IsNullOrEmpty(Model.ObsScheduler.ServerURL))
-                                    {
-                                        <a href="@Model.ObsScheduler.ServerURL" target="_blank" class="btn btn-sm btn-outline-primary" title="Open Server URL">
-                                            <i class="fas fa-external-link-alt me-1"></i> Open Web UI
-                                        </a>
-                                    }
+                                    <div class="d-flex align-items-center">
+                                        <div class="form-check form-switch me-2" title="Enable/Disable Service">
+                                            <input class="form-check-input toggle-ext-service-enabled" type="checkbox" data-service="OBS_Scheduler" @(Model.ObsScheduler.Enabled ? "checked" : "") />
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(Model.ObsScheduler.ServerURL))
+                                        {
+                                            <a href="@Model.ObsScheduler.ServerURL" target="_blank" class="btn btn-sm btn-outline-primary" title="Open Server URL">
+                                                <i class="fas fa-external-link-alt me-1"></i> Open Web UI
+                                            </a>
+                                        }
+                                    </div>
                                 </div>
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -203,12 +208,17 @@
                                         </span>
                                         Scroll Ads
                                     </h6>
-                                    @if (!string.IsNullOrEmpty(Model.ScrollAds.ServerURL))
-                                    {
-                                        <a href="@Model.ScrollAds.ServerURL" target="_blank" class="btn btn-sm btn-outline-primary" title="Open Server URL">
-                                            <i class="fas fa-external-link-alt me-1"></i> Open Web UI
-                                        </a>
-                                    }
+                                    <div class="d-flex align-items-center">
+                                        <div class="form-check form-switch me-2" title="Enable/Disable Service">
+                                            <input class="form-check-input toggle-ext-service-enabled" type="checkbox" data-service="Scroll_Ads" @(Model.ScrollAds.Enabled ? "checked" : "") />
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(Model.ScrollAds.ServerURL))
+                                        {
+                                            <a href="@Model.ScrollAds.ServerURL" target="_blank" class="btn btn-sm btn-outline-primary" title="Open Server URL">
+                                                <i class="fas fa-external-link-alt me-1"></i> Open Web UI
+                                            </a>
+                                        }
+                                    </div>
                                 </div>
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -255,12 +265,17 @@
                                         </span>
                                         SPX Graphics
                                     </h6>
-                                    @if (!string.IsNullOrEmpty(Model.SpxGraphics.ServerURL))
-                                    {
-                                        <a href="@Model.SpxGraphics.ServerURL" target="_blank" class="btn btn-sm btn-outline-primary" title="Open Server URL">
-                                            <i class="fas fa-external-link-alt me-1"></i> Open Web UI
-                                        </a>
-                                    }
+                                    <div class="d-flex align-items-center">
+                                        <div class="form-check form-switch me-2" title="Enable/Disable Service">
+                                            <input class="form-check-input toggle-ext-service-enabled" type="checkbox" data-service="SPX_Graphics" @(Model.SpxGraphics.Enabled ? "checked" : "") />
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(Model.SpxGraphics.ServerURL))
+                                        {
+                                            <a href="@Model.SpxGraphics.ServerURL" target="_blank" class="btn btn-sm btn-outline-primary" title="Open Server URL">
+                                                <i class="fas fa-external-link-alt me-1"></i> Open Web UI
+                                            </a>
+                                        }
+                                    </div>
                                 </div>
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-center mb-3">

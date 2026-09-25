@@ -5,6 +5,7 @@ public class ExternalServiceConfig
     public string ExecutablePath { get; set; } = string.Empty;
     public string ExePath { get; set; } = string.Empty;
     public string ServerURL { get; set; } = string.Empty;
+    public bool Enabled { get; set; }
 }
 
 public class ExternalServiceOptions

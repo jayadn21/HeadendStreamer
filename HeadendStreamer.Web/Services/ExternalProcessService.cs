@@ -13,19 +13,24 @@ public class ExternalServiceStatus
     public string ServerURL { get; set; } = string.Empty;
     public TimeSpan Uptime { get; set; }
     public DateTime? StartTime { get; set; }
+    public bool Enabled { get; set; }
 }
 
 public class ExternalProcessService
 {
+    public static readonly string[] SupportedServices = ["OBS_Scheduler", "Scroll_Ads", "SPX_Graphics"];
+
     private readonly ILogger<ExternalProcessService> _logger;
     private readonly IConfiguration _configuration;
+    private readonly ConfigService _configService;
     private readonly Dictionary<string, Process> _trackedProcesses = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, DateTime> _startTimes = new(StringComparer.OrdinalIgnoreCase);
 
-    public ExternalProcessService(ILogger<ExternalProcessService> logger, IConfiguration configuration)
+    public ExternalProcessService(ILogger<ExternalProcessService> logger, IConfiguration configuration, ConfigService configService)
     {
         _logger = logger;
         _configuration = configuration;
+        _configService = configService;
     }
 
     public ExternalServiceConfig GetServiceConfig(string serviceName)
@@ -35,7 +40,8 @@ public class ExternalProcessService
         {
             ExecutablePath = section.GetValue<string>("ExecutablePath") ?? "",
             ExePath = section.GetValue<string>("ExePath") ?? "",
-            ServerURL = section.GetValue<string>("ServerURL") ?? ""
+            ServerURL = section.GetValue<string>("ServerURL") ?? "",
+            Enabled = _configService.IsExternalServiceEnabled(serviceName)
         };
     }
 
@@ -66,7 +72,8 @@ public class ExternalProcessService
                 ProcessId = existingProcess.Id,
                 ServerURL = config.ServerURL,
                 StartTime = startTime,
-                Uptime = DateTime.Now - startTime
+                Uptime = DateTime.Now - startTime,
+                Enabled = _configService.IsExternalServiceEnabled(serviceName)
             };
         }
 
@@ -76,7 +83,8 @@ public class ExternalProcessService
             IsRunning = false,
             ProcessId = null,
             ServerURL = config.ServerURL,
-            Uptime = TimeSpan.Zero
+            Uptime = TimeSpan.Zero,
+            Enabled = _configService.IsExternalServiceEnabled(serviceName)
         };
     }
 

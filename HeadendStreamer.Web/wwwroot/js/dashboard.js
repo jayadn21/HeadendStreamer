@@ -46,6 +46,31 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    // Event listener for External Service Enabled switches
+    document.addEventListener('change', async function (e) {
+        const target = e.target.closest('.toggle-ext-service-enabled');
+        if (!target) return;
+
+        const serviceName = target.dataset.service;
+        const enabled = target.checked;
+
+        try {
+            const response = await fetch(`/api/external-service/${serviceName}/toggle-enabled?enabled=${enabled}`, {
+                method: 'POST'
+            });
+            if (!response.ok) {
+                alert(`Failed to update ${serviceName.replace('_', ' ')} enabled state`);
+                target.checked = !enabled;
+            } else {
+                showToast(`${serviceName.replace('_', ' ')} ${enabled ? 'enabled' : 'disabled'}`, 'info');
+            }
+        } catch (err) {
+            console.error(err);
+            alert(`Failed to update ${serviceName.replace('_', ' ')} enabled state`);
+            target.checked = !enabled;
+        }
+    });
+
     document.addEventListener('click', function (e) {
         const extTarget = e.target.closest('.start-ext-service, .stop-ext-service, .restart-ext-service');
         if (extTarget) {

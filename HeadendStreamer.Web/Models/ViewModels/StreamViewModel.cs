@@ -19,6 +19,7 @@ public class ExternalServiceStatusViewModel
     public int? ProcessId { get; set; }
     public string ServerURL { get; set; } = string.Empty;
     public TimeSpan Uptime { get; set; }
+    public bool Enabled { get; set; }
 }
 
 public class DashboardViewModel
