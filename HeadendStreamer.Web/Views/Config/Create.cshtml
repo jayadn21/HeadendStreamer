@@ -234,6 +234,16 @@
                             </div>
                         </div>
 
+                        <div class="row mb-3" id="threadQueueSizeRow">
+                            <div class="col-12">
+                                <div class="form-check form-switch">
+                                    <input asp-for="IncludeThreadQueueSize" id="IncludeThreadQueueSize" class="form-check-input" type="checkbox" checked />
+                                    <label asp-for="IncludeThreadQueueSize" class="form-check-label font-weight-bold">Include Thread Queue Size (<code>-thread_queue_size 1024</code>)</label>
+                                    <div class="form-text text-muted">Sets the maximum number of queued packets when reading from the input (<code>-thread_queue_size 1024</code>). Uncheck to exclude this parameter.</div>
+                                </div>
+                            </div>
+                        </div>
+
                         <h5 class="mt-4 mb-3 border-bottom pb-2">Video Settings</h5>
                         <div class="mb-3 form-check" id="reStreamGroup" style="display: none;">
                             <input asp-for="ReStream" id="ReStream" class="form-check-input" />
@@ -615,7 +625,7 @@
 
         function toggleReStream() {
             const isReStream = document.getElementById('ReStream').checked;
-            const videoInputs = ['VideoSize', 'FrameRate', 'VideoCodec', 'Preset', 'Tune', 'Bitrate', 'GopSize', 'PixelFormat'];
+            const videoInputs = ['VideoSize', 'FrameRate', 'VideoCodec', 'Preset', 'Tune', 'Bitrate', 'GopSize', 'PixelFormat', 'IncludeThreadQueueSize'];
             const audioInputs = ['EnableAudio', 'AudioCodec', 'AudioBitrate', 'AudioDevice', 'refreshAudioDevicesBtn'];
             
             videoInputs.forEach(id => {
@@ -1161,6 +1171,7 @@
                 const outputFormat = getVal('OutputFormat');
 
                 const reStream = getVal('ReStream');
+                const includeThreadQueueSize = getVal('IncludeThreadQueueSize');
 
                 let args = ['ffmpeg'];
                 
@@ -1180,7 +1191,9 @@
             } else if (inputFormat === 'file' || inputFormat === 'folder') {
                 // Special requirements for local file/folder playback
                 args.push('-re');
-                args.push('-thread_queue_size', '1024');
+                if (includeThreadQueueSize) {
+                    args.push('-thread_queue_size', '1024');
+                }
                 const pathPlaceholder = inputFormat === 'folder' ? (inputDevice + '/[video_file.mp4]') : inputDevice;
                 args.push('-i', `"${pathPlaceholder}"`);
                 
@@ -1242,7 +1255,9 @@
                     args.push('-f', 'dshow');
                 }
 
-                args.push('-thread_queue_size', '1024');
+                if (includeThreadQueueSize) {
+                    args.push('-thread_queue_size', '1024');
+                }
 
                 if (inputFormat !== 'mpegts' && inputFormat !== 'youtube') {
                     args.push('-video_size', videoSize);
@@ -1404,6 +1419,7 @@
             data.EnableAudio = document.getElementById('EnableAudio').checked;
             data.ReStream = document.getElementById('ReStream').checked;
             data.Shuffle = document.getElementById('Shuffle') ? document.getElementById('Shuffle').checked : false;
+            data.IncludeThreadQueueSize = document.getElementById('IncludeThreadQueueSize') ? document.getElementById('IncludeThreadQueueSize').checked : true;
             
             // Logo overlay inputs conversion
             data.LogoWidth = parseInt(data.LogoWidth) || null;

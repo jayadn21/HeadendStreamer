@@ -128,6 +128,8 @@ public class ConfigService
         existingConfig.PixelFormat = updates.PixelFormat ?? existingConfig.PixelFormat;
         existingConfig.VideoSize = updates.VideoSize ?? existingConfig.VideoSize;
         existingConfig.FrameRate = updates.FrameRate;
+        existingConfig.IncludeThreadQueueSize = updates.IncludeThreadQueueSize;
+        existingConfig.ReStream = updates.ReStream;
         existingConfig.VideoCodec = updates.VideoCodec ?? existingConfig.VideoCodec;
         existingConfig.Preset = updates.Preset ?? existingConfig.Preset;
         existingConfig.Tune = updates.Tune ?? existingConfig.Tune;

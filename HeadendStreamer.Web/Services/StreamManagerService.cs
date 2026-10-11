@@ -440,7 +440,10 @@ public class StreamManagerService
         {
             // Real-time reading for local files
             args.Add("-re");
-            args.AddRange(new[] { "-thread_queue_size", "1024" });
+            if (config.IncludeThreadQueueSize)
+            {
+                args.AddRange(new[] { "-thread_queue_size", "1024" });
+            }
         }
         else if (isWindows)
         {
@@ -452,7 +455,10 @@ public class StreamManagerService
             {
                 args.AddRange(new[] { "-f", "dshow" });
             }
-            args.AddRange(new[] { "-thread_queue_size", "1024" });
+            if (config.IncludeThreadQueueSize)
+            {
+                args.AddRange(new[] { "-thread_queue_size", "1024" });
+            }
         }
         else
         {
@@ -460,7 +466,10 @@ public class StreamManagerService
             {
                 args.AddRange(new[] { "-f", "v4l2" });
             }
-            args.AddRange(new[] { "-thread_queue_size", "1024" });
+            if (config.IncludeThreadQueueSize)
+            {
+                args.AddRange(new[] { "-thread_queue_size", "1024" });
+            }
         }
         
         // input_format / pixel_format (only for live devices, not files, YouTube or network streams)

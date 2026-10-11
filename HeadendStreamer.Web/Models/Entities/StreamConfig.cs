@@ -32,6 +32,14 @@ public class StreamConfig
     public string PixelFormat { get; set; } = "yuyv422";
     public string VideoSize { get; set; } = "1920x1080";
     public int FrameRate { get; set; } = 30;
+    public bool IncludeThreadQueueSize { get; set; } = true;
+    
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool ThreadQueueSize
+    {
+        get => IncludeThreadQueueSize;
+        set => IncludeThreadQueueSize = value;
+    }
     
     // Video Encoding
     public string VideoCodec { get; set; } = "libx264";
