@@ -6,6 +6,32 @@ public class StreamConfig
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public bool Enabled { get; set; } = true;
+    public bool Shuffle { get; set; } = false;
+    
+    // Logo Configuration
+    private bool? _enableLogo;
+    public bool EnableLogo
+    {
+        get => _enableLogo ?? (!string.IsNullOrEmpty(LogoPath));
+        set => _enableLogo = value;
+    }
+    public string? LogoPath { get; set; }
+    public string? LogoPosition { get; set; } = "Top Left"; // "Top Left", "Top Right", "Bottom Left", "Bottom Right"
+    public int? LogoWidth { get; set; } = 100;
+    public int? LogoHeight { get; set; } = 100;
+    public int? LogoMarginLeft { get; set; } = 10;
+    public int? LogoMarginTop { get; set; } = 10;
+    public int? LogoMarginRight { get; set; } = 10;
+    public int? LogoMarginBottom { get; set; } = 10;
+    
+    // DateTime Configuration
+    public bool EnableDateTime { get; set; } = false;
+    public int? DateTimeMarginLeft { get; set; } = 10;
+    public int? DateTimeMarginTop { get; set; } = 10;
+    public int? DateTimeMarginRight { get; set; } = 10;
+    public int? DateTimeMarginBottom { get; set; } = 10;
+    public string? DateTimeFontColor { get; set; } = "white";
+    public int? DateTimeFontSize { get; set; } = 24;
     
     // Input Configuration
     public string InputDevice { get; set; } = "/dev/video0";
@@ -13,6 +39,14 @@ public class StreamConfig
     public string PixelFormat { get; set; } = "yuyv422";
     public string VideoSize { get; set; } = "1920x1080";
     public int FrameRate { get; set; } = 30;
+    public bool IncludeThreadQueueSize { get; set; } = true;
+    
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool ThreadQueueSize
+    {
+        get => IncludeThreadQueueSize;
+        set => IncludeThreadQueueSize = value;
+    }
     
     // Video Encoding
     public string VideoCodec { get; set; } = "libx264";
