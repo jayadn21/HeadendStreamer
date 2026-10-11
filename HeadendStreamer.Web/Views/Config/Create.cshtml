@@ -606,11 +606,12 @@
             if (format === 'mpegts') {
                 reStreamGroup.style.display = 'block';
                 if (pixelFormatRow) pixelFormatRow.style.display = 'none';
-                if (videoFormatRow) videoFormatRow.style.display = 'none';
+                if (videoFormatRow) videoFormatRow.style.display = 'flex';
                 if (audioSettingsHeader) audioSettingsHeader.style.display = 'none';
                 if (enableAudioGroup) enableAudioGroup.style.display = 'none';
                 if (audioSettings) audioSettings.style.display = 'none';
                 if (audioDiscoveryGroup) audioDiscoveryGroup.style.display = 'none';
+                toggleReStream();
             } else {
                 reStreamGroup.style.display = 'none';
                 if (pixelFormatRow) pixelFormatRow.style.display = 'flex';
@@ -1307,6 +1308,11 @@
                     const size = videoSize || '720x576';
                     const scaleSize = size.includes('x') ? size.replace('x', ':') : size;
                     args.push('-vf', `"scale_cuda=${scaleSize},hwdownload,format=nv12"`);
+                } else if (inputFormat === 'mpegts' && videoSize) {
+                    args.push('-s', videoSize);
+                }
+                if (inputFormat === 'mpegts' && frameRate) {
+                    args.push('-r', frameRate);
                 }
                 args.push('-preset', preset);
                 args.push('-tune', tune);
@@ -1474,7 +1480,8 @@
             
             // Convert types
             data.Port = parseInt(data.Port) || 0;
-            data.FrameRate = parseInt(data.FrameRate) || 30;
+            data.VideoSize = data.VideoSize || (document.getElementById('VideoSize') ? document.getElementById('VideoSize').value : '1920x1080');
+            data.FrameRate = parseInt(data.FrameRate || (document.getElementById('FrameRate') ? document.getElementById('FrameRate').value : 30)) || 30;
             data.GopSize = parseInt(data.GopSize) || 60;
             data.Ttl = parseInt(data.Ttl) || 64;
             data.AudioVolume = parseInt(data.AudioVolume) || 100;

@@ -735,13 +735,16 @@ public class StreamManagerService
 
         // Video encoding
         args.AddRange(new[] { "-c:v", config.VideoCodec });
-        if (isLocalFile)
+        if (isLocalFile || isMpegTs)
         {
             if (!string.IsNullOrEmpty(config.VideoSize) && !(isNvidiaCodec && isCompressedInput))
             {
                 args.AddRange(new[] { "-s", config.VideoSize });
             }
-            args.AddRange(new[] { "-r", config.FrameRate.ToString() });
+            if (config.FrameRate > 0)
+            {
+                args.AddRange(new[] { "-r", config.FrameRate.ToString() });
+            }
         }
         if (!string.IsNullOrEmpty(config.Preset))
             args.AddRange(new[] { "-preset", config.Preset });
