@@ -109,6 +109,7 @@ public class ConfigService
         existingConfig.Description = updates.Description ?? existingConfig.Description;
         existingConfig.Enabled = updates.Enabled;
         existingConfig.Shuffle = updates.Shuffle;
+        existingConfig.EnableLogo = updates.EnableLogo;
         existingConfig.LogoPath = updates.LogoPath;
         existingConfig.LogoPosition = updates.LogoPosition;
         existingConfig.LogoWidth = updates.LogoWidth;
@@ -117,6 +118,7 @@ public class ConfigService
         existingConfig.LogoMarginTop = updates.LogoMarginTop;
         existingConfig.LogoMarginRight = updates.LogoMarginRight;
         existingConfig.LogoMarginBottom = updates.LogoMarginBottom;
+        existingConfig.EnableDateTime = updates.EnableDateTime;
         existingConfig.DateTimeMarginLeft = updates.DateTimeMarginLeft;
         existingConfig.DateTimeMarginTop = updates.DateTimeMarginTop;
         existingConfig.DateTimeMarginRight = updates.DateTimeMarginRight;

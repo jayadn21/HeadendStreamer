@@ -412,14 +412,15 @@ public class StreamManagerService
 
         _logger.LogInformation($"Building FFmpeg command. OS: {(isWindows ? "Windows" : "Linux/Other")}, Input Format: {inputFormat}, Nvidia Codec: {isNvidiaCodec}");
         
-        var hasLogo = !string.IsNullOrEmpty(config.LogoPath) && File.Exists(config.LogoPath);
+        var hasLogo = config.EnableLogo && !string.IsNullOrEmpty(config.LogoPath) && File.Exists(config.LogoPath);
+        var hasDateTime = config.EnableDateTime;
 
         if (isNvidiaCodec && isCompressedInput)
         {
             args.AddRange(new[] { "-hwaccel", "cuda", "-hwaccel_output_format", "cuda" });
         }
 
-        if (config.ReStream && (inputFormat == "mpegts") && !hasLogo)
+        if (config.ReStream && (inputFormat == "mpegts") && !hasLogo && !hasDateTime)
         {
             // Re-stream mode: copy streams without transcoding
             args.AddRange(new[] { "-i", $"\"{config.InputDevice}\"" });
@@ -547,7 +548,7 @@ public class StreamManagerService
         
         if (hasLogo)
         {
-            var logoExt = Path.GetExtension(config.LogoPath).ToLowerInvariant();
+            var logoExt = Path.GetExtension(config.LogoPath!).ToLowerInvariant();
             var isImage = logoExt == ".png" || logoExt == ".jpg" || logoExt == ".jpeg" || logoExt == ".gif" || logoExt == ".bmp" || logoExt == ".svg";
             
             if (isImage)
@@ -562,7 +563,7 @@ public class StreamManagerService
         }
         
         // Font setup for drawing date
-        string fontFile = null;
+        string? fontFile = null;
         if (isWindows)
         {
             fontFile = "C\\:/Windows/Fonts/arial.ttf";
@@ -579,64 +580,68 @@ public class StreamManagerService
             }
         }
 
-        // Cycle text between Date, Time, and Day of the Week every 5 seconds (15-second period total) using FFmpeg filter timeline expressions
-        // Note: %{localtime} splits arguments on unescaped colons in drawtext options list.
-        // Double-escape colons for drawtext option parser: %I\\\%M\\\%S %p
-        string dateTextExpr = "%{localtime\\:%d/%m/%Y}";
-        string timeTextExpr = "%{localtime\\:%I\\\\\\:%M\\\\\\:%S %p}";
-        string dayTextExpr = "%{localtime\\:%A}";
-
-        int dml = config.DateTimeMarginLeft ?? 10;
-        int dmt = config.DateTimeMarginTop ?? 10;
-        int dmr = config.DateTimeMarginRight ?? 10;
-        int dmb = config.DateTimeMarginBottom ?? 10;
-
-        _logger.LogInformation($"DateTime margins for stream {config.Name}: Left={dml}, Top={dmt}, Right={dmr}, Bottom={dmb}");
-
-        int fontSize = config.DateTimeFontSize ?? 24;
-        int boxW = (int)(fontSize * 7.5);
-        int boxH = (int)(fontSize * 1.66);
-        string bx, by;
-
-        if (hasLogo)
+        string overlayTextChain = "";
+        if (hasDateTime)
         {
-            int mt = config.LogoMarginTop ?? 10;
-            int mb = config.LogoMarginBottom ?? 10;
-            int ml = config.LogoMarginLeft ?? 10;
-            int mr = config.LogoMarginRight ?? 10;
-            int lw = (config.LogoWidth ?? 0) > 0 ? config.LogoWidth.Value : 100;
-            int lh = (config.LogoHeight ?? 0) > 0 ? config.LogoHeight.Value : 100;
+            // Cycle text between Date, Time, and Day of the Week every 5 seconds (15-second period total) using FFmpeg filter timeline expressions
+            // Note: %{localtime} splits arguments on unescaped colons in drawtext options list.
+            // Double-escape colons for drawtext option parser: %I\\\%M\\\%S %p
+            string dateTextExpr = "%{localtime\\:%d/%m/%Y}";
+            string timeTextExpr = "%{localtime\\:%I\\\\\\:%M\\\\\\:%S %p}";
+            string dayTextExpr = "%{localtime\\:%A}";
 
-            string logoCenter = config.LogoPosition?.ToLowerInvariant() switch
+            int dml = config.DateTimeMarginLeft ?? 10;
+            int dmt = config.DateTimeMarginTop ?? 10;
+            int dmr = config.DateTimeMarginRight ?? 10;
+            int dmb = config.DateTimeMarginBottom ?? 10;
+
+            _logger.LogInformation($"DateTime margins for stream {config.Name}: Left={dml}, Top={dmt}, Right={dmr}, Bottom={dmb}");
+
+            int fontSize = config.DateTimeFontSize ?? 24;
+            int boxW = (int)(fontSize * 7.5);
+            int boxH = (int)(fontSize * 1.66);
+            string bx, by;
+
+            if (hasLogo)
             {
-                "top right" => $"w-{mr}-{lw}/2",
-                "bottom left" => $"{ml}+{lw}/2",
-                "bottom right" => $"w-{mr}-{lw}/2",
-                _ => $"{ml}+{lw}/2" // "top left"
-            };
+                int mt = config.LogoMarginTop ?? 10;
+                int mb = config.LogoMarginBottom ?? 10;
+                int ml = config.LogoMarginLeft ?? 10;
+                int mr = config.LogoMarginRight ?? 10;
+                int lw = (config.LogoWidth ?? 0) > 0 ? config.LogoWidth!.Value : 100;
+                int lh = (config.LogoHeight ?? 0) > 0 ? config.LogoHeight!.Value : 100;
 
-            bx = $"({logoCenter})-{boxW}/2";
+                string logoCenter = config.LogoPosition?.ToLowerInvariant() switch
+                {
+                    "top right" => $"w-{mr}-{lw}/2",
+                    "bottom left" => $"{ml}+{lw}/2",
+                    "bottom right" => $"w-{mr}-{lw}/2",
+                    _ => $"{ml}+{lw}/2" // "top left"
+                };
 
-            by = config.LogoPosition?.ToLowerInvariant() switch
+                bx = $"({logoCenter})-{boxW}/2";
+
+                by = config.LogoPosition?.ToLowerInvariant() switch
+                {
+                    "bottom left" => $"h-{lh}-{mb}-{boxH}-{dmb}",
+                    "bottom right" => $"h-{lh}-{mb}-{boxH}-{dmb}",
+                    _ => $"{mt + lh + dmt}"
+                };
+            }
+            else
             {
-                "bottom left" => $"h-{lh}-{mb}-{boxH}-{dmb}",
-                "bottom right" => $"h-{lh}-{mb}-{boxH}-{dmb}",
-                _ => $"{mt + lh + dmt}"
-            };
-        }
-        else
-        {
-            bx = $"w-{boxW}-{dmr}";
-            by = $"{dmt}";
-        }
+                bx = $"w-{boxW}-{dmr}";
+                by = $"{dmt}";
+            }
 
-        string fontColor = config.DateTimeFontColor ?? "white";
-        string fontOpt = string.IsNullOrEmpty(fontFile) ? "" : $"fontfile='{fontFile}':";
-        string dateFilter = $"{fontOpt}text='{dateTextExpr}':x='{bx}+({boxW}-tw)/2':y='{by}+({boxH}-th)/2':fontsize={fontSize}:fontcolor={fontColor}:enable='eq(mod(floor(t/5)\\,3)\\,0)'";
-        string timeFilter = $"{fontOpt}text='{timeTextExpr}':x='{bx}+({boxW}-tw)/2':y='{by}+({boxH}-th)/2':fontsize={fontSize}:fontcolor={fontColor}:enable='eq(mod(floor(t/5)\\,3)\\,1)'";
-        string dayFilter  = $"{fontOpt}text='{dayTextExpr}':x='{bx}+({boxW}-tw)/2':y='{by}+({boxH}-th)/2':fontsize={fontSize}:fontcolor={fontColor}:enable='eq(mod(floor(t/5)\\,3)\\,2)'";
+            string fontColor = config.DateTimeFontColor ?? "white";
+            string fontOpt = string.IsNullOrEmpty(fontFile) ? "" : $"fontfile='{fontFile}':";
+            string dateFilter = $"{fontOpt}text='{dateTextExpr}':x='{bx}+({boxW}-tw)/2':y='{by}+({boxH}-th)/2':fontsize={fontSize}:fontcolor={fontColor}:enable='eq(mod(floor(t/5)\\,3)\\,0)'";
+            string timeFilter = $"{fontOpt}text='{timeTextExpr}':x='{bx}+({boxW}-tw)/2':y='{by}+({boxH}-th)/2':fontsize={fontSize}:fontcolor={fontColor}:enable='eq(mod(floor(t/5)\\,3)\\,1)'";
+            string dayFilter  = $"{fontOpt}text='{dayTextExpr}':x='{bx}+({boxW}-tw)/2':y='{by}+({boxH}-th)/2':fontsize={fontSize}:fontcolor={fontColor}:enable='eq(mod(floor(t/5)\\,3)\\,2)'";
 
-        string overlayTextChain = $"drawbox=x='{bx}':y='{by}':w={boxW}:h={boxH}:color=black@0.0:t=fill,drawtext={dateFilter},drawtext={timeFilter},drawtext={dayFilter}";
+            overlayTextChain = $"drawbox=x='{bx}':y='{by}':w={boxW}:h={boxH}:color=black@0.0:t=fill,drawtext={dateFilter},drawtext={timeFilter},drawtext={dayFilter}";
+        }
 
         string videoInputNode = "[0:v]";
         string preScaleFilter = "";
@@ -688,20 +693,35 @@ public class StreamManagerService
                 _ => $"{ml}:{mt}" // "top left"
             };
 
+            string logoScaleFilter = "";
+            string logoNode = $"[{logoInputIndex}:v]";
             if ((config.LogoWidth ?? 0) > 0 || (config.LogoHeight ?? 0) > 0)
             {
                 var w = (config.LogoWidth ?? 0) > 0 ? config.LogoWidth.ToString() : "-1";
                 var h = (config.LogoHeight ?? 0) > 0 ? config.LogoHeight.ToString() : "-1";
-                filterString = $"\"{preScaleFilter}[{logoInputIndex}:v]scale={w}:{h}[scaled_logo]; {videoInputNode}[scaled_logo]overlay={overlayCoords}[temp_v]; [temp_v]{overlayTextChain}[outv]\"";
+                logoScaleFilter = $"[{logoInputIndex}:v]scale={w}:{h}[scaled_logo]; ";
+                logoNode = "[scaled_logo]";
+            }
+
+            if (hasDateTime)
+            {
+                filterString = $"\"{preScaleFilter}{logoScaleFilter}{videoInputNode}{logoNode}overlay={overlayCoords}[temp_v]; [temp_v]{overlayTextChain}[outv]\"";
             }
             else
             {
-                filterString = $"\"{preScaleFilter}{videoInputNode}[{logoInputIndex}:v]overlay={overlayCoords}[temp_v]; [temp_v]{overlayTextChain}[outv]\"";
+                filterString = $"\"{preScaleFilter}{logoScaleFilter}{videoInputNode}{logoNode}overlay={overlayCoords}[outv]\"";
             }
         }
         else
         {
-            filterString = $"\"{preScaleFilter}{videoInputNode}{overlayTextChain}[outv]\"";
+            if (hasDateTime)
+            {
+                filterString = $"\"{preScaleFilter}{videoInputNode}{overlayTextChain}[outv]\"";
+            }
+            else
+            {
+                filterString = $"\"{preScaleFilter}{videoInputNode}null[outv]\"";
+            }
         }
 
         args.AddRange(new[] { "-filter_complex", filterString });

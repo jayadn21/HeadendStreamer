@@ -161,3 +161,15 @@
 .btn-action-sm {
     min-width: 80px;
 }
+
+/* Card header toggle & collapse styles */
+.card-header-collapsed {
+    border-bottom: 0 !important;
+    border-radius: 0.375rem !important;
+}
+
+.overlay-toggle-switch {
+    width: 2.5em;
+    height: 1.3em;
+    cursor: pointer;
+}

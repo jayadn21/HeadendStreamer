@@ -67,11 +67,22 @@
                         </div>
 
                         <!-- Logo Configuration Settings -->
-                        <div class="card bg-light mb-4 shadow-sm border-0">
-                            <div class="card-header bg-secondary text-white font-weight-bold d-flex align-items-center">
-                                <i class="fas fa-image me-2"></i> Logo Overlay Settings
+                        <div class="card bg-light mb-4 shadow-sm border-0" id="logoSettingsCard">
+                            <div class="card-header bg-secondary text-white font-weight-bold d-flex justify-content-between align-items-center py-2 @(Model.Config.EnableLogo ? "" : "card-header-collapsed")" id="logoCardHeader">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-image me-2"></i>
+                                    <span>Logo Overlay Settings</span>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge @(Model.Config.EnableLogo ? "bg-success" : "bg-dark-subtle text-white border border-light-subtle")" id="logoStatusBadge">
+                                        @(Model.Config.EnableLogo ? "On" : "Off")
+                                    </span>
+                                    <div class="form-check form-switch mb-0">
+                                        <input asp-for="Config.EnableLogo" id="EnableLogo" class="form-check-input overlay-toggle-switch" type="checkbox" role="switch" title="Toggle Logo Overlay" />
+                                    </div>
+                                </div>
                             </div>
-                            <div class="card-body">
+                            <div class="card-body" id="logoSettingsSection" style="@(Model.Config.EnableLogo ? "" : "display: none;")">
                                 <div class="mb-3">
                                     <label asp-for="Config.LogoPath" class="form-label font-weight-bold">Logo File Path</label>
                                     <div class="input-group">
@@ -127,11 +138,22 @@
                         </div>
 
                         <!-- DateTime Configuration Settings -->
-                        <div class="card bg-light mb-4 shadow-sm border-0">
-                            <div class="card-header bg-secondary text-white font-weight-bold d-flex align-items-center">
-                                <i class="fas fa-clock me-2"></i> DateTime Overlay Settings
+                        <div class="card bg-light mb-4 shadow-sm border-0" id="dateTimeSettingsCard">
+                            <div class="card-header bg-secondary text-white font-weight-bold d-flex justify-content-between align-items-center py-2 @(Model.Config.EnableDateTime ? "" : "card-header-collapsed")" id="dateTimeCardHeader">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-clock me-2"></i>
+                                    <span>DateTime Overlay Settings</span>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge @(Model.Config.EnableDateTime ? "bg-success" : "bg-dark-subtle text-white border border-light-subtle")" id="dateTimeStatusBadge">
+                                        @(Model.Config.EnableDateTime ? "On" : "Off")
+                                    </span>
+                                    <div class="form-check form-switch mb-0">
+                                        <input asp-for="Config.EnableDateTime" id="EnableDateTime" class="form-check-input overlay-toggle-switch" type="checkbox" role="switch" title="Toggle DateTime Overlay" />
+                                    </div>
+                                </div>
                             </div>
-                            <div class="card-body">
+                            <div class="card-body" id="dateTimeSettingsSection" style="@(Model.Config.EnableDateTime ? "" : "display: none;")">
                                 <div class="row">
                                     <div class="col-md-3 mb-3">
                                         <label asp-for="Config.DateTimeMarginLeft" class="form-label font-weight-bold">Margin Left (px)</label>
@@ -1461,6 +1483,49 @@
             updateCommandPreview();
         });
 
+        // Overlay toggle logic
+        function toggleLogoOverlay() {
+            const enableLogo = document.getElementById('EnableLogo').checked;
+            const logoSection = document.getElementById('logoSettingsSection');
+            const logoHeader = document.getElementById('logoCardHeader');
+            const logoBadge = document.getElementById('logoStatusBadge');
+            
+            if (enableLogo) {
+                logoSection.style.display = 'block';
+                logoHeader.classList.remove('card-header-collapsed');
+                logoBadge.textContent = 'On';
+                logoBadge.className = 'badge bg-success';
+                updateLogoPreview();
+            } else {
+                logoSection.style.display = 'none';
+                logoHeader.classList.add('card-header-collapsed');
+                logoBadge.textContent = 'Off';
+                logoBadge.className = 'badge bg-dark-subtle text-white border border-light-subtle';
+            }
+        }
+
+        function toggleDateTimeOverlay() {
+            const enableDateTime = document.getElementById('EnableDateTime').checked;
+            const dateTimeSection = document.getElementById('dateTimeSettingsSection');
+            const dateTimeHeader = document.getElementById('dateTimeCardHeader');
+            const dateTimeBadge = document.getElementById('dateTimeStatusBadge');
+            
+            if (enableDateTime) {
+                dateTimeSection.style.display = 'block';
+                dateTimeHeader.classList.remove('card-header-collapsed');
+                dateTimeBadge.textContent = 'On';
+                dateTimeBadge.className = 'badge bg-success';
+            } else {
+                dateTimeSection.style.display = 'none';
+                dateTimeHeader.classList.add('card-header-collapsed');
+                dateTimeBadge.textContent = 'Off';
+                dateTimeBadge.className = 'badge bg-dark-subtle text-white border border-light-subtle';
+            }
+        }
+
+        document.getElementById('EnableLogo').addEventListener('change', toggleLogoOverlay);
+        document.getElementById('EnableDateTime').addEventListener('change', toggleDateTimeOverlay);
+
         window.addEventListener('DOMContentLoaded', () => {
             updateCodecOptions(initialPreset, initialTune);
             // Trigger change event to set initial labels/icons
@@ -1468,6 +1533,8 @@
             toggleDeviceDiscovery();
             toggleAudioDiscovery();
             toggleReStream();
+            toggleLogoOverlay();
+            toggleDateTimeOverlay();
             updateLogoPreview();
             updateCommandPreview();
         });
@@ -1499,6 +1566,8 @@
             data.ReStream = document.getElementById('ReStream').checked;
             data.Shuffle = document.getElementById('Shuffle') ? document.getElementById('Shuffle').checked : false;
             data.IncludeThreadQueueSize = document.getElementById('IncludeThreadQueueSize') ? document.getElementById('IncludeThreadQueueSize').checked : true;
+            data.EnableLogo = document.getElementById('EnableLogo').checked;
+            data.EnableDateTime = document.getElementById('EnableDateTime').checked;
             
             // Logo overlay inputs conversion
             data.LogoWidth = parseInt(data.LogoWidth) || null;

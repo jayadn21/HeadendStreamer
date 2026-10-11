@@ -9,6 +9,12 @@ public class StreamConfig
     public bool Shuffle { get; set; } = false;
     
     // Logo Configuration
+    private bool? _enableLogo;
+    public bool EnableLogo
+    {
+        get => _enableLogo ?? (!string.IsNullOrEmpty(LogoPath));
+        set => _enableLogo = value;
+    }
     public string? LogoPath { get; set; }
     public string? LogoPosition { get; set; } = "Top Left"; // "Top Left", "Top Right", "Bottom Left", "Bottom Right"
     public int? LogoWidth { get; set; } = 100;
@@ -19,6 +25,7 @@ public class StreamConfig
     public int? LogoMarginBottom { get; set; } = 10;
     
     // DateTime Configuration
+    public bool EnableDateTime { get; set; } = false;
     public int? DateTimeMarginLeft { get; set; } = 10;
     public int? DateTimeMarginTop { get; set; } = 10;
     public int? DateTimeMarginRight { get; set; } = 10;
