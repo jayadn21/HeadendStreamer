@@ -74,6 +74,9 @@
                                     <span>Logo Overlay Settings</span>
                                 </div>
                                 <div class="d-flex align-items-center gap-2">
+                                    <button type="button" class="btn btn-sm btn-primary update-and-restart-btn" id="updateAndRestartLogoBtnHeader" title="Update and restart stream">
+                                        <i class="fas fa-sync-alt me-1"></i> Update & Restart
+                                    </button>
                                     <span class="badge @(Model.Config.EnableLogo ? "bg-success" : "bg-dark-subtle text-white border border-light-subtle")" id="logoStatusBadge">
                                         @(Model.Config.EnableLogo ? "On" : "Off")
                                     </span>
@@ -134,6 +137,11 @@
                                     <label class="form-label d-block text-start font-weight-bold">Logo Preview</label>
                                     <img id="logoPreviewImg" src="" class="img-thumbnail img-fluid" style="max-height: 120px; background-color: #f0f0f0;" />
                                 </div>
+                                <div class="d-flex justify-content-end mt-3 pt-3 border-top">
+                                    <button type="button" class="btn btn-primary update-and-restart-btn" id="updateAndRestartLogoBtn">
+                                        <i class="fas fa-sync-alt me-1"></i> Update & Restart
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
@@ -145,6 +153,9 @@
                                     <span>DateTime Overlay Settings</span>
                                 </div>
                                 <div class="d-flex align-items-center gap-2">
+                                    <button type="button" class="btn btn-sm btn-primary update-and-restart-btn" id="updateAndRestartDateTimeBtnHeader" title="Update and restart stream">
+                                        <i class="fas fa-sync-alt me-1"></i> Update & Restart
+                                    </button>
                                     <span class="badge @(Model.Config.EnableDateTime ? "bg-success" : "bg-dark-subtle text-white border border-light-subtle")" id="dateTimeStatusBadge">
                                         @(Model.Config.EnableDateTime ? "On" : "Off")
                                     </span>
@@ -190,6 +201,11 @@
                                         <label asp-for="Config.DateTimeFontSize" class="form-label font-weight-bold">Font Size (px)</label>
                                         <input asp-for="Config.DateTimeFontSize" id="DateTimeFontSize" type="number" class="form-control" min="8" max="72" value="@(Model.Config.DateTimeFontSize ?? 24)" />
                                     </div>
+                                </div>
+                                <div class="d-flex justify-content-end mt-3 pt-3 border-top">
+                                    <button type="button" class="btn btn-primary update-and-restart-btn" id="updateAndRestartDateTimeBtn">
+                                        <i class="fas fa-sync-alt me-1"></i> Update & Restart
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -1698,19 +1714,43 @@
             }
         });
 
-        document.getElementById('updateAndRestartBtn').addEventListener('click', async function() {
-            const success = await saveConfiguration();
-            if (success) {
-                showSaveAlert('Saved and Stream Restarted Successfully');
-                await controlStream('restart');
+        async function handleUpdateAndRestart(buttonElement) {
+            let originalContent = '';
+            if (buttonElement) {
+                originalContent = buttonElement.innerHTML;
+                buttonElement.disabled = true;
+                buttonElement.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Restarting...';
             }
-        });
 
-        document.getElementById('updateAndRestartBtnTop').addEventListener('click', async function() {
-            const success = await saveConfiguration();
-            if (success) {
-                showSaveAlert('Saved and Stream Restarted Successfully');
-                await controlStream('restart');
+            try {
+                const success = await saveConfiguration();
+                if (success) {
+                    showSaveAlert('Saved and Stream Restarted Successfully');
+                    await controlStream('restart');
+                }
+            } finally {
+                if (buttonElement) {
+                    buttonElement.disabled = false;
+                    buttonElement.innerHTML = originalContent;
+                }
+            }
+        }
+
+        const restartButtonIds = [
+            'updateAndRestartBtn',
+            'updateAndRestartBtnTop',
+            'updateAndRestartLogoBtn',
+            'updateAndRestartLogoBtnHeader',
+            'updateAndRestartDateTimeBtn',
+            'updateAndRestartDateTimeBtnHeader'
+        ];
+
+        restartButtonIds.forEach(btnId => {
+            const btn = document.getElementById(btnId);
+            if (btn) {
+                btn.addEventListener('click', function() {
+                    handleUpdateAndRestart(this);
+                });
             }
         });
     </script>
