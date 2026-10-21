@@ -1,7 +1,7 @@
 {
   "AutoStartOnStartup": true,
   "ExternalServicesEnabled": {
-    "OBS_Scheduler": true,
+    "OBS_Scheduler": false,
     "Scroll_Ads": false,
     "SPX_Graphics": false
   }

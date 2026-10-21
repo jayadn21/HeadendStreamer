@@ -47,6 +47,7 @@ builder.Services.AddSingleton<IUserService, UserService>();
 builder.Services.AddSingleton<Go2rtcService>();
 builder.Services.AddSingleton<SchedulerService>();
 builder.Services.AddSingleton<ExternalProcessService>();
+builder.Services.AddSingleton<SystemConfigService>();
 builder.Services.AddHostedService<BackgroundMonitorService>();
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
