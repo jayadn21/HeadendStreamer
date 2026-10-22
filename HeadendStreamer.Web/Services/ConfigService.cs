@@ -1,21 +1,66 @@
 using HeadendStreamer.Web.Models.Entities;
 using System.Text.Json;
+using Microsoft.Extensions.Configuration;
 
 namespace HeadendStreamer.Web.Services;
 
 public class ConfigService
 {
     private readonly ILogger<ConfigService> _logger;
+    private readonly IConfiguration _configuration;
     private readonly string _configDirectory;
     private Dictionary<string, StreamConfig> _configs = new();
+    private readonly Dictionary<string, bool> _externalServicesEnabled = new(StringComparer.OrdinalIgnoreCase);
     private readonly object _lock = new();
     
-    public ConfigService(ILogger<ConfigService> logger, IWebHostEnvironment env)
+    private bool _autoStartOnStartup;
+    public bool AutoStartOnStartup
+    {
+        get => _autoStartOnStartup;
+        set
+        {
+            _autoStartOnStartup = value;
+            SaveSystemSettings();
+        }
+    }
+    
+    public ConfigService(ILogger<ConfigService> logger, IWebHostEnvironment env, IConfiguration configuration)
     {
         _logger = logger;
+        _configuration = configuration;
         _configDirectory = Path.Combine(env.ContentRootPath, "configs");
         Directory.CreateDirectory(_configDirectory);
+        LoadSystemSettings();
         LoadConfigs();
+    }
+
+    public bool IsExternalServiceEnabled(string serviceName)
+    {
+        lock (_lock)
+        {
+            if (_externalServicesEnabled.TryGetValue(serviceName, out var enabled))
+            {
+                return enabled;
+            }
+            return _configuration.GetSection($"HeadendStreamer:{serviceName}").GetValue<bool>("Enabled");
+        }
+    }
+
+    public void SetExternalServiceEnabled(string serviceName, bool enabled)
+    {
+        lock (_lock)
+        {
+            _externalServicesEnabled[serviceName] = enabled;
+            SaveSystemSettings();
+        }
+    }
+
+    public Dictionary<string, bool> GetAllExternalServicesEnabled()
+    {
+        lock (_lock)
+        {
+            return new Dictionary<string, bool>(_externalServicesEnabled, StringComparer.OrdinalIgnoreCase);
+        }
     }
     
     public async Task<StreamConfig?> GetConfigAsync(string id)
@@ -63,11 +108,31 @@ public class ConfigService
         existingConfig.Name = updates.Name ?? existingConfig.Name;
         existingConfig.Description = updates.Description ?? existingConfig.Description;
         existingConfig.Enabled = updates.Enabled;
+        existingConfig.Shuffle = updates.Shuffle;
+        existingConfig.EnableLogo = updates.EnableLogo;
+        existingConfig.LogoPath = updates.LogoPath;
+        existingConfig.LogoPosition = updates.LogoPosition;
+        existingConfig.LogoWidth = updates.LogoWidth;
+        existingConfig.LogoHeight = updates.LogoHeight;
+        existingConfig.LogoMarginLeft = updates.LogoMarginLeft;
+        existingConfig.LogoMarginTop = updates.LogoMarginTop;
+        existingConfig.LogoMarginRight = updates.LogoMarginRight;
+        existingConfig.LogoMarginBottom = updates.LogoMarginBottom;
+        existingConfig.EnableDateTime = updates.EnableDateTime;
+        existingConfig.DateTimeMarginLeft = updates.DateTimeMarginLeft;
+        existingConfig.DateTimeMarginTop = updates.DateTimeMarginTop;
+        existingConfig.DateTimeMarginRight = updates.DateTimeMarginRight;
+        existingConfig.DateTimeMarginBottom = updates.DateTimeMarginBottom;
+        existingConfig.DateTimeFontColor = updates.DateTimeFontColor;
+        existingConfig.DateTimeFontSize = updates.DateTimeFontSize;
         existingConfig.InputDevice = updates.InputDevice ?? existingConfig.InputDevice;
+        existingConfig.FolderPath2 = updates.FolderPath2;
         existingConfig.InputFormat = updates.InputFormat ?? existingConfig.InputFormat;
         existingConfig.PixelFormat = updates.PixelFormat ?? existingConfig.PixelFormat;
         existingConfig.VideoSize = updates.VideoSize ?? existingConfig.VideoSize;
         existingConfig.FrameRate = updates.FrameRate;
+        existingConfig.IncludeThreadQueueSize = updates.IncludeThreadQueueSize;
+        existingConfig.ReStream = updates.ReStream;
         existingConfig.VideoCodec = updates.VideoCodec ?? existingConfig.VideoCodec;
         existingConfig.Preset = updates.Preset ?? existingConfig.Preset;
         existingConfig.Tune = updates.Tune ?? existingConfig.Tune;
@@ -264,7 +329,7 @@ public class ConfigService
         try
         {
             var configFiles = Directory.GetFiles(_configDirectory, "*.json")
-                .Where(f => !f.Contains("backup"))
+                .Where(f => !f.Contains("backup") && !f.Contains("system_settings"))
                 .ToArray();
             
             foreach (var file in configFiles)
@@ -296,6 +361,53 @@ public class ConfigService
         }
     }
     
+    private void LoadSystemSettings()
+    {
+        try
+        {
+            var settingsPath = Path.Combine(_configDirectory, "system_settings.json");
+            if (File.Exists(settingsPath))
+            {
+                var json = File.ReadAllText(settingsPath);
+                var settings = JsonSerializer.Deserialize<SystemSettings>(json);
+                if (settings != null)
+                {
+                    _autoStartOnStartup = settings.AutoStartOnStartup;
+                    if (settings.ExternalServicesEnabled != null)
+                    {
+                        foreach (var kvp in settings.ExternalServicesEnabled)
+                        {
+                            _externalServicesEnabled[kvp.Key] = kvp.Value;
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to load system settings");
+        }
+    }
+
+    private void SaveSystemSettings()
+    {
+        try
+        {
+            var settingsPath = Path.Combine(_configDirectory, "system_settings.json");
+            var settings = new SystemSettings
+            {
+                AutoStartOnStartup = _autoStartOnStartup,
+                ExternalServicesEnabled = new Dictionary<string, bool>(_externalServicesEnabled, StringComparer.OrdinalIgnoreCase)
+            };
+            var json = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(settingsPath, json);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to save system settings");
+        }
+    }
+    
     private string GetConfigFilePath(string id)
     {
         return Path.Combine(_configDirectory, $"{id}.json");
@@ -305,5 +417,11 @@ public class ConfigService
     {
         public DateTime Timestamp { get; set; }
         public List<StreamConfig>? Configs { get; set; }
+    }
+
+    private class SystemSettings
+    {
+        public bool AutoStartOnStartup { get; set; }
+        public Dictionary<string, bool>? ExternalServicesEnabled { get; set; }
     }
 }

@@ -155,4 +155,58 @@ public class StreamController : Controller
         
         return Ok(status);
     }
+
+    [HttpGet("api/stream/{id}/folder-playback")]
+    public IActionResult GetFolderPlayback(string id)
+    {
+        var state = _streamManager.GetFolderPlaybackState(id);
+        if (state == null)
+            return NotFound(new { error = "No folder playback state found for this stream." });
+
+        var totalDuration = _streamManager.GetTotalDuration(id);
+        double totalSeconds = totalDuration?.TotalSeconds ?? 0;
+        double currentSeconds = state.ResumePositionSeconds;
+        double remainingSeconds = Math.Max(0, totalSeconds - currentSeconds);
+
+        return Ok(new
+        {
+            state.CurrentVideoName,
+            state.CurrentVideoPath,
+            CurrentPlayTime = currentSeconds,
+            TotalTime = totalSeconds,
+            TimeRemaining = remainingSeconds,
+            state.UpcomingVideoName,
+            state.UpcomingVideoPath,
+            state.PlayedVideos
+        });
+    }
+
+    [HttpPost("api/stream/{id}/clear-history")]
+    public async Task<IActionResult> ClearHistory(string id)
+    {
+        await _streamManager.ClearFolderPlaybackHistoryAsync(id);
+        return Ok(new { success = true });
+    }
+
+    [HttpPost("api/stream/{id}/play-next")]
+    public async Task<IActionResult> PlayNext(string id)
+    {
+        await _streamManager.PlayNextVideoAsync(id);
+        return Ok(new { success = true });
+    }
+
+    [HttpPost("api/stream/{id}/seek")]
+    public async Task<IActionResult> SeekStream(string id, [FromQuery] double offsetSeconds)
+    {
+        try
+        {
+            await _streamManager.SeekStreamAsync(id, offsetSeconds);
+            return Ok(new { success = true });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Failed to seek stream {id} by {offsetSeconds}s");
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
 }

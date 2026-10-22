@@ -1,0 +1,1061 @@
+@model HeadendStreamer.Web.Models.ViewModels.SystemConfigViewModel
+@{
+    ViewData["Title"] = "System Config";
+}
+
+<div class="container-fluid px-4 py-3">
+    <!-- Header Section -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <div>
+            <h2 class="h3 mb-1 text-dark fw-bold">
+                <i class="fas fa-sliders-h text-primary me-2"></i>System Configuration
+            </h2>
+            <p class="text-muted mb-0 small">
+                Manage core engine settings, FFmpeg paths, streaming defaults, external services, and logging stored in <code>appsettings.json</code>.
+            </p>
+        </div>
+        <div class="d-flex gap-2 mt-2 mt-md-0">
+            <button type="button" class="btn btn-outline-secondary" id="btnOpenBackupsModal">
+                <i class="fas fa-history me-1"></i> Backups
+            </button>
+            <button type="button" class="btn btn-outline-info" id="btnTestFfmpegTop">
+                <i class="fas fa-terminal me-1"></i> Test FFmpeg
+            </button>
+            <button type="submit" form="systemConfigForm" class="btn btn-primary px-3 shadow-sm">
+                <i class="fas fa-save me-1"></i> Save Changes
+            </button>
+        </div>
+    </div>
+
+    <!-- Live Alert Box -->
+    <div id="liveAlertContainer">
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+                <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+                <i class="fas fa-exclamation-triangle me-2"></i>@TempData["ErrorMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+    </div>
+
+    <!-- Navigation Tabs -->
+    <ul class="nav nav-pills mb-4 bg-light p-2 rounded border" id="configTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active fw-semibold" id="tab-general-btn" data-bs-toggle="pill" data-bs-target="#tab-general" type="button" role="tab">
+                <i class="fas fa-video me-2"></i>Engine & Streaming
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-semibold" id="tab-services-btn" data-bs-toggle="pill" data-bs-target="#tab-services" type="button" role="tab">
+                <i class="fas fa-cubes me-2"></i>External Services
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-semibold" id="tab-logging-btn" data-bs-toggle="pill" data-bs-target="#tab-logging" type="button" role="tab">
+                <i class="fas fa-file-alt me-2"></i>Logging & Network
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-semibold" id="tab-raw-btn" data-bs-toggle="pill" data-bs-target="#tab-raw" type="button" role="tab">
+                <i class="fas fa-code me-2"></i>Raw JSON Editor
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Contents -->
+    <div class="tab-content" id="configTabsContent">
+        <!-- TAB 1: Engine & Streaming -->
+        <div class="tab-pane fade show active" id="tab-general" role="tabpanel">
+            <form id="systemConfigForm" asp-controller="SystemConfig" asp-action="Save" method="post">
+                @Html.AntiForgeryToken()
+
+                <div class="row g-4">
+                    <!-- FFmpeg Configuration Card -->
+                    <div class="col-12">
+                        <div class="card shadow-sm border-0 border-start border-primary border-4">
+                            <div class="card-header bg-white py-3">
+                                <h5 class="card-title mb-0 text-primary">
+                                    <i class="fas fa-film me-2"></i>FFmpeg Binary & Execution
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label asp-for="FfmpegPath" class="form-label fw-bold">FFmpeg Executable Path</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light"><i class="fas fa-terminal"></i></span>
+                                        <input asp-for="FfmpegPath" id="FfmpegPath" class="form-control" placeholder="e.g. C:\ffmpeg\bin\ffmpeg.exe or /usr/bin/ffmpeg" />
+                                        <button class="btn btn-outline-secondary btn-browse" type="button" data-target="#FfmpegPath" data-filter="file">
+                                            <i class="fas fa-folder-open me-1"></i> Browse...
+                                        </button>
+                                        <button class="btn btn-outline-info" type="button" id="btnTestFfmpegInline">
+                                            <i class="fas fa-vial me-1"></i> Test
+                                        </button>
+                                    </div>
+                                    <div class="form-text">
+                                        Path to the FFmpeg binary on the host machine. If empty, the system will look in the system <code>PATH</code>.
+                                    </div>
+                                </div>
+
+                                <!-- Test Result Panel -->
+                                <div id="ffmpegTestResult" class="d-none mt-3 p-3 rounded border">
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <span class="fw-bold" id="ffmpegTestStatusText"></span>
+                                        <button type="button" class="btn-close btn-sm" onclick="$('#ffmpegTestResult').addClass('d-none');"></button>
+                                    </div>
+                                    <pre id="ffmpegTestOutput" class="mb-0 bg-dark text-light p-2 rounded small" style="max-height: 140px; overflow-y: auto; font-family: monospace;"></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Multicast & Port Defaults -->
+                    <div class="col-md-6">
+                        <div class="card shadow-sm border-0 h-100">
+                            <div class="card-header bg-white py-3">
+                                <h5 class="card-title mb-0 text-dark">
+                                    <i class="fas fa-network-wired me-2 text-info"></i>Network & Multicast Defaults
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label asp-for="DefaultMulticastBase" class="form-label fw-semibold">Default Multicast IP Base</label>
+                                    <input asp-for="DefaultMulticastBase" class="form-control" placeholder="239.255.255" />
+                                    <div class="form-text">Used as default prefix when assigning multicast stream targets (e.g. <code>239.255.255.x</code>).</div>
+                                </div>
+
+                                <div class="row g-2 mb-3">
+                                    <div class="col-6">
+                                        <label asp-for="PortRangeStart" class="form-label fw-semibold">Port Range Start</label>
+                                        <input asp-for="PortRangeStart" type="number" class="form-control" min="1024" max="65535" />
+                                    </div>
+                                    <div class="col-6">
+                                        <label asp-for="PortRangeEnd" class="form-label fw-semibold">Port Range End</label>
+                                        <input asp-for="PortRangeEnd" type="number" class="form-control" min="1024" max="65535" />
+                                    </div>
+                                    <div class="form-text">Range of network ports allocated for generated stream outputs.</div>
+                                </div>
+
+                                <div class="form-check form-switch mb-3 pt-2">
+                                    <input asp-for="AutoRestart" class="form-check-input" type="checkbox" id="AutoRestart" />
+                                    <label class="form-check-label fw-semibold" for="AutoRestart">Auto-Restart Stream on Crash or Failure</label>
+                                    <div class="form-text">Automatically monitor and restart FFmpeg stream processes if terminated abnormally.</div>
+                                </div>
+
+                                <div class="mb-2">
+                                    <label asp-for="HealthCheckInterval" class="form-label fw-semibold">Health Check Interval (seconds)</label>
+                                    <div class="input-group">
+                                        <input asp-for="HealthCheckInterval" type="number" class="form-control" min="5" max="300" />
+                                        <span class="input-group-text">sec</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Storage & Retention -->
+                    <div class="col-md-6">
+                        <div class="card shadow-sm border-0 h-100">
+                            <div class="card-header bg-white py-3">
+                                <h5 class="card-title mb-0 text-dark">
+                                    <i class="fas fa-folder me-2 text-warning"></i>Directories & Log Limits
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label asp-for="ConfigDirectory" class="form-label fw-semibold">Config Directory</label>
+                                    <div class="input-group">
+                                        <input asp-for="ConfigDirectory" id="ConfigDirectory" class="form-control" placeholder="configs" />
+                                        <button class="btn btn-outline-secondary btn-browse" type="button" data-target="#ConfigDirectory" data-filter="dir">
+                                            <i class="fas fa-folder-open"></i>
+                                        </button>
+                                    </div>
+                                    <div class="form-text">Path where individual stream configuration JSON files are stored.</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label asp-for="LogDirectory" class="form-label fw-semibold">Log Directory</label>
+                                    <div class="input-group">
+                                        <input asp-for="LogDirectory" id="LogDirectory" class="form-control" placeholder="logs" />
+                                        <button class="btn btn-outline-secondary btn-browse" type="button" data-target="#LogDirectory" data-filter="dir">
+                                            <i class="fas fa-folder-open"></i>
+                                        </button>
+                                    </div>
+                                    <div class="form-text">Path where FFmpeg process logs and runtime logs are written.</div>
+                                </div>
+
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <label asp-for="MaxLogFiles" class="form-label fw-semibold">Max Log Files</label>
+                                        <input asp-for="MaxLogFiles" type="number" class="form-control" min="1" max="100" />
+                                    </div>
+                                    <div class="col-6">
+                                        <label asp-for="MaxLogSizeMB" class="form-label fw-semibold">Max Log Size (MB)</label>
+                                        <input asp-for="MaxLogSizeMB" type="number" class="form-control" min="1" max="500" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hidden inputs for other sections so form submission retains them -->
+                <div class="d-none">
+                    <!-- Go2rtc -->
+                    <input type="hidden" asp-for="Go2rtcExecutablePath" id="syncGo2rtcExecutablePath" />
+                    <input type="hidden" asp-for="Go2rtcWorkingDirectory" id="syncGo2rtcWorkingDirectory" />
+
+                    <!-- OBS -->
+                    <input type="hidden" asp-for="ObsExecutablePath" id="syncObsExecutablePath" />
+                    <input type="hidden" asp-for="ObsExePath" id="syncObsExePath" />
+                    <input type="hidden" asp-for="ObsServerUrl" id="syncObsServerUrl" />
+                    <input type="hidden" asp-for="ObsEnabled" id="syncObsEnabled" />
+
+                    <!-- SPX -->
+                    <input type="hidden" asp-for="SpxExecutablePath" id="syncSpxExecutablePath" />
+                    <input type="hidden" asp-for="SpxExePath" id="syncSpxExePath" />
+                    <input type="hidden" asp-for="SpxServerUrl" id="syncSpxServerUrl" />
+                    <input type="hidden" asp-for="SpxEnabled" id="syncSpxEnabled" />
+
+                    <!-- Scroll Ads -->
+                    <input type="hidden" asp-for="ScrollAdsExecutablePath" id="syncScrollAdsExecutablePath" />
+                    <input type="hidden" asp-for="ScrollAdsExePath" id="syncScrollAdsExePath" />
+                    <input type="hidden" asp-for="ScrollAdsServerUrl" id="syncScrollAdsServerUrl" />
+                    <input type="hidden" asp-for="ScrollAdsEnabled" id="syncScrollAdsEnabled" />
+
+                    <!-- Logging -->
+                    <input type="hidden" asp-for="LogLevelDefault" id="syncLogLevelDefault" />
+                    <input type="hidden" asp-for="LogLevelAspNetCore" id="syncLogLevelAspNetCore" />
+                    <input type="hidden" asp-for="SerilogMinimumLevelDefault" id="syncSerilogMinimumLevelDefault" />
+                    <input type="hidden" asp-for="SerilogFilePath" id="syncSerilogFilePath" />
+                    <input type="hidden" asp-for="SerilogRetainedFileCountLimit" id="syncSerilogRetainedFileCountLimit" />
+                    <input type="hidden" asp-for="AllowedHosts" id="syncAllowedHosts" />
+                </div>
+
+                <div class="mt-4 pt-3 border-top d-flex justify-content-end">
+                    <button type="submit" class="btn btn-primary px-4 shadow-sm">
+                        <i class="fas fa-save me-1"></i> Save Configuration
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- TAB 2: External Services -->
+        <div class="tab-pane fade" id="tab-services" role="tabpanel">
+            <div class="row g-4">
+                <!-- Go2rtc Service -->
+                <div class="col-12">
+                    <div class="card shadow-sm border-0">
+                        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0 text-dark">
+                                <i class="fas fa-broadcast-tower text-success me-2"></i>Go2rtc WebRTC Streaming Bridge
+                            </h5>
+                            <a href="http://localhost:1984" target="_blank" class="btn btn-sm btn-outline-success">
+                                <i class="fas fa-external-link-alt me-1"></i> Go2rtc Dashboard (1984)
+                            </a>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">Executable Path</label>
+                                    <div class="input-group">
+                                        <input type="text" id="displayGo2rtcExecutablePath" value="@Model.Go2rtcExecutablePath" class="form-control sync-input" data-sync="#syncGo2rtcExecutablePath" placeholder="bin\Debug\net8.0\go2rtc\go2rtc" />
+                                        <button class="btn btn-outline-secondary btn-browse" type="button" data-target="#displayGo2rtcExecutablePath" data-filter="file">
+                                            <i class="fas fa-folder-open"></i>
+                                        </button>
+                                    </div>
+                                    <div class="form-text">Path to the go2rtc executable file.</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">Working Directory</label>
+                                    <div class="input-group">
+                                        <input type="text" id="displayGo2rtcWorkingDirectory" value="@Model.Go2rtcWorkingDirectory" class="form-control sync-input" data-sync="#syncGo2rtcWorkingDirectory" placeholder="bin\Debug\net8.0\go2rtc" />
+                                        <button class="btn btn-outline-secondary btn-browse" type="button" data-target="#displayGo2rtcWorkingDirectory" data-filter="dir">
+                                            <i class="fas fa-folder-open"></i>
+                                        </button>
+                                    </div>
+                                    <div class="form-text">Directory where <code>go2rtc.yaml</code> is located.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- OBS Scene Scheduler -->
+                <div class="col-12">
+                    <div class="card shadow-sm border-0">
+                        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0 text-dark">
+                                <i class="fas fa-calendar-alt text-primary me-2"></i>OBS Scene Scheduler
+                            </h5>
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input sync-checkbox" type="checkbox" id="displayObsEnabled" @(Model.ObsEnabled ? "checked" : "") data-sync="#syncObsEnabled" />
+                                <label class="form-check-label fw-semibold" for="displayObsEnabled">Enabled</label>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Working / Executable Directory</label>
+                                    <div class="input-group">
+                                        <input type="text" id="displayObsExecutablePath" value="@Model.ObsExecutablePath" class="form-control sync-input" data-sync="#syncObsExecutablePath" placeholder="C:\siti-src\obs_scenescheduler" />
+                                        <button class="btn btn-outline-secondary btn-browse" type="button" data-target="#displayObsExecutablePath" data-filter="dir">
+                                            <i class="fas fa-folder-open"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Command / Exe Path</label>
+                                    <div class="input-group">
+                                        <input type="text" id="displayObsExePath" value="@Model.ObsExePath" class="form-control sync-input" data-sync="#syncObsExePath" placeholder="build\scenescheduler.exe -headless" />
+                                        <button class="btn btn-outline-secondary btn-browse" type="button" data-target="#displayObsExePath" data-filter="file">
+                                            <i class="fas fa-folder-open"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Server URL</label>
+                                    <input type="text" id="displayObsServerUrl" value="@Model.ObsServerUrl" class="form-control sync-input" data-sync="#syncObsServerUrl" placeholder="http://localhost:8081" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SPX Graphics -->
+                <div class="col-12">
+                    <div class="card shadow-sm border-0">
+                        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0 text-dark">
+                                <i class="fas fa-paint-brush text-danger me-2"></i>SPX Graphics Controller
+                            </h5>
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input sync-checkbox" type="checkbox" id="displaySpxEnabled" @(Model.SpxEnabled ? "checked" : "") data-sync="#syncSpxEnabled" />
+                                <label class="form-check-label fw-semibold" for="displaySpxEnabled">Enabled</label>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Working Directory</label>
+                                    <div class="input-group">
+                                        <input type="text" id="displaySpxExecutablePath" value="@Model.SpxExecutablePath" class="form-control sync-input" data-sync="#syncSpxExecutablePath" placeholder="C:\siti-src\spx-gc" />
+                                        <button class="btn btn-outline-secondary btn-browse" type="button" data-target="#displaySpxExecutablePath" data-filter="dir">
+                                            <i class="fas fa-folder-open"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Command / Exe Path</label>
+                                    <input type="text" id="displaySpxExePath" value="@Model.SpxExePath" class="form-control sync-input" data-sync="#syncSpxExePath" placeholder="node server.js" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Server URL</label>
+                                    <input type="text" id="displaySpxServerUrl" value="@Model.SpxServerUrl" class="form-control sync-input" data-sync="#syncSpxServerUrl" placeholder="http://localhost:5656" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Scroll Ads -->
+                <div class="col-12">
+                    <div class="card shadow-sm border-0">
+                        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0 text-dark">
+                                <i class="fas fa-scroll text-warning me-2"></i>Scroll Ads Service
+                            </h5>
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input sync-checkbox" type="checkbox" id="displayScrollAdsEnabled" @(Model.ScrollAdsEnabled ? "checked" : "") data-sync="#syncScrollAdsEnabled" />
+                                <label class="form-check-label fw-semibold" for="displayScrollAdsEnabled">Enabled</label>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Working Directory</label>
+                                    <div class="input-group">
+                                        <input type="text" id="displayScrollAdsExecutablePath" value="@Model.ScrollAdsExecutablePath" class="form-control sync-input" data-sync="#syncScrollAdsExecutablePath" placeholder="C:\siti-src\Scroll-Ads\build" />
+                                        <button class="btn btn-outline-secondary btn-browse" type="button" data-target="#displayScrollAdsExecutablePath" data-filter="dir">
+                                            <i class="fas fa-folder-open"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Command / Exe Path</label>
+                                    <input type="text" id="displayScrollAdsExePath" value="@Model.ScrollAdsExePath" class="form-control sync-input" data-sync="#syncScrollAdsExePath" placeholder="node index.js" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Server URL</label>
+                                    <input type="text" id="displayScrollAdsServerUrl" value="@Model.ScrollAdsServerUrl" class="form-control sync-input" data-sync="#syncScrollAdsServerUrl" placeholder="http://localhost:3000" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 pt-3 border-top d-flex justify-content-end">
+                <button type="button" class="btn btn-primary px-4 shadow-sm" onclick="$('#systemConfigForm').submit();">
+                    <i class="fas fa-save me-1"></i> Save Configuration
+                </button>
+            </div>
+        </div>
+
+        <!-- TAB 3: Logging & Network -->
+        <div class="tab-pane fade" id="tab-logging" role="tabpanel">
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-header bg-white py-3">
+                            <h5 class="card-title mb-0 text-dark">
+                                <i class="fas fa-list-alt text-primary me-2"></i>Logging Levels
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Default Application Log Level</label>
+                                <select id="displayLogLevelDefault" class="form-select sync-select" data-sync="#syncLogLevelDefault">
+                                    @foreach (var lvl in new[] { "Trace", "Debug", "Information", "Warning", "Error", "Critical" })
+                                    {
+                                        if (Model.LogLevelDefault.Equals(lvl, StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <option value="@lvl" selected>@lvl</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@lvl">@lvl</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Microsoft.AspNetCore Log Level</label>
+                                <select id="displayLogLevelAspNetCore" class="form-select sync-select" data-sync="#syncLogLevelAspNetCore">
+                                    @foreach (var lvl in new[] { "Trace", "Debug", "Information", "Warning", "Error", "Critical" })
+                                    {
+                                        if (Model.LogLevelAspNetCore.Equals(lvl, StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <option value="@lvl" selected>@lvl</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@lvl">@lvl</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Serilog Minimum Level</label>
+                                <select id="displaySerilogMinimumLevelDefault" class="form-select sync-select" data-sync="#syncSerilogMinimumLevelDefault">
+                                    @foreach (var lvl in new[] { "Verbose", "Debug", "Information", "Warning", "Error", "Fatal" })
+                                    {
+                                        if (Model.SerilogMinimumLevelDefault.Equals(lvl, StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <option value="@lvl" selected>@lvl</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@lvl">@lvl</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-header bg-white py-3">
+                            <h5 class="card-title mb-0 text-dark">
+                                <i class="fas fa-file-invoice text-info me-2"></i>Serilog File Sink & Network
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Rolling Log File Path</label>
+                                <input type="text" id="displaySerilogFilePath" value="@Model.SerilogFilePath" class="form-control sync-input" data-sync="#syncSerilogFilePath" placeholder="logs/headend-.log" />
+                                <div class="form-text">Path template for rolling log files (e.g. <code>logs/headend-.log</code>).</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Retained Log Files Count Limit</label>
+                                <input type="number" id="displaySerilogRetainedFileCountLimit" value="@Model.SerilogRetainedFileCountLimit" min="1" max="365" class="form-control sync-input" data-sync="#syncSerilogRetainedFileCountLimit" />
+                                <div class="form-text">Number of days/files retained before automatic cleanup.</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Allowed Hosts</label>
+                                <input type="text" id="displayAllowedHosts" value="@Model.AllowedHosts" class="form-control sync-input" data-sync="#syncAllowedHosts" placeholder="*" />
+                                <div class="form-text">Host header binding restriction for ASP.NET Core (e.g. <code>*</code>).</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FFmpeg Log Maintenance -->
+                <div class="col-12">
+                    <div class="card shadow-sm border-0 border-start border-info border-4">
+                        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0 text-dark">
+                                <i class="fas fa-broom text-info me-2"></i>FFmpeg Log Maintenance
+                            </h5>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2">
+                                <i class="fas fa-clock me-1"></i> Auto-Cleans Every 5 Mins
+                            </span>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted small mb-3">
+                                The system automatically purges historical logs from <code>logs/ffmpeg/</code> every 5 minutes. All log files prior to today are removed, while today's active and completed logs are retained.
+                            </p>
+                            <div class="d-flex align-items-center gap-3">
+                                <button type="button" class="btn btn-outline-danger btn-sm" id="btnClearOldFfmpegLogs">
+                                    <i class="fas fa-trash-alt me-1"></i> Clean Old Logs Now
+                                </button>
+                                <span id="clearLogsStatus" class="small text-muted"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 pt-3 border-top d-flex justify-content-end">
+                <button type="button" class="btn btn-primary px-4 shadow-sm" onclick="$('#systemConfigForm').submit();">
+                    <i class="fas fa-save me-1"></i> Save Configuration
+                </button>
+            </div>
+        </div>
+
+        <!-- TAB 4: Raw JSON Editor -->
+        <div class="tab-pane fade" id="tab-raw" role="tabpanel">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <div>
+                        <h5 class="card-title mb-0 text-dark">
+                            <i class="fas fa-file-code text-secondary me-2"></i>appsettings.json Direct Editor
+                        </h5>
+                        <small class="text-muted">Edit the complete JSON configuration directly with syntax validation and automatic backup.</small>
+                    </div>
+                    <div class="d-flex gap-2 align-items-center">
+                        <span id="jsonValidationBadge" class="badge bg-success py-2 px-3">
+                            <i class="fas fa-check me-1"></i> Valid JSON
+                        </span>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="btnFormatJson">
+                            <i class="fas fa-align-left me-1"></i> Beautify
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-info" id="btnValidateJson">
+                            <i class="fas fa-spell-check me-1"></i> Validate
+                        </button>
+                        <button type="button" class="btn btn-sm btn-primary" id="btnSaveRawJson">
+                            <i class="fas fa-save me-1"></i> Save Raw JSON
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <textarea id="rawJsonTextArea" class="form-control font-monospace border-0 p-3" rows="22" style="background-color: #1e1e1e; color: #d4d4d4; font-size: 13px; line-height: 1.5; tab-size: 2; resize: vertical;">@Model.RawJson</textarea>
+                </div>
+                <div class="card-footer bg-light py-2 text-muted small d-flex justify-content-between align-items-center">
+                    <span>File location: <code>appsettings.json</code></span>
+                    <span>An automatic backup will be created in <code>configs/backups/</code> upon saving.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: File & Directory Browser -->
+<div class="modal fade" id="browseModal" tabindex="-1" aria-labelledby="browseModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-light py-3">
+                <h5 class="modal-title fw-bold" id="browseModalLabel">
+                    <i class="fas fa-folder-open text-primary me-2"></i>Select File or Directory
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-3">
+                <!-- Navigation Bar -->
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="btnBrowseUp">
+                        <i class="fas fa-arrow-up me-1"></i> Up
+                    </button>
+                    <div class="input-group input-group-sm flex-grow-1">
+                        <span class="input-group-text bg-light"><i class="fas fa-folder text-warning"></i></span>
+                        <input type="text" id="browseCurrentPathInput" class="form-control" />
+                        <button type="button" class="btn btn-outline-primary" id="btnBrowseGo">Go</button>
+                    </div>
+                </div>
+
+                <!-- Breadcrumb -->
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb bg-light p-2 rounded small mb-3" id="browseBreadcrumbs"></ol>
+                </nav>
+
+                <!-- Items Table -->
+                <div class="table-responsive border rounded" style="max-height: 350px;">
+                    <table class="table table-hover table-sm mb-0" id="browseItemsTable">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th style="width: 40px;"></th>
+                                <th>Name</th>
+                                <th style="width: 120px;">Type</th>
+                                <th style="width: 140px;">Modified</th>
+                            </tr>
+                        </thead>
+                        <tbody id="browseItemsTbody">
+                            <tr>
+                                <td colspan="4" class="text-center py-4 text-muted">
+                                    <div class="spinner-border spinner-border-sm me-2 text-primary" role="status"></div>
+                                    Loading directory contents...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Selected Item Preview -->
+                <div class="mt-3">
+                    <label class="form-label small fw-bold text-muted mb-1">Selected Path:</label>
+                    <input type="text" id="browseSelectedPath" class="form-control form-control-sm font-monospace" readonly />
+                </div>
+            </div>
+            <div class="modal-footer bg-light py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary btn-sm" id="btnConfirmBrowseSelection">
+                    <i class="fas fa-check me-1"></i> Select Path
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Backups Management -->
+<div class="modal fade" id="backupsModal" tabindex="-1" aria-labelledby="backupsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-light py-3">
+                <h5 class="modal-title fw-bold" id="backupsModalLabel">
+                    <i class="fas fa-history text-secondary me-2"></i>appsettings.json Backups
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-3">
+                <p class="text-muted small mb-3">
+                    Automatic backups are created before any modifications are saved to <code>appsettings.json</code>. You can restore an earlier version at any time.
+                </p>
+
+                <div class="table-responsive border rounded" style="max-height: 320px;">
+                    <table class="table table-hover table-sm mb-0">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th>Backup File</th>
+                                <th>Date & Time</th>
+                                <th>Size</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="backupsTableBody">
+                            <tr>
+                                <td colspan="4" class="text-center py-4 text-muted">Loading backups...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer bg-light py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Keep tabs synced with hidden inputs
+            $('.sync-input').on('input change', function () {
+                var target = $(this).data('sync');
+                $(target).val($(this).val());
+            });
+
+            $('.sync-select').on('change', function () {
+                var target = $(this).data('sync');
+                $(target).val($(this).val());
+            });
+
+            $('.sync-checkbox').on('change', function () {
+                var target = $(this).data('sync');
+                $(target).val($(this).is(':checked'));
+            });
+
+            // Initialize sync fields
+            $('.sync-input, .sync-select').each(function () {
+                var target = $(this).data('sync');
+                if (target) {
+                    $(target).val($(this).val());
+                }
+            });
+            $('.sync-checkbox').each(function () {
+                var target = $(this).data('sync');
+                if (target) {
+                    $(target).val($(this).is(':checked'));
+                }
+            });
+
+            // AJAX Form Submit for seamless experience
+            $('#systemConfigForm').on('submit', function (e) {
+                // Ensure sync values are up to date
+                $('.sync-input, .sync-select').each(function () {
+                    var target = $(this).data('sync');
+                    if (target) $(target).val($(this).val());
+                });
+                $('.sync-checkbox').each(function () {
+                    var target = $(this).data('sync');
+                    if (target) $(target).val($(this).is(':checked'));
+                });
+            });
+
+            // FFmpeg Testing
+            function testFfmpeg(path) {
+                $('#ffmpegTestResult').removeClass('d-none');
+                $('#ffmpegTestStatusText').html('<span class="spinner-border spinner-border-sm me-2 text-info"></span>Testing FFmpeg binary...');
+                $('#ffmpegTestOutput').text('Running test execution...');
+
+                $.ajax({
+                    url: '/SystemConfig/TestFfmpeg',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ ffmpegPath: path }),
+                    success: function (res) {
+                        if (res.success) {
+                            $('#ffmpegTestStatusText').html('<span class="badge bg-success me-2"><i class="fas fa-check"></i> Success</span> FFmpeg binary is functional');
+                            $('#ffmpegTestOutput').text(res.output || 'FFmpeg executed successfully.');
+                        } else {
+                            $('#ffmpegTestStatusText').html('<span class="badge bg-danger me-2"><i class="fas fa-times"></i> Failed</span> Could not execute FFmpeg');
+                            $('#ffmpegTestOutput').text(res.error || 'Execution failed or file not found.');
+                        }
+                    },
+                    error: function (xhr) {
+                        $('#ffmpegTestStatusText').html('<span class="badge bg-danger me-2"><i class="fas fa-times"></i> Error</span> Server request failed');
+                        $('#ffmpegTestOutput').text(xhr.responseText || 'Request failed.');
+                    }
+                });
+            }
+
+            function getCleanFfmpegPath() {
+                var path = $('#FfmpegPath').val() || '';
+                path = path.trim().replace(/^["']|["']$/g, '');
+                while (path.indexOf('\\\\') !== -1) {
+                    path = path.replace(/\\\\/g, '\\');
+                }
+                $('#FfmpegPath').val(path);
+                return path;
+            }
+
+            $('#FfmpegPath').on('blur change', function () {
+                getCleanFfmpegPath();
+            });
+
+            $('#btnTestFfmpegTop, #btnTestFfmpegInline').on('click', function () {
+                var path = getCleanFfmpegPath();
+                testFfmpeg(path);
+            });
+
+            // Raw JSON Validation & Formatting
+            function validateJsonText(text) {
+                try {
+                    JSON.parse(text);
+                    $('#jsonValidationBadge').removeClass('bg-danger').addClass('bg-success').html('<i class="fas fa-check me-1"></i> Valid JSON');
+                    return true;
+                } catch (err) {
+                    $('#jsonValidationBadge').removeClass('bg-success').addClass('bg-danger').html('<i class="fas fa-exclamation-circle me-1"></i> Syntax Error: ' + err.message);
+                    return false;
+                }
+            }
+
+            $('#rawJsonTextArea').on('input', function () {
+                validateJsonText($(this).val());
+            });
+
+            $('#btnFormatJson').on('click', function () {
+                try {
+                    var current = $('#rawJsonTextArea').val();
+                    var parsed = JSON.parse(current);
+                    var formatted = JSON.stringify(parsed, null, 2);
+                    $('#rawJsonTextArea').val(formatted);
+                    validateJsonText(formatted);
+                } catch (err) {
+                    alert('Cannot beautify: Invalid JSON format (' + err.message + ')');
+                }
+            });
+
+            $('#btnValidateJson').on('click', function () {
+                var valid = validateJsonText($('#rawJsonTextArea').val());
+                if (valid) {
+                    alert('JSON syntax is valid!');
+                }
+            });
+
+            $('#btnSaveRawJson').on('click', function () {
+                var rawJson = $('#rawJsonTextArea').val();
+                if (!validateJsonText(rawJson)) {
+                    alert('Please fix the JSON syntax errors before saving.');
+                    return;
+                }
+
+                if (!confirm('Are you sure you want to save changes to appsettings.json? An automatic backup will be created.')) {
+                    return;
+                }
+
+                $.ajax({
+                    url: '/SystemConfig/SaveRaw',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ rawJson: rawJson }),
+                    success: function (res) {
+                        if (res.success) {
+                            showLiveAlert('success', res.message || 'appsettings.json updated successfully.');
+                        } else {
+                            showLiveAlert('danger', res.message || 'Failed to update appsettings.json.');
+                        }
+                    },
+                    error: function (xhr) {
+                        showLiveAlert('danger', 'Error updating appsettings.json: ' + xhr.responseText);
+                    }
+                });
+            });
+
+            function showLiveAlert(type, message) {
+                var alertHtml = '<div class="alert alert-' + type + ' alert-dismissible fade show shadow-sm" role="alert">' +
+                    '<i class="fas fa-' + (type === 'success' ? 'check-circle' : 'exclamation-triangle') + ' me-2"></i>' +
+                    message +
+                    '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+                    '</div>';
+                $('#liveAlertContainer').html(alertHtml);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+
+            // File & Directory Browser Modal
+            var browseTargetInput = null;
+            var browseCurrentParentPath = null;
+            var browseFilterMode = 'all'; // 'file' or 'dir'
+
+            $(document).on('click', '.btn-browse', function () {
+                browseTargetInput = $(this).data('target');
+                browseFilterMode = $(this).data('filter') || 'all';
+                var currentVal = $(browseTargetInput).val();
+                loadDirectory(currentVal);
+                var modal = new bootstrap.Modal(document.getElementById('browseModal'));
+                modal.show();
+            });
+
+            function loadDirectory(path) {
+                $('#browseItemsTbody').html('<tr><td colspan="4" class="text-center py-4 text-muted"><div class="spinner-border spinner-border-sm me-2 text-primary"></div>Loading directory contents...</td></tr>');
+
+                $.ajax({
+                    url: '/SystemConfig/Browse',
+                    type: 'GET',
+                    data: { path: path },
+                    success: function (res) {
+                        browseCurrentParentPath = res.parentPath;
+                        $('#browseCurrentPathInput').val(res.currentPath);
+                        $('#browseSelectedPath').val(res.currentPath);
+
+                        // Render Breadcrumbs
+                        var crumbsHtml = '<li class="breadcrumb-item"><a href="#" class="browse-nav-link" data-path="">Roots</a></li>';
+                        if (res.currentPath) {
+                            var parts = res.currentPath.split(/[\\\/]/).filter(function (p) { return p.length > 0; });
+                            var accumulated = '';
+                            parts.forEach(function (part, idx) {
+                                if (idx === 0 && res.currentPath.indexOf(':') === 1) {
+                                    accumulated = part + '\\';
+                                } else {
+                                    accumulated += (accumulated.endsWith('\\') || accumulated.endsWith('/') ? '' : '\\') + part;
+                                }
+                                crumbsHtml += '<li class="breadcrumb-item"><a href="#" class="browse-nav-link" data-path="' + accumulated.replace(/\\/g, '\\\\') + '">' + part + '</a></li>';
+                            });
+                        }
+                        $('#browseBreadcrumbs').html(crumbsHtml);
+
+                        // Render Items
+                        if (!res.items || res.items.length === 0) {
+                            $('#browseItemsTbody').html('<tr><td colspan="4" class="text-center py-3 text-muted">Empty folder</td></tr>');
+                            return;
+                        }
+
+                        var rowsHtml = '';
+                        res.items.forEach(function (item) {
+                            var icon = item.isDirectory ? '<i class="fas fa-folder text-warning"></i>' : '<i class="fas fa-file-code text-secondary"></i>';
+                            if (item.extension === '.exe') icon = '<i class="fas fa-cog text-primary"></i>';
+                            if (item.extension === '.json') icon = '<i class="fas fa-file-alt text-info"></i>';
+
+                            var typeLabel = item.isDirectory ? '<span class="badge bg-light text-dark">Directory</span>' : (item.extension || 'File');
+                            var modDate = item.modified ? new Date(item.modified).toLocaleDateString() : '';
+
+                            rowsHtml += '<tr class="browse-item-row" data-path="' + item.path.replace(/\\/g, '\\\\') + '" data-isdir="' + item.isDirectory + '" style="cursor: pointer;">' +
+                                '<td>' + icon + '</td>' +
+                                '<td class="fw-semibold">' + item.name + '</td>' +
+                                '<td><small class="text-muted">' + typeLabel + '</small></td>' +
+                                '<td><small class="text-muted">' + modDate + '</small></td>' +
+                                '</tr>';
+                        });
+                        $('#browseItemsTbody').html(rowsHtml);
+                    },
+                    error: function () {
+                        $('#browseItemsTbody').html('<tr><td colspan="4" class="text-center py-3 text-danger"><i class="fas fa-exclamation-circle me-1"></i> Could not read directory.</td></tr>');
+                    }
+                });
+            }
+
+            $(document).on('click', '.browse-nav-link', function (e) {
+                e.preventDefault();
+                loadDirectory($(this).data('path'));
+            });
+
+            $('#btnBrowseUp').on('click', function () {
+                if (browseCurrentParentPath !== undefined) {
+                    loadDirectory(browseCurrentParentPath);
+                }
+            });
+
+            $('#btnBrowseGo').on('click', function () {
+                var p = $('#browseCurrentPathInput').val();
+                loadDirectory(p);
+            });
+
+            $(document).on('click', '.browse-item-row', function () {
+                $('.browse-item-row').removeClass('table-primary');
+                $(this).addClass('table-primary');
+
+                var path = $(this).data('path');
+                var isDir = $(this).data('isdir');
+                $('#browseSelectedPath').val(path);
+            });
+
+            $(document).on('dblclick', '.browse-item-row', function () {
+                var path = $(this).data('path');
+                var isDir = $(this).data('isdir');
+                if (isDir) {
+                    loadDirectory(path);
+                } else {
+                    $('#btnConfirmBrowseSelection').click();
+                }
+            });
+
+            $('#btnConfirmBrowseSelection').on('click', function () {
+                var selected = $('#browseSelectedPath').val();
+                if (selected && browseTargetInput) {
+                    while (selected.indexOf('\\\\') !== -1) {
+                        selected = selected.replace(/\\\\/g, '\\');
+                    }
+                    $(browseTargetInput).val(selected).trigger('input').trigger('change');
+                    var modal = bootstrap.Modal.getInstance(document.getElementById('browseModal'));
+                    if (modal) modal.hide();
+                }
+            });
+
+            // Backups Modal
+            $('#btnOpenBackupsModal').on('click', function () {
+                loadBackups();
+                var modal = new bootstrap.Modal(document.getElementById('backupsModal'));
+                modal.show();
+            });
+
+            function loadBackups() {
+                $('#backupsTableBody').html('<tr><td colspan="4" class="text-center py-4 text-muted"><div class="spinner-border spinner-border-sm me-2 text-primary"></div>Loading backups...</td></tr>');
+
+                $.ajax({
+                    url: '/SystemConfig/Backups',
+                    type: 'GET',
+                    success: function (backups) {
+                        if (!backups || backups.length === 0) {
+                            $('#backupsTableBody').html('<tr><td colspan="4" class="text-center py-3 text-muted">No backups found yet. Backups are automatically created when saving.</td></tr>');
+                            return;
+                        }
+
+                        var rowsHtml = '';
+                        backups.forEach(function (b) {
+                            var sizeKb = Math.round(b.sizeBytes / 1024);
+                            var dateStr = new Date(b.createdAt).toLocaleString();
+
+                            rowsHtml += '<tr>' +
+                                '<td><code>' + b.fileName + '</code></td>' +
+                                '<td><small class="text-muted">' + dateStr + '</small></td>' +
+                                '<td><small class="text-muted">' + sizeKb + ' KB</small></td>' +
+                                '<td class="text-end">' +
+                                '<button type="button" class="btn btn-sm btn-outline-warning btn-restore-backup" data-filename="' + b.fileName + '">' +
+                                '<i class="fas fa-undo me-1"></i> Restore' +
+                                '</button>' +
+                                '</td>' +
+                                '</tr>';
+                        });
+                        $('#backupsTableBody').html(rowsHtml);
+                    },
+                    error: function () {
+                        $('#backupsTableBody').html('<tr><td colspan="4" class="text-center py-3 text-danger">Failed to load backups list.</td></tr>');
+                    }
+                });
+            }
+
+            $(document).on('click', '.btn-restore-backup', function () {
+                var fileName = $(this).data('filename');
+                if (!confirm('Are you sure you want to restore settings from "' + fileName + '"? This will overwrite the current appsettings.json (a backup of current state will be preserved).')) {
+                    return;
+                }
+
+                $.ajax({
+                    url: '/SystemConfig/RestoreBackup',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ fileName: fileName }),
+                    success: function (res) {
+                        if (res.success) {
+                            alert(res.message);
+                            location.reload();
+                        } else {
+                            alert('Restore failed: ' + res.message);
+                        }
+                    },
+                    error: function (xhr) {
+                        alert('Error restoring backup: ' + xhr.responseText);
+                    }
+                });
+            });
+
+            $('#btnClearOldFfmpegLogs').on('click', function () {
+                var btn = $(this);
+                btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Cleaning...');
+                $('#clearLogsStatus').text('');
+
+                $.ajax({
+                    url: '/SystemConfig/ClearOldFfmpegLogs',
+                    type: 'POST',
+                    headers: {
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function (res) {
+                        btn.prop('disabled', false).html('<i class="fas fa-trash-alt me-1"></i> Clean Old Logs Now');
+                        if (res.success) {
+                            $('#clearLogsStatus').removeClass('text-danger').addClass('text-success').text(res.message);
+                        } else {
+                            $('#clearLogsStatus').removeClass('text-success').addClass('text-danger').text(res.message || 'Failed to clear logs.');
+                        }
+                    },
+                    error: function (xhr) {
+                        btn.prop('disabled', false).html('<i class="fas fa-trash-alt me-1"></i> Clean Old Logs Now');
+                        $('#clearLogsStatus').removeClass('text-success').addClass('text-danger').text('Error executing log cleanup: ' + xhr.statusText);
+                    }
+                });
+            });
+        });
+    </script>
+}
