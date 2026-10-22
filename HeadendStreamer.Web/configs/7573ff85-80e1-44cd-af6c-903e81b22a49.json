@@ -20,8 +20,9 @@
   "DateTimeMarginBottom": 10,
   "DateTimeFontColor": "white",
   "DateTimeFontSize": 21,
-  "InputDevice": "C:\\jaya\\1clouds.mp4 (1080p).mp4",
-  "InputFormat": "file",
+  "InputDevice": "C:\\jaya",
+  "FolderPath2": "Z:\\Video_Files",
+  "InputFormat": "folder",
   "PixelFormat": "yuv420p",
   "VideoSize": "720x576",
   "FrameRate": 30,
@@ -43,5 +44,5 @@
   "OutputFormat": "mpegts",
   "AdvancedOptions": {},
   "CreatedAt": "2026-08-02T14:57:50.0163769Z",
-  "UpdatedAt": "2026-10-12T12:11:53.0301101Z"
+  "UpdatedAt": "2026-10-22T07:51:29.9930026Z"
 }

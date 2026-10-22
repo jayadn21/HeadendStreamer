@@ -275,6 +275,31 @@
 
                         </div>
 
+                        <div class="row" id="folderPath2Row" style="display: none;">
+                            <div class="col-md-6 mb-3">
+                                <!-- Spacer for alignment with InputDevice on the right -->
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Config.FolderPath2" class="form-label font-weight-bold" id="folderPath2Label">Full Folder Path 2</label>
+                                <div class="input-group">
+                                    <input asp-for="Config.FolderPath2" id="FolderPath2" class="form-control" placeholder="e.g. D:\Videos\FolderB" />
+                                    <button class="btn btn-outline-secondary" type="button" id="browseButton2" title="Browse for folder 2">
+                                        <i class="fas fa-folder-open" id="browseIcon2"></i>
+                                    </button>
+                                    <button class="btn btn-outline-info" type="button" id="verifyPathButton2" title="Verify if path exists on server">
+                                        <i class="fas fa-check-circle" id="verifyIcon2"></i> Verify
+                                    </button>
+                                </div>
+                                <small class="text-muted" id="folderPath2Help">Optional second folder path. When configured, playback alternates between Folder 1 and Folder 2.</small>
+                                <div id="pathSuccess2" class="text-success small mt-1" style="display: none;">
+                                    <i class="fas fa-check-circle me-1"></i> Path verified on server.
+                                </div>
+                                <div id="pathError2" class="text-danger small mt-1" style="display: none;">
+                                    <i class="fas fa-times-circle me-1"></i> Path not found or inaccessible on server.
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="row" id="shuffleRow" style="display: none;">
                             <div class="col-md-6 mb-3">
                                 <div class="form-check mt-2">
@@ -1013,6 +1038,7 @@
             const help = document.getElementById('inputDeviceHelp');
             const browseIcon = document.getElementById('browseIcon');
             const shuffleRow = document.getElementById('shuffleRow');
+            const folderPath2Row = document.getElementById('folderPath2Row');
             
             if (this.value === 'file') {
                 label.innerText = 'Full Video Path';
@@ -1020,14 +1046,15 @@
                 browseIcon.className = 'fas fa-folder-open';
                 document.getElementById('verifyPathButton').style.display = 'inline-block';
                 if (shuffleRow) shuffleRow.style.display = 'none';
+                if (folderPath2Row) folderPath2Row.style.display = 'none';
+                hidePathStatus2();
             } else if (this.value === 'folder') {
-                label.innerText = 'Full Folder Path';
-                help.innerHTML = 'Provide full absolute directory path on the server.';
+                label.innerText = 'Full Folder Path 1';
+                help.innerHTML = 'Provide full absolute directory path on the server for Folder 1.';
                 browseIcon.className = 'fas fa-folder-open';
                 document.getElementById('verifyPathButton').style.display = 'inline-block';
                 if (shuffleRow) shuffleRow.style.display = 'block';
-                const shuffleCheckbox = document.getElementById('Shuffle');
-                if (shuffleCheckbox) shuffleCheckbox.checked = true;
+                if (folderPath2Row) folderPath2Row.style.display = 'flex';
             } else {
                 label.innerText = 'Input Device';
                 help.innerText = 'e.g. video=Integrated Camera or /dev/video0';
@@ -1035,6 +1062,8 @@
                 document.getElementById('verifyPathButton').style.display = 'none';
                 hidePathStatus();
                 if (shuffleRow) shuffleRow.style.display = 'none';
+                if (folderPath2Row) folderPath2Row.style.display = 'none';
+                hidePathStatus2();
             }
             updateCommandPreview();
         });
@@ -1044,6 +1073,46 @@
             document.getElementById('pathSuccess').style.display = 'none';
             document.getElementById('pathError').style.display = 'none';
         }
+
+        function hidePathStatus2() {
+            const success2 = document.getElementById('pathSuccess2');
+            const error2 = document.getElementById('pathError2');
+            if (success2) success2.style.display = 'none';
+            if (error2) error2.style.display = 'none';
+        }
+
+        // Verify path 2 logic
+        document.getElementById('verifyPathButton2')?.addEventListener('click', async function() {
+            const path = document.getElementById('FolderPath2').value;
+            if (!path) return;
+
+            const icon = document.getElementById('verifyIcon2');
+            const originalClass = icon ? icon.className : '';
+            if (icon) icon.className = 'fas fa-spinner fa-spin';
+            this.disabled = true;
+
+            try {
+                const response = await fetch('/api/config/verify-path', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ Path: path })
+                });
+                const result = await response.json();
+                
+                hidePathStatus2();
+                if (result.exists) {
+                    document.getElementById('pathSuccess2').style.display = 'block';
+                } else {
+                    document.getElementById('pathError2').style.display = 'block';
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Verification failed');
+            } finally {
+                if (icon) icon.className = originalClass;
+                this.disabled = false;
+            }
+        });
 
         // Verify path logic
         document.getElementById('verifyPathButton').addEventListener('click', async function() {
@@ -1100,6 +1169,16 @@
             }
         });
 
+        document.getElementById('browseButton2')?.addEventListener('click', function() {
+            activeBrowseTarget = 'device2';
+            const selectFolderBtn = document.getElementById('selectFolderBtn');
+            if (selectFolderBtn) {
+                selectFolderBtn.style.display = 'inline-block';
+            }
+            browsePath('');
+            fileBrowserModal.show();
+        });
+
         document.getElementById('browseLogoBtn').addEventListener('click', function() {
             activeBrowseTarget = 'logo';
             const selectFolderBtn = document.getElementById('selectFolderBtn');
@@ -1111,10 +1190,16 @@
         });
 
         document.getElementById('selectFolderBtn').addEventListener('click', function() {
-            document.getElementById('InputDevice').value = currentBrowsePath;
-            fileBrowserModal.hide();
-            hidePathStatus();
-            updateCommandPreview();
+            if (activeBrowseTarget === 'device2') {
+                document.getElementById('FolderPath2').value = currentBrowsePath;
+                fileBrowserModal.hide();
+                hidePathStatus2();
+            } else {
+                document.getElementById('InputDevice').value = currentBrowsePath;
+                fileBrowserModal.hide();
+                hidePathStatus();
+                updateCommandPreview();
+            }
         });
 
         async function browsePath(path) {
@@ -1154,12 +1239,12 @@
             }
             
             let itemsToRender = data.items;
-            if (isFolderMode && activeBrowseTarget === 'device') {
+            if ((isFolderMode && activeBrowseTarget === 'device') || activeBrowseTarget === 'device2') {
                 itemsToRender = itemsToRender.filter(item => item.isDirectory);
             }
             
             if (itemsToRender.length === 0) {
-                const msg = isFolderMode ? 'No directories found' : 'No video files found in this directory';
+                const msg = isFolderMode || activeBrowseTarget === 'device2' ? 'No directories found' : 'No video files found in this directory';
                 fileList.innerHTML += `<div class="text-center p-4 text-muted">${msg}</div>`;
                 return;
             }
@@ -1180,6 +1265,9 @@
                         if (activeBrowseTarget === 'device') {
                             document.getElementById('InputDevice').value = item.path;
                             hidePathStatus();
+                        } else if (activeBrowseTarget === 'device2') {
+                            document.getElementById('FolderPath2').value = item.path;
+                            hidePathStatus2();
                         } else if (activeBrowseTarget === 'logo') {
                             document.getElementById('LogoPath').value = item.path;
                             updateLogoPreview();
@@ -1588,6 +1676,7 @@
             data.EnableAudio = document.getElementById('EnableAudio').checked;
             data.ReStream = document.getElementById('ReStream').checked;
             data.Shuffle = document.getElementById('Shuffle') ? document.getElementById('Shuffle').checked : false;
+            data.FolderPath2 = document.getElementById('FolderPath2') ? document.getElementById('FolderPath2').value : null;
             data.IncludeThreadQueueSize = document.getElementById('IncludeThreadQueueSize') ? document.getElementById('IncludeThreadQueueSize').checked : true;
             data.EnableLogo = document.getElementById('EnableLogo').checked;
             data.EnableDateTime = document.getElementById('EnableDateTime').checked;

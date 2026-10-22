@@ -244,7 +244,7 @@ public class FfmpegService
             // Remove quotes if present
             path = path.Trim('"');
 
-            return File.Exists(path);
+            return File.Exists(path) || Directory.Exists(path);
         }
         catch (Exception ex)
         {

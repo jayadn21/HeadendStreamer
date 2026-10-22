@@ -35,6 +35,7 @@ public class StreamConfig
     
     // Input Configuration
     public string InputDevice { get; set; } = "/dev/video0";
+    public string? FolderPath2 { get; set; }
     public string InputFormat { get; set; } = "yuyv422"; // This is actually the input format/driver (e.g. dshow, v4l2) or pixel format depending on context. Refactoring to separate.
     public string PixelFormat { get; set; } = "yuyv422";
     public string VideoSize { get; set; } = "1920x1080";

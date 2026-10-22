@@ -39,9 +39,16 @@
                         <span class="badge bg-primary rounded-pill">@Model.Config.InputFormat</span>
                     </li>
                     <li class="list-group-item">
-                        <span class="text-muted d-block mb-1">Input Device</span>
+                        <span class="text-muted d-block mb-1">@(Model.Config.InputFormat?.ToLower() == "folder" ? "Full Folder Path 1" : "Input Device")</span>
                         <code>@Model.Config.InputDevice</code>
                     </li>
+                    @if (Model.Config.InputFormat?.ToLower() == "folder" && !string.IsNullOrEmpty(Model.Config.FolderPath2))
+                    {
+                        <li class="list-group-item">
+                            <span class="text-muted d-block mb-1">Full Folder Path 2</span>
+                            <code>@Model.Config.FolderPath2</code>
+                        </li>
+                    }
                     <li class="list-group-item">
                         <span class="text-muted d-block mb-1">Destination</span>
                         <code>udp://@Model.Config.MulticastIp:@Model.Config.Port</code>

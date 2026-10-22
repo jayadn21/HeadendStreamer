@@ -1255,6 +1255,8 @@ public class StreamManagerService
         if (state != null)
         {
             state.PlayedVideos.Clear();
+            state.LastFolder1VideoPath = null;
+            state.LastFolder2VideoPath = null;
             
             var dir = Path.Combine(AppContext.BaseDirectory, "logs", "playback_status");
             if (!Directory.Exists(dir))
@@ -1389,31 +1391,64 @@ public class StreamManagerService
 
     private void SetupNextVideoForFolder(string configId, StreamConfig config, FolderPlaybackState state, string? currentOverride = null)
     {
-        var folderPath = config.InputDevice;
-        if (!Directory.Exists(folderPath))
+        var folder1 = config.InputDevice;
+        if (!Directory.Exists(folder1))
         {
-            throw new DirectoryNotFoundException($"Folder path not found: {folderPath}");
+            throw new DirectoryNotFoundException($"Folder path not found: {folder1}");
         }
 
         var videoExtensions = new[] { ".mp4", ".mkv", ".avi", ".mov", ".ts", ".m2ts", ".flv", ".webm" };
-        var videoFiles = Directory.GetFiles(folderPath)
-            .Where(f => videoExtensions.Contains(Path.GetExtension(f).ToLower()))
+        var videoFiles1 = Directory.GetFiles(folder1)
+            .Where(f => videoExtensions.Contains(Path.GetExtension(f).ToLowerInvariant()))
             .OrderBy(f => f)
             .ToList();
 
-        if (videoFiles.Count == 0)
+        if (videoFiles1.Count == 0)
         {
-            throw new FileNotFoundException($"No video files found in folder: {folderPath}");
+            throw new FileNotFoundException($"No video files found in folder: {folder1}");
         }
 
+        var folder2 = !string.IsNullOrWhiteSpace(config.FolderPath2) ? config.FolderPath2.Trim() : null;
+        List<string> videoFiles2 = new();
+        bool hasTwoFolders = false;
+
+        if (!string.IsNullOrEmpty(folder2))
+        {
+            if (Directory.Exists(folder2))
+            {
+                videoFiles2 = Directory.GetFiles(folder2)
+                    .Where(f => videoExtensions.Contains(Path.GetExtension(f).ToLowerInvariant()))
+                    .OrderBy(f => f)
+                    .ToList();
+
+                if (videoFiles2.Count > 0)
+                {
+                    hasTwoFolders = true;
+                }
+                else
+                {
+                    _logger.LogWarning($"Full Folder Path 2 has no video files: {folder2}. Playing from Folder 1 only.");
+                }
+            }
+            else
+            {
+                _logger.LogWarning($"Full Folder Path 2 not found: {folder2}. Playing from Folder 1 only.");
+            }
+        }
+
+        // Determine currentVideo
         string currentVideo;
-        var normalizedCurrentPath = string.IsNullOrEmpty(state.CurrentVideoPath) ? "" : Path.GetFullPath(state.CurrentVideoPath).ToLowerInvariant();
-        var matchingFile = videoFiles.FirstOrDefault(f => Path.GetFullPath(f).ToLowerInvariant() == normalizedCurrentPath);
+        var normalizedCurrent = string.IsNullOrEmpty(state.CurrentVideoPath) ? "" : Path.GetFullPath(state.CurrentVideoPath).ToLowerInvariant();
+        var matchingFile1 = videoFiles1.FirstOrDefault(f => Path.GetFullPath(f).ToLowerInvariant() == normalizedCurrent);
+        var matchingFile2 = hasTwoFolders ? videoFiles2.FirstOrDefault(f => Path.GetFullPath(f).ToLowerInvariant() == normalizedCurrent) : null;
+        var matchingFile = matchingFile1 ?? matchingFile2;
 
         if (!string.IsNullOrEmpty(currentOverride))
         {
             var normalizedOverride = Path.GetFullPath(currentOverride).ToLowerInvariant();
-            currentVideo = videoFiles.FirstOrDefault(f => Path.GetFullPath(f).ToLowerInvariant() == normalizedOverride) ?? videoFiles[0];
+            var match1 = videoFiles1.FirstOrDefault(f => Path.GetFullPath(f).ToLowerInvariant() == normalizedOverride);
+            var match2 = hasTwoFolders ? videoFiles2.FirstOrDefault(f => Path.GetFullPath(f).ToLowerInvariant() == normalizedOverride) : null;
+            currentVideo = match1 ?? match2 ?? videoFiles1[0];
             state.ResumePositionSeconds = 0;
         }
         else if (matchingFile != null)
@@ -1425,46 +1460,110 @@ public class StreamManagerService
             state.ResumePositionSeconds = 0;
             if (config.Shuffle)
             {
-                var unplayed = videoFiles.Where(f => !state.PlayedVideos.Any(pv => Path.GetFullPath(pv.VideoPath).ToLowerInvariant() == Path.GetFullPath(f).ToLowerInvariant())).ToList();
-                if (unplayed.Count == 0)
+                var unplayed1 = videoFiles1.Where(f => !state.PlayedVideos.Any(pv => Path.GetFullPath(pv.VideoPath).ToLowerInvariant() == Path.GetFullPath(f).ToLowerInvariant())).ToList();
+                if (unplayed1.Count == 0)
                 {
-                    state.PlayedVideos.Clear();
-                    unplayed = videoFiles;
+                    state.PlayedVideos.RemoveAll(pv => videoFiles1.Any(f => Path.GetFullPath(f).ToLowerInvariant() == Path.GetFullPath(pv.VideoPath).ToLowerInvariant()));
+                    unplayed1 = videoFiles1;
                 }
                 var rnd = new Random();
-                currentVideo = unplayed[rnd.Next(unplayed.Count)];
+                currentVideo = unplayed1[rnd.Next(unplayed1.Count)];
             }
             else
             {
-                currentVideo = videoFiles[0];
+                currentVideo = videoFiles1[0];
             }
         }
 
         state.CurrentVideoPath = currentVideo;
         state.CurrentVideoName = Path.GetFileName(currentVideo);
 
-        string upcomingVideo;
-        if (config.Shuffle)
+        // Track last played per folder
+        var normalizedCurrentVideo = Path.GetFullPath(currentVideo).ToLowerInvariant();
+        bool isCurrentFromFolder1 = videoFiles1.Any(f => Path.GetFullPath(f).ToLowerInvariant() == normalizedCurrentVideo);
+        bool isCurrentFromFolder2 = hasTwoFolders && videoFiles2.Any(f => Path.GetFullPath(f).ToLowerInvariant() == normalizedCurrentVideo);
+
+        if (isCurrentFromFolder1)
         {
-            var unplayed = videoFiles
-                .Where(f => f != currentVideo && !state.PlayedVideos.Any(pv => Path.GetFullPath(pv.VideoPath).ToLowerInvariant() == Path.GetFullPath(f).ToLowerInvariant()))
-                .ToList();
-            if (unplayed.Count == 0)
+            state.LastFolder1VideoPath = currentVideo;
+        }
+        else if (isCurrentFromFolder2)
+        {
+            state.LastFolder2VideoPath = currentVideo;
+        }
+
+        // Determine upcomingVideo
+        string upcomingVideo;
+        if (!hasTwoFolders)
+        {
+            if (config.Shuffle)
             {
-                unplayed = videoFiles.Where(f => f != currentVideo).ToList();
+                var unplayed = videoFiles1
+                    .Where(f => Path.GetFullPath(f).ToLowerInvariant() != normalizedCurrentVideo &&
+                                !state.PlayedVideos.Any(pv => Path.GetFullPath(pv.VideoPath).ToLowerInvariant() == Path.GetFullPath(f).ToLowerInvariant()))
+                    .ToList();
                 if (unplayed.Count == 0)
                 {
-                    unplayed = videoFiles;
+                    unplayed = videoFiles1.Where(f => Path.GetFullPath(f).ToLowerInvariant() != normalizedCurrentVideo).ToList();
+                    if (unplayed.Count == 0)
+                    {
+                        unplayed = videoFiles1;
+                    }
                 }
+                var rnd = new Random();
+                upcomingVideo = unplayed[rnd.Next(unplayed.Count)];
             }
-            var rnd = new Random();
-            upcomingVideo = unplayed[rnd.Next(unplayed.Count)];
+            else
+            {
+                var currentIndex = videoFiles1.FindIndex(f => Path.GetFullPath(f).ToLowerInvariant() == normalizedCurrentVideo);
+                var upcomingIndex = currentIndex >= 0 ? (currentIndex + 1) % videoFiles1.Count : 0;
+                upcomingVideo = videoFiles1[upcomingIndex];
+            }
         }
         else
         {
-            var currentIndex = videoFiles.IndexOf(currentVideo);
-            var upcomingIndex = (currentIndex + 1) % videoFiles.Count;
-            upcomingVideo = videoFiles[upcomingIndex];
+            // Switch folders between Folder 1 and Folder 2:
+            // If currentVideo is from Folder 1, upcoming is from Folder 2.
+            // If currentVideo is from Folder 2, upcoming is from Folder 1.
+            bool upcomingFromFolder2 = isCurrentFromFolder1;
+            var targetFiles = upcomingFromFolder2 ? videoFiles2 : videoFiles1;
+            var lastPlayedInTarget = upcomingFromFolder2 ? state.LastFolder2VideoPath : state.LastFolder1VideoPath;
+
+            if (config.Shuffle)
+            {
+                var unplayed = targetFiles
+                    .Where(f => Path.GetFullPath(f).ToLowerInvariant() != normalizedCurrentVideo &&
+                                !state.PlayedVideos.Any(pv => Path.GetFullPath(pv.VideoPath).ToLowerInvariant() == Path.GetFullPath(f).ToLowerInvariant()))
+                    .ToList();
+
+                if (unplayed.Count == 0)
+                {
+                    // Reset played history for this target folder only
+                    state.PlayedVideos.RemoveAll(pv => targetFiles.Any(f => Path.GetFullPath(f).ToLowerInvariant() == Path.GetFullPath(pv.VideoPath).ToLowerInvariant()));
+                    unplayed = targetFiles.Where(f => Path.GetFullPath(f).ToLowerInvariant() != normalizedCurrentVideo).ToList();
+                    if (unplayed.Count == 0)
+                    {
+                        unplayed = targetFiles;
+                    }
+                }
+
+                var rnd = new Random();
+                upcomingVideo = unplayed[rnd.Next(unplayed.Count)];
+            }
+            else
+            {
+                int nextIndex = 0;
+                if (!string.IsNullOrEmpty(lastPlayedInTarget))
+                {
+                    var normalizedLast = Path.GetFullPath(lastPlayedInTarget).ToLowerInvariant();
+                    var lastIndex = targetFiles.FindIndex(f => Path.GetFullPath(f).ToLowerInvariant() == normalizedLast);
+                    if (lastIndex >= 0)
+                    {
+                        nextIndex = (lastIndex + 1) % targetFiles.Count;
+                    }
+                }
+                upcomingVideo = targetFiles[nextIndex];
+            }
         }
 
         state.UpcomingVideoPath = upcomingVideo;

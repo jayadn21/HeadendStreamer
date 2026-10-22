@@ -126,6 +126,7 @@ public class ConfigService
         existingConfig.DateTimeFontColor = updates.DateTimeFontColor;
         existingConfig.DateTimeFontSize = updates.DateTimeFontSize;
         existingConfig.InputDevice = updates.InputDevice ?? existingConfig.InputDevice;
+        existingConfig.FolderPath2 = updates.FolderPath2;
         existingConfig.InputFormat = updates.InputFormat ?? existingConfig.InputFormat;
         existingConfig.PixelFormat = updates.PixelFormat ?? existingConfig.PixelFormat;
         existingConfig.VideoSize = updates.VideoSize ?? existingConfig.VideoSize;

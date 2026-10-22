@@ -14,6 +14,8 @@ public class FolderPlaybackState
     public int? ProcessId { get; set; }
     public DateTime LastSaved { get; set; } = DateTime.UtcNow;
     public List<PlayedVideoInfo> PlayedVideos { get; set; } = new();
+    public string? LastFolder1VideoPath { get; set; }
+    public string? LastFolder2VideoPath { get; set; }
 }
 
 public class PlayedVideoInfo
