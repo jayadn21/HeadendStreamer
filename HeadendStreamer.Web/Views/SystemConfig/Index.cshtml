@@ -501,6 +501,31 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- FFmpeg Log Maintenance -->
+                <div class="col-12">
+                    <div class="card shadow-sm border-0 border-start border-info border-4">
+                        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0 text-dark">
+                                <i class="fas fa-broom text-info me-2"></i>FFmpeg Log Maintenance
+                            </h5>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2">
+                                <i class="fas fa-clock me-1"></i> Auto-Cleans Every 5 Mins
+                            </span>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted small mb-3">
+                                The system automatically purges historical logs from <code>logs/ffmpeg/</code> every 5 minutes. All log files prior to today are removed, while today's active and completed logs are retained.
+                            </p>
+                            <div class="d-flex align-items-center gap-3">
+                                <button type="button" class="btn btn-outline-danger btn-sm" id="btnClearOldFfmpegLogs">
+                                    <i class="fas fa-trash-alt me-1"></i> Clean Old Logs Now
+                                </button>
+                                <span id="clearLogsStatus" class="small text-muted"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="mt-4 pt-3 border-top d-flex justify-content-end">
@@ -1002,6 +1027,32 @@
                     },
                     error: function (xhr) {
                         alert('Error restoring backup: ' + xhr.responseText);
+                    }
+                });
+            });
+
+            $('#btnClearOldFfmpegLogs').on('click', function () {
+                var btn = $(this);
+                btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Cleaning...');
+                $('#clearLogsStatus').text('');
+
+                $.ajax({
+                    url: '/SystemConfig/ClearOldFfmpegLogs',
+                    type: 'POST',
+                    headers: {
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function (res) {
+                        btn.prop('disabled', false).html('<i class="fas fa-trash-alt me-1"></i> Clean Old Logs Now');
+                        if (res.success) {
+                            $('#clearLogsStatus').removeClass('text-danger').addClass('text-success').text(res.message);
+                        } else {
+                            $('#clearLogsStatus').removeClass('text-success').addClass('text-danger').text(res.message || 'Failed to clear logs.');
+                        }
+                    },
+                    error: function (xhr) {
+                        btn.prop('disabled', false).html('<i class="fas fa-trash-alt me-1"></i> Clean Old Logs Now');
+                        $('#clearLogsStatus').removeClass('text-success').addClass('text-danger').text('Error executing log cleanup: ' + xhr.statusText);
                     }
                 });
             });

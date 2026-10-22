@@ -48,6 +48,8 @@ builder.Services.AddSingleton<Go2rtcService>();
 builder.Services.AddSingleton<SchedulerService>();
 builder.Services.AddSingleton<ExternalProcessService>();
 builder.Services.AddSingleton<SystemConfigService>();
+builder.Services.AddSingleton<FfmpegLogCleanupService>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<FfmpegLogCleanupService>());
 builder.Services.AddHostedService<BackgroundMonitorService>();
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)

@@ -360,6 +360,20 @@ public class StreamManagerService
         return result;
     }
     
+    /// <summary>
+    /// Returns the absolute paths of all log files currently being written to by active streams.
+    /// </summary>
+    public IEnumerable<string> GetActiveLogFiles()
+    {
+        lock (_processLock)
+        {
+            return _processes.Values
+                .Where(p => !string.IsNullOrEmpty(p.LogFile))
+                .Select(p => Path.GetFullPath(p.LogFile))
+                .ToList();
+        }
+    }
+    
     public async Task<StreamLog[]> GetStreamLogsAsync(string configId, int lines = 100)
     {
         string logFile;

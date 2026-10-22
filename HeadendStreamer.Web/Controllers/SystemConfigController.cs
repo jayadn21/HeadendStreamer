@@ -99,6 +99,21 @@ public class SystemConfigController : Controller
         return Json(new { success = result.Success, message = result.Message });
     }
 
+    [HttpPost]
+    public IActionResult ClearOldFfmpegLogs([FromServices] FfmpegLogCleanupService cleanupService)
+    {
+        try
+        {
+            var count = cleanupService.CleanupOldLogs();
+            return Json(new { success = true, deletedCount = count, message = $"Deleted {count} old FFmpeg log file(s). Today's logs retained." });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to clear old FFmpeg logs");
+            return Json(new { success = false, message = ex.Message });
+        }
+    }
+
     private bool IsAjaxRequest()
     {
         return Request.Headers["X-Requested-With"] == "XMLHttpRequest" ||
