@@ -53,6 +53,13 @@
                         <span class="text-muted d-block mb-1">Destination</span>
                         <code>udp://@Model.Config.MulticastIp:@Model.Config.Port</code>
                     </li>
+                    @if (!string.IsNullOrWhiteSpace(Model.Config.LocalAddr))
+                    {
+                        <li class="list-group-item">
+                            <span class="text-muted d-block mb-1">Local Interface (localaddr)</span>
+                            <code>@Model.Config.LocalAddr</code>
+                        </li>
+                    }
                     <li class="list-group-item">
                         <span class="text-muted d-block mb-1">Preview</span>
                         @if (Model.IsPreviewServiceRunning)

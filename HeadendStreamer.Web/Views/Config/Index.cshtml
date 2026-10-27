@@ -60,6 +60,10 @@
                                     </td>
                                     <td>
                                         <code>udp://@config.MulticastIp:@config.Port</code>
+                                        @if (!string.IsNullOrWhiteSpace(config.LocalAddr))
+                                        {
+                                            <br /><small class="text-muted"><i class="fas fa-network-wired me-1"></i>local: @config.LocalAddr</small>
+                                        }
                                     </td>
                                     <td>
                                         @if (config.Enabled)

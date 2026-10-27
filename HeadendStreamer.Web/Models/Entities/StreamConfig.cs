@@ -69,6 +69,7 @@ public class StreamConfig
     public int Port { get; set; } = 1234;
     public int Ttl { get; set; } = 64;
     public string OutputFormat { get; set; } = "mpegts";
+    public string? LocalAddr { get; set; }
     
     // Advanced Settings
     public Dictionary<string, string> AdvancedOptions { get; set; } = new();

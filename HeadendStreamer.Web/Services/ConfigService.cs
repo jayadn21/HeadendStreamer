@@ -147,6 +147,7 @@ public class ConfigService
         existingConfig.Port = updates.Port;
         existingConfig.Ttl = updates.Ttl;
         existingConfig.OutputFormat = updates.OutputFormat ?? existingConfig.OutputFormat;
+        existingConfig.LocalAddr = updates.LocalAddr;
         existingConfig.AdvancedOptions = updates.AdvancedOptions ?? existingConfig.AdvancedOptions;
         existingConfig.UpdatedAt = DateTime.UtcNow;
         

@@ -438,6 +438,24 @@
                         </div>
 
                         <div class="mb-3">
+                            <label asp-for="LocalAddr" class="form-label">Local IP Address (localaddr)</label>
+                            <div class="input-group">
+                                <input asp-for="LocalAddr" id="LocalAddr" class="form-control" placeholder="e.g. 192.168.1.100 (optional)" list="localAddrSuggestions" />
+                                <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Select Network Interface">
+                                    <i class="fas fa-network-wired me-1"></i> Interfaces
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end" id="localAddrDropdown">
+                                    <li><button class="dropdown-item" type="button" onclick="selectLocalAddr('')"><i class="fas fa-times me-1 text-danger"></i> Default (Any Interface)</button></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><h6 class="dropdown-header">Detected Network Interfaces</h6></li>
+                                    <li id="localAddrLoadingItem"><span class="dropdown-item text-muted">Loading interfaces...</span></li>
+                                </ul>
+                            </div>
+                            <datalist id="localAddrSuggestions"></datalist>
+                            <small class="text-muted">FFmpeg <code>localaddr</code> option: local IP address of the network interface used for sending multicast traffic (optional).</small>
+                        </div>
+
+                        <div class="mb-3">
                             <label asp-for="OutputFormat" class="form-label">Output Format</label>
                             <select asp-for="OutputFormat" id="OutputFormat" class="form-select">
                                 <option value="mpegts" selected>MPEG-TS (.ts)</option>
@@ -1277,6 +1295,7 @@
                 const multicastIp = getVal('MulticastIp') || '239.0.0.1';
                 const port = getVal('Port') || 1234;
                 const ttl = getVal('Ttl') || 64;
+                const localAddr = (getVal('LocalAddr') || '').trim();
                 const outputFormat = getVal('OutputFormat');
 
                 const reStream = getVal('ReStream');
@@ -1439,7 +1458,10 @@
                 args.push('-flags', '+global_header');
             }
             
-            const outputUrl = `udp://${multicastIp}:${port}?pkt_size=1316&buffer_size=65536&ttl=${ttl}`;
+            let outputUrl = `udp://${multicastIp}:${port}?pkt_size=1316&buffer_size=65536&ttl=${ttl}`;
+            if (localAddr) {
+                outputUrl += `&localaddr=${localAddr}`;
+            }
             args.push(`"${outputUrl}"`);
 
             document.getElementById('ffmpegCommandPreview').value = args.join(' ');
@@ -1547,6 +1569,69 @@
         document.getElementById('EnableLogo').addEventListener('change', toggleLogoOverlay);
         document.getElementById('EnableDateTime').addEventListener('change', toggleDateTimeOverlay);
 
+        function selectLocalAddr(ip) {
+            const input = document.getElementById('LocalAddr');
+            if (input) {
+                input.value = ip;
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        }
+
+        async function loadNetworkInterfaces() {
+            try {
+                const response = await fetch('/api/system/status');
+                if (!response.ok) return;
+                const data = await response.json();
+                const interfaces = data.networkInterfaces || [];
+                
+                const datalist = document.getElementById('localAddrSuggestions');
+                const dropdown = document.getElementById('localAddrDropdown');
+                
+                if (datalist) {
+                    datalist.innerHTML = '';
+                }
+                
+                if (dropdown) {
+                    dropdown.innerHTML = `
+                        <li><button class="dropdown-item" type="button" onclick="selectLocalAddr('')"><i class="fas fa-times me-1 text-danger"></i> Default (Any Interface)</button></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header">Detected Network Interfaces</h6></li>
+                    `;
+                    
+                    let count = 0;
+                    interfaces.forEach(ni => {
+                        if (ni.ipAddress && ni.ipAddress !== '127.0.0.1') {
+                            count++;
+                            if (datalist) {
+                                const opt = document.createElement('option');
+                                opt.value = ni.ipAddress;
+                                opt.label = `${ni.name} (${ni.ipAddress})`;
+                                datalist.appendChild(opt);
+                            }
+                            
+                            const li = document.createElement('li');
+                            const btn = document.createElement('button');
+                            btn.type = 'button';
+                            btn.className = 'dropdown-item d-flex justify-content-between align-items-center';
+                            btn.innerHTML = `<span><strong>${ni.name}</strong></span><span class="badge bg-secondary ms-2">${ni.ipAddress}</span>`;
+                            btn.onclick = () => selectLocalAddr(ni.ipAddress);
+                            li.appendChild(btn);
+                            dropdown.appendChild(li);
+                        }
+                    });
+                    
+                    if (count === 0) {
+                        const li = document.createElement('li');
+                        li.innerHTML = '<span class="dropdown-item text-muted">No external interfaces detected</span>';
+                        dropdown.appendChild(li);
+                    }
+                }
+            } catch (err) {
+                console.warn('Failed to load network interfaces:', err);
+            }
+        }
+
         // Initial preview update
         window.addEventListener('DOMContentLoaded', () => {
             updateCodecOptions(initialPreset, initialTune);
@@ -1558,6 +1643,7 @@
             toggleLogoOverlay();
             toggleDateTimeOverlay();
             updateLogoPreview();
+            loadNetworkInterfaces();
             updateCommandPreview();
         });
 
@@ -1569,6 +1655,7 @@
             formData.forEach((value, key) => data[key] = value);
             
             // Convert types
+            data.LocalAddr = data.LocalAddr ? data.LocalAddr.trim() : null;
             data.Port = parseInt(data.Port) || 0;
             data.VideoSize = data.VideoSize || (document.getElementById('VideoSize') ? document.getElementById('VideoSize').value : '1920x1080');
             data.FrameRate = parseInt(data.FrameRate || (document.getElementById('FrameRate') ? document.getElementById('FrameRate').value : 30)) || 30;

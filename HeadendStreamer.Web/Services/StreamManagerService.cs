@@ -428,6 +428,7 @@ public class StreamManagerService
         
         var hasLogo = config.EnableLogo && !string.IsNullOrEmpty(config.LogoPath) && File.Exists(config.LogoPath);
         var hasDateTime = config.EnableDateTime;
+        var localAddrParam = !string.IsNullOrWhiteSpace(config.LocalAddr) ? $"&localaddr={config.LocalAddr.Trim()}" : "";
 
         if (isNvidiaCodec && isCompressedInput)
         {
@@ -444,7 +445,7 @@ public class StreamManagerService
             args.AddRange(new[] { "-flags", "+global_header" });
             
             var reStreamOutputUrl = $"udp://{config.MulticastIp}:{config.Port}" +
-                           $"?pkt_size=1316&buffer_size=65536&ttl={config.Ttl}";
+                           $"?pkt_size=1316&buffer_size=65536&ttl={config.Ttl}{localAddrParam}";
             args.Add($"\"{reStreamOutputUrl}\"");
             
             return string.Join(" ", args);
@@ -812,7 +813,7 @@ public class StreamManagerService
         
         // Output URL
         var outputUrl = $"udp://{config.MulticastIp}:{config.Port}" +
-                       $"?pkt_size=1316&buffer_size=65536&ttl={config.Ttl}";
+                       $"?pkt_size=1316&buffer_size=65536&ttl={config.Ttl}{localAddrParam}";
         args.Add($"\"{outputUrl}\"");
         
         return string.Join(" ", args);
